@@ -7122,7 +7122,8 @@ function goMap(id, spawnKey) {
   setTimeout(() => {
     /* เข้าประตูวาร์ปกลับเมือง: เก็บศัตรูและของที่ตกในเหมืองไว้ กลับมาทางประตูจะอยู่ครบเหมือนเดิม */
     if (spawnKey === 'warpIn' && G.map && isMine(G.map)) G.warpKeep = { map: G.map.id, mons: G.mons, drops: G.drops }; else if (spawnKey !== 'warpBack') G.warpKeep = null;
-    { const prev = G.map; G.map = getMap(id); if (isMine(G.map) && !(prev && isMine(prev))) STATE.mineRun = (STATE.mineRun || 1) + 1; } // ลงเหมืองรอบใหม่
+    { const prev = G.map; G.map = getMap(id); if (isMine(G.map) && !(prev && isMine(prev))) STATE.mineRun = (STATE.mineRun || 1) + 1;
+      if (!isMine(G.map) && prev && isMine(prev) && !G.down) { const mx = pstats().maxHp; if (STATE.hp < mx) { STATE.hp = mx; setTimeout(() => { floatText(PL.x, PL.y - 34, 'เลือดเต็ม ♥', '#ff9aa8', 1.8); UI.hud(); }, 700); } } /* ออกจากเหมืองเข้าเมือง (เดินออกหรือใช้ประตูวาร์ป): เลือดกลับมาเต็ม */ } // ลงเหมืองรอบใหม่
     syncDeathBags(); setTheme(); G.bullets = []; G.muzzle = []; setTimeout(climateWarn, 1600);
     G.ignore = new Set(Object.keys(G.keys).filter(k => G.keys[k])); G.keys = {}; G.dpad = {}; document.querySelectorAll('[data-dir].down').forEach(b => b.classList.remove('down'));
     const sp = (spawnKey && G.map['spawn_' + spawnKey]) || (isMine(G.map) ? G.map.spawn : spawnKey === 'airport' ? G.map.spawnAirport : G.map.spawnFromMine);
