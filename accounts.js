@@ -107,12 +107,13 @@ function limited(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.no
 
 // เซฟที่ส่งมา: ต้องเป็น object ธรรมดา ขนาดไม่เกินกำหนด
 function cleanSave(s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return null; let str; try { str = JSON.stringify(s); } catch (e) { return null; } if (str.length > MAX_SAVE) return null; return JSON.parse(str); }
-// ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าของเซฟนั้นจริง
+// ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าหรือตู้เซฟของเซฟนั้นจริง
 function pubOf(save, pub) {
   const lv = Math.max(1, Math.min(MAX_LV, Math.floor(+save.lv || 1))), out = { xp: Math.max(0, +save.xp || 0) };
   let gval = 0;
-  if (pub && typeof pub === 'object' && pub.gem && typeof pub.gem === 'object' && Array.isArray(save.inv)) {
-    const own = save.inv.find(g => g && g.id === pub.gem.id && g.type === pub.gem.type);
+  if (pub && typeof pub === 'object' && pub.gem && typeof pub.gem === 'object') {
+    const all = [...(Array.isArray(save.inv) ? save.inv : []), ...((save.safe && Array.isArray(save.safe.gems)) ? save.safe.gems : [])];   // กระเป๋า + ตู้เซฟ
+    const own = all.find(g => g && g.id === pub.gem.id && g.type === pub.gem.type);
     if (own) { const gs = JSON.stringify(own); if (gs.length <= MAX_PUB) { out.gem = JSON.parse(gs); gval = Math.max(0, Math.min(1e13, Math.floor(+pub.value || 0))); } }
   }
   return { pub: out, lv, gval };
