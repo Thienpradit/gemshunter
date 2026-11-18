@@ -8000,6 +8000,17 @@ const NET = (() => {
   // ---------- บัญชี ----------
   N.logout = function () { try { saveGame(); } catch (e) {} const go = () => { ls.del(TK); const o = playersLoad(); o.cur = null; playersSave(o); saveLocked = true; location.reload(); }; if (N.dirty) N.sync().then(go, go); else go(); };
   N.changePass = async function (old, pass) { const r = await api('/api/password', { old, pass }); if (r.status === 200) { token = r.data.token; ls.set(TK, token); return { ok: true }; } return { err: r.data.err || 'เปลี่ยนรหัสผ่านไม่สำเร็จ' }; };
+  /* เปลี่ยนชื่อ: ส่งเซฟล่าสุดขึ้นก่อน → เปลี่ยนที่เซิร์ฟเวอร์ → ย้ายช่องเซฟในเครื่องไปไว้ใต้ชื่อใหม่ (ช่องเซฟในเครื่องผูกกับชื่อ) */
+  N.rename = async function (name) {
+    try { saveGame(); } catch (e) {} if (N.dirty) await N.sync(); if (N.blocked) return { err: 'ทำรายการไม่ได้ตอนนี้' };
+    const r = await api('/api/rename', { name }); if (r.status !== 200) return { err: r.data.err || 'เปลี่ยนชื่อไม่สำเร็จ' };
+    token = r.data.token; ls.set(TK, token);
+    const o = playersLoad(), old = curPlayer(), nid = acctId(r.data.name), raw = old ? ls.get('nlpc_save_' + old.id) : null;
+    if (old && old.id !== nid) { if (raw) ls.set('nlpc_save_' + nid, raw); ls.set(revKey(nid), String(N.rev)); ls.del('nlpc_save_' + old.id); ls.del(revKey(old.id)); o.list = o.list.filter(x => x.id !== old.id && x.id !== nid); o.list.push({ id: nid, name: r.data.name, t: old.t || Date.now(), acct: true }); o.cur = nid; }
+    else if (old) { const e = o.list.find(x => x.id === old.id); if (e) e.name = r.data.name; }
+    playersSave(o); N.name = r.data.name; N.boardAt = 0;
+    return { ok: true, name: r.data.name };
+  };
   N.newRecovery = async function () { const r = await api('/api/recovery', {}); return r.status === 200 ? { code: r.data.code } : { err: r.data.err || 'ขอรหัสไม่สำเร็จ' }; };
   N.statusText = () => !N.online ? '' : N.err ? `☁ ยังส่งเซฟขึ้นเซิร์ฟเวอร์ไม่ได้ (${N.err}) — จะลองใหม่เอง` : N.lastOk ? `☁ บันทึกขึ้นเซิร์ฟเวอร์ล่าสุด ${fmtClock(N.lastOk)} (บันทึกเองทุก ~45 วินาที และตอนปิดหน้า)` : N.dirty || N.busy ? '☁ กำลังบันทึกขึ้นเซิร์ฟเวอร์…' : '☁ เซฟตรงกับเซิร์ฟเวอร์แล้ว';
   return N;
@@ -8299,13 +8310,17 @@ const UI = (() => {
     show('player', `<h3>👤 บัญชีผู้เล่น</h3>
       <div class="wme"><b>${esc(NET.name)}</b><small>Lv ${STATE.lv || 1} • เซฟเก็บไว้กับบัญชีบนเซิร์ฟเวอร์ เข้าเล่นต่อได้จากทุกเครื่อง</small><small>${esc(NET.statusText())}</small></div>
       ${msg ? `<p class="${good ? 'good' : 'bad'}">${esc(msg)}</p>` : ''}
+      <h4>เปลี่ยนชื่อผู้เล่น <small class="muted">ฟรี</small></h4>
+      <div class="wreg"><input id="apName" type="text" maxlength="16" placeholder="ชื่อใหม่ (2–16 ตัวอักษร)" autocomplete="off"><button class="btn" data-a="rename">เปลี่ยนชื่อ</button></div>
+      <p class="muted small" style="margin-top:-2px">ชื่อใหม่ใช้เข้าสู่ระบบแทนชื่อเดิม และขึ้นบนบอร์ดอันดับ • รหัสผ่าน เซฟ และรหัสกู้คืนเหมือนเดิม</p>
       <h4>เปลี่ยนรหัสผ่าน</h4>
       <div class="wreg"><input id="apOld" type="password" maxlength="64" placeholder="รหัสผ่านเดิม" autocomplete="current-password"><input id="apNew" type="password" maxlength="64" placeholder="รหัสผ่านใหม่ (4 ตัวขึ้นไป)" autocomplete="new-password"><button class="btn" data-a="pass">เปลี่ยน</button></div>
       <h4>รหัสกู้คืน</h4><p class="muted small">ใช้ตั้งรหัสผ่านใหม่ตอนลืมรหัสผ่าน ถ้าทำรหัสเดิมหาย ขอชุดใหม่ได้ที่นี่ (ชุดเก่าจะใช้ไม่ได้)</p>
       <div class="row"><button class="btn" data-a="rc">ขอรหัสกู้คืนชุดใหม่</button><button class="btn" data-a="syncnow">☁ บันทึกขึ้นเซิร์ฟเวอร์ตอนนี้</button></div>
       <div class="row end"><button class="btn bad" data-a="logout">ออกจากระบบ</button><button class="btn" data-a="board">🏆 บอร์ดอันดับ</button><button class="btn" data-a="close">ปิด</button></div>`,
       async a => {
-        if (a === 'pass') { const o = $('#apOld').value, n = $('#apNew').value; if (n.length < 4) return account('รหัสผ่านใหม่ต้องยาวอย่างน้อย 4 ตัวอักษร'); const r = await NET.changePass(o, n); account(r.err || 'เปลี่ยนรหัสผ่านแล้ว', !r.err); }
+        if (a === 'rename') { const nm = $('#apName').value.trim(); if ([...nm].length < 2) return account('ชื่อต้องยาวอย่างน้อย 2 ตัวอักษร'); const r = await NET.rename(nm); if (r.err) return account(r.err); SFX.play('coin'); hud(); account(`เปลี่ยนชื่อเป็น ${r.name} แล้ว — ครั้งหน้าเข้าสู่ระบบด้วยชื่อนี้`, true); }
+        else if (a === 'pass') { const o = $('#apOld').value, n = $('#apNew').value; if (n.length < 4) return account('รหัสผ่านใหม่ต้องยาวอย่างน้อย 4 ตัวอักษร'); const r = await NET.changePass(o, n); account(r.err || 'เปลี่ยนรหัสผ่านแล้ว', !r.err); }
         else if (a === 'rc') { const r = await NET.newRecovery(); if (r.err) return account(r.err); show('rcode', `<h3>รหัสกู้คืนชุดใหม่</h3><p>จดเก็บไว้ ใช้ตอนลืมรหัสผ่าน (โชว์ครั้งเดียว)</p><div class="na-code">${esc(r.code)}</div><div class="row end"><button class="btn gold" data-a="ok">จดแล้ว</button></div>`, () => account()); }
         else if (a === 'syncnow') { saveGame(); await NET.sync(); account(NET.err ? 'ยังส่งไม่ได้: ' + NET.err : 'บันทึกขึ้นเซิร์ฟเวอร์แล้ว', !NET.err); }
         else if (a === 'logout') show('lgo', `<h3>ออกจากระบบ?</h3><p>เกมจะบันทึกขึ้นเซิร์ฟเวอร์ก่อน แล้วกลับไปหน้าเข้าสู่ระบบ</p><div class="row end"><button class="btn" data-a="no">ยกเลิก</button><button class="btn bad" data-a="yes">ออกจากระบบ</button></div>`, b => { if (b === 'yes') { toast('กำลังบันทึกและออกจากระบบ…', 'good'); NET.logout(); } else account(); });

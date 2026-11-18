@@ -25,6 +25,7 @@ function fileStore(note) {
     async save(l, save, pub, lv, gval) { const u = db[l]; if (!u) return 0; u.save = save; u.pub = pub; u.lv = lv; u.gval = gval; u.rev = (u.rev || 0) + 1; u.updated = Date.now(); flush(); return u.rev; },
     async setAuth(l, salt, hash) { const u = db[l]; if (u) { u.salt = salt; u.hash = hash; flush(); } },
     async setRecovery(l, rhash) { const u = db[l]; if (u) { u.rhash = rhash; flush(); } },
+    async rename(ol, nl, name) { const u = db[ol]; if (!u) return false; if (nl !== ol && db[nl]) return false; delete db[ol]; u.lname = nl; u.name = name; u.updated = Date.now(); db[nl] = u; flush(); return true; },
     async board(n) {
       const all = live();
       return { gems: all.filter(u => u.gval > 0 && u.pub && u.pub.gem).sort((a, b) => b.gval - a.gval || a.updated - b.updated).slice(0, n).map(u => ({ name: u.name, value: u.gval, gem: u.pub.gem, lv: u.lv })),
@@ -56,6 +57,9 @@ if (DB_URL) {
     async save(l, save, pub, lv, gval) { await ready; if (store !== dbStore) return store.save(l, save, pub, lv, gval); const r = await pool.query('UPDATE gem_players SET save=$2, pub=$3, lv=$4, gval=$5, rev=rev+1, updated=now() WHERE lname=$1 RETURNING rev', [l, JSON.stringify(save), JSON.stringify(pub), lv, gval]); return r.rows[0] ? r.rows[0].rev : 0; },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE gem_players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE gem_players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
+    async rename(ol, nl, name) { await ready; if (store !== dbStore) return store.rename(ol, nl, name);
+      try { const r = await pool.query('UPDATE gem_players SET lname=$2, name=$3, updated=now() WHERE lname=$1', [ol, nl, name]); return r.rowCount === 1; }
+      catch (e) { if (e.code === '23505') return false; throw e; } },   // 23505 = ชื่อซ้ำ
     async board(n) { await ready; if (store !== dbStore) return store.board(n);
       const g = await pool.query(`SELECT name, gval, lv, pub->'gem' AS gem FROM gem_players WHERE ban IS NULL AND gval > 0 AND pub ? 'gem' ORDER BY gval DESC, updated ASC LIMIT $1`, [n]);
       const l = await pool.query(`SELECT name, lv FROM gem_players WHERE ban IS NULL ORDER BY lv DESC, COALESCE((pub->>'xp')::float,0) DESC, updated ASC LIMIT $1`, [n]);
@@ -178,6 +182,15 @@ async function handleApi(req, res, p) {
       if (h.length !== w.length || !crypto.timingSafeEqual(h, w)) return out(401, { err: 'รหัสผ่านเดิมไม่ถูกต้อง' });
       const salt = crypto.randomBytes(16).toString('hex'), hash = await hashPass(pass, salt); await store.setAuth(u.lname, salt, hash);
       return out(200, { token: makeToken({ lname: u.lname, salt }) });
+    }
+    if (p === '/api/rename' && req.method === 'POST') {   // เปลี่ยนชื่อผู้เล่น (ตอนนี้ฟรี) · token ใหม่ผูกกับชื่อใหม่ (เครื่องอื่นต้องเข้าสู่ระบบด้วยชื่อใหม่)
+      if (limited(req, p, 6)) return out(429, { err: 'เปลี่ยนชื่อบ่อยเกินไป รอ 10 นาทีแล้วลองใหม่' });
+      const b = await readBody(req, 8192), name = cleanName(b.name), nl = lower(name);
+      if ([...name].length < 2) return out(400, { err: 'ชื่อต้องยาว 2–16 ตัวอักษร' });
+      if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันอยู่แล้ว' });
+      if (!await store.rename(u.lname, nl, name)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
+      boardCache = null;
+      return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name });
     }
     if (p === '/api/recovery' && req.method === 'POST') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
     return out(404, { err: 'not found' });
