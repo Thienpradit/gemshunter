@@ -6752,9 +6752,7 @@ function action() {
   if (G.trans || PL.state === 'swing' || UI.isOpen() || G.down) return;
   const it = nearestTarget();
   if (it) return doInteract(it);
-  // ถืออาวุธอยู่แต่ยืนชิดหินและไม่มีศัตรูใกล้ → สลับเป็นพลั่วให้อัตโนมัติ
-  const gunNear = pstats().weapon.gun && G.mons.some(e => Math.hypot(e.x - PL.x, e.y - PL.y) < (pstats().weapon.range || 200));
-  if (STATE.hand === 'weapon' && isMine(G.map) && !nearMonster() && !gunNear && frontRock()) { toggleHand(); toast('สลับเป็นพลั่วให้อัตโนมัติ', 'muted'); }
+  /* ไม่สลับของในมือให้อัตโนมัติ: ถืออะไรอยู่ก็ใช้อันนั้นจนกว่าผู้เล่นจะกดสลับเอง (Q / ปุ่มสลับ) */
   if (STATE.hand === 'pick') {
     const r = frontRock(true);
     if (r && r.bedrock) { toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); G.holdAct = false; return; }
