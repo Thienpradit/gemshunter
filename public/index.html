@@ -1150,12 +1150,12 @@ function lootTag(x) { const q = (x && x.q) || 0; return q ? `<span class="lootq 
 function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.35) : 5) * (obj && x.mods ? LOOT_Q[q].sell : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
 const CONSUMABLES = {
   water: { name: 'น้ำดื่ม', stamina: 25, price: 20 / 33 }, /* 20 บาท */
-  rice: { name: 'ข้าวเหนียวหมูปิ้ง', stamina: 45, price: 8 },
+  rice: { name: 'ข้าวเหนียวหมูปิ้ง', stamina: 45, price: 3.2 },
   herb: { name: 'ยาสมุนไพร', hp: 40, price: 15 },
   // ของใช้ฟื้นสเตมินาเพิ่ม (เครื่องดื่ม = ปุ่ม 2 • อาหาร = ปุ่ม 3)
-  coconut: { name: 'น้ำมะพร้าวสด', stamina: 60, price: 9 },
-  energy: { name: 'เครื่องดื่มชูกำลัง', stamina: 120, price: 24 },
-  mango: { name: 'ข้าวเหนียวมะม่วง', stamina: 90, price: 18 },
+  coconut: { name: 'น้ำมะพร้าวสด', stamina: 60, price: 3.6 },
+  energy: { name: 'เครื่องดื่มชูกำลัง', stamina: 120, price: 9.6 },
+  mango: { name: 'ข้าวเหนียวมะม่วง', stamina: 90, price: 7.2 },
   // ของใช้ฟื้นเลือดเพิ่ม (ปุ่ม 1)
   bandage: { name: 'ผ้าพันแผล', hp: 80, price: 34 },
   medkit: { name: 'ชุดปฐมพยาบาล', hp: 200, price: 95 },
