@@ -123,14 +123,18 @@ function pubOf(save, pub) {
   return { pub: out, lv, gval };
 }
 
+// ผู้เล่นออนไลน์: จดเวลาที่แต่ละบัญชีส่งสัญญาณล่าสุด (เก็บในหน่วยความจำ) — นับคนที่ส่งมาภายใน 70 วินาที
+const seen = new Map(), ONLINE_MS = 70000;
+function touch(l) { seen.set(l, Date.now()); }
+function onlineCount() { const now = Date.now(); let n = 0; for (const [l, t] of seen) { if (now - t > ONLINE_MS) seen.delete(l); else n++; } return n; }
 let boardCache = null, boardAt = 0;   // อันดับ: คำนวณใหม่ไม่ถี่กว่า 15 วินาที
 async function board() { const now = Date.now(); if (boardCache && now - boardAt < 15000) return boardCache; boardCache = await store.board(50); boardAt = now; return boardCache; }
 
 async function handleApi(req, res, p) {
   const out = (code, obj) => { const b = Buffer.from(JSON.stringify(obj)); res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': b.length }); res.end(b); };
   try {
-    if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { gem: true, accounts: !accountsDown(), store: store.kind, dbError: store.dbError || undefined }); }
-    if (p === '/api/board' && req.method === 'GET') return out(200, await board());
+    if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { gem: true, accounts: !accountsDown(), online: onlineCount(), store: store.kind, dbError: store.dbError || undefined }); }
+    if (p === '/api/board' && req.method === 'GET') return out(200, { ...(await board()), online: onlineCount() });
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดชั่วคราว (เซิร์ฟเวอร์ต่อฐานข้อมูลไม่ได้) ลองใหม่อีกครั้งภายหลัง' });
 
     if (p === '/api/register' || p === '/api/login') {
@@ -166,6 +170,8 @@ async function handleApi(req, res, p) {
 
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
+    touch(u.lname);
+    if (p === '/api/ping') return out(200, { online: onlineCount() });
     if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, save: u.save || null, rev: u.rev || 0 });
     if (p === '/api/save' && req.method === 'POST') {
       const b = await readBody(req); if (b.__tooBig) return out(413, { err: 'เซฟใหญ่เกินไป' });
@@ -189,7 +195,7 @@ async function handleApi(req, res, p) {
       if ([...name].length < 2) return out(400, { err: 'ชื่อต้องยาว 2–16 ตัวอักษร' });
       if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันอยู่แล้ว' });
       if (!await store.rename(u.lname, nl, name)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
-      boardCache = null;
+      boardCache = null; seen.delete(u.lname); touch(nl);
       return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name });
     }
     if (p === '/api/recovery' && req.method === 'POST') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
