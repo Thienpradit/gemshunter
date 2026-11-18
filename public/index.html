@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>นักล่าอัญมณี</title>
+<meta name="theme-color" content="#2f1c11">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="นักล่าอัญมณี">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1152,7 +1161,7 @@ const CONSUMABLES = {
   medkit: { name: 'ชุดปฐมพยาบาล', hp: 200, price: 95 },
   a9: { name: 'กระสุนปืนสั้น 9 มม.', ammo: true, pack: 15, price: 60 },
   a762: { name: 'กระสุนอาก้า 7.62 มม.', ammo: true, pack: 30, price: 180 },
-  warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 200 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
+  warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 100 / 33 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
 };
 // หมวดของใช้ตามปุ่มลัด: 1 = ฟื้นเลือด • 2 = เครื่องดื่ม • 3 = อาหาร (เรียงจากฟื้นน้อย → มาก)
 const CONS_CAT = { hp: ['herb', 'bandage', 'medkit'], drink: ['water', 'coconut', 'energy'], food: ['rice', 'mango'] };
@@ -6496,9 +6505,9 @@ function updateMonsters(dt) {
     if (sees && !G.down) e.state = 'chase'; else if (d > def.aggro * 1.6) e.state = 'wander';
     e.moving = false;
     if (e.atkT > 0) e.atkT = Math.max(0, e.atkT - dt);
-    if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); STATE.coins -= take; e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = 1.1; } continue; }
+    if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); STATE.coins -= take; e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = e.champ ? 0.6 : 1.1; /* แม่ทัพโจมตีถี่กว่า: พักระหว่างครั้ง 0.6 วิ (ลูกน้อง 1.1 วิ) */ } continue; }
     if (e.state === 'chase') {
-      if (d < def.reach && e.cd <= 0) { e.wind = e.windMax = e.type === 'bat' ? 0.2 : 0.38; const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
+      if (d < def.reach && e.cd <= 0) { e.wind = e.windMax = e.type === 'bat' ? 0.2 : e.champ ? 0.26 : 0.38; /* แม่ทัพง้างสั้นกว่า */ const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
       if (d < def.reach * 0.7) continue;
       const sp = def.spd * dt * (def.fly ? 1 + Math.sin(e.t * 9) * 0.3 : 1);
       let tx = PL.x, ty = PL.y;
