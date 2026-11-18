@@ -1577,7 +1577,7 @@ const COUNTRIES = {
 };
 // ชื่อพ่อค้า/ช่างของแต่ละประเทศ (ภาษาท้องถิ่น)
 const LOCAL_NAMES = {
-  thai: { raw: 'เถ้าแก่ทอง', craft: 'ช่างเปี๊ยก', big: 'เฮียใหญ่', clean: 'เจ๊ใส', pak: 'ตาแป๊ก', pon: 'คุณปอน' },
+  thai: { raw: 'เฮียซี', craft: 'ช่างเปี๊ยก', big: 'เฮียใหญ่', clean: 'เจ๊ใส', pak: 'ตาแป๊ก', pon: 'คุณปอน' },
   vietnam: { raw: 'นายหวู่', craft: 'ช่างตวน', big: 'นายหุ่ง', clean: 'นางลาน', pak: 'นายดึ๊ก', pon: 'นางไม' },
   myanmar: { raw: 'อูหม่อง', craft: 'ช่างอูเมี้ยะ', big: 'อูจ่อ', clean: 'ดอว์ซูซู', pak: 'โกเต็ง', pon: 'มะเอ' },
   madagascar: { raw: 'ราโกโต', craft: 'ช่างตีน่า', big: 'อันดรี', clean: 'ฟาลี', pak: 'ไรนี', pon: 'โฮโล' },
@@ -1733,7 +1733,7 @@ function gemSort(a, b) { return rarityScore(b) - rarityScore(a) || (GEM_RARITY[b
 // ---------- ภารกิจ ----------
 const QUESTS = [
   { id: 'sell5', title: 'ขายพลอยให้ได้ 5 เม็ด', goal: 5, kind: 'sell', reward: 120,
-    hint: 'ขายพลอยก้อนที่แผงเถ้าแก่ทอง หรือพลอยเจียระไนที่แผงเฮียใหญ่–เจ๊ใส นับรวมกันหมด' },
+    hint: 'ขายพลอยก้อนที่แผงเฮียซี หรือพลอยเจียระไนที่แผงเฮียใหญ่–เจ๊ใส นับรวมกันหมด' },
   { id: 'kill5', title: 'ปราบสัตว์ร้ายในเหมือง 5 ตัว', goal: 5, kind: 'kill', reward: 150,
     hint: 'สลับเป็นอาวุธ (Q หรือปุ่มสลับ) แล้วฟันงู แมงป่อง หรือซอมบี้ ศัตรูอาจดรอปเสื้อผ้าหรือจอบที่ดีกว่า' },
   { id: 'cut2', title: 'ขายพลอยเจียระไน 2 เม็ด', goal: 2, kind: 'sellCut', reward: 150,
@@ -5835,7 +5835,7 @@ function buildVillage() {
   // ---- NPC ----
   m.npcs = [];
   const npc = (key, name, x, y, dir = 'down') => { const n = { key, name, x, y, dir, baseDir: dir, t: Math.random() * 3 }; m.npcs.push(n); m.solids.push({ x: x - 5, y: y - 5, w: 10, h: 6, ref: n }); return n; };
-  const rawd = npc('rawdealer', 'เถ้าแก่ทอง', RWX, STY - 21);
+  const rawd = npc('rawdealer', 'เฮียซี', RWX, STY - 21);
   const pak = npc('pak', 'ตาแป๊ก', CTX - 22, STY - 21);
   const pon = npc('pon', 'คุณปอน', CTX + 22, STY - 21);
   const mint = npc('mint', 'มิ้นท์ (แฟนคุณปอน)', CTX + 58, STY + 4, 'left');
@@ -5843,7 +5843,7 @@ function buildVillage() {
   const jena = npc('jena', 'เจ๊นา', JWX + 34, JWY + 16);
   m.interact.push({ kind: 'jeweler', x: jena.x, y: jena.y + 8, r: 26, label: 'ร้านจิวเวลรี่เจ๊นา (รับซื้อพลอยตามแบบ ราคาพิเศษ)', verb: 'คุย', npc: jena, hit: { x: JWX - 50, y: JWY - 70, w: 100, h: 74 } });
 
-  m.interact.push({ kind: 'rawdealer', x: RWX, y: STY + 10, r: 28, label: 'คุยกับเถ้าแก่ทอง', verb: 'คุย', npc: rawd });
+  m.interact.push({ kind: 'rawdealer', x: RWX, y: STY + 10, r: 28, label: 'คุยกับเฮียซี', verb: 'คุย', npc: rawd });
   m.interact.push({ kind: 'cutdealer', x: CTX, y: STY + 10, r: 32, label: 'ร้านรับซื้อพลอยเจียระไน (ตาแป๊ก • คุณปอน)', verb: 'คุย', npc: pak });
   m.interact.push({ kind: 'craft', x: WSX, y: WSY + 8, r: 24, label: 'โรงเจียระไน (จ้างช่างเจีย / เจียเอง)', verb: 'เข้าร้าน', hit: { x: WSX - 60, y: WSY - 96, w: 120, h: 100 } });
   m.interact.push({ kind: 'elder', x: elder.x, y: elder.y + 6, r: 20, label: 'คุยกับผู้ใหญ่ชาญ', verb: 'คุย', npc: elder });
@@ -8283,7 +8283,7 @@ const UI = (() => {
          <p><b>ข) จ้างช่าง</b> — ร้านช่างเปี๊ยก ฝั่งซ้าย (หมายเลข ③) ค่าจ้าง ${baht(CONFIG.hireFeePerGem)} บาท/เม็ด เลือกทรงได้ รอคิวสักครู่แล้วกลับมารับ</p>
          <p class="muted">การเจียต้องเสียเนื้อ: พลอยก้อน 1 กะรัต เจียแล้วเหลือประมาณ <b>0.45–0.50 กะรัต</b> (ถ้าตัดตำหนิทิ้งเหลือ ~0.30–0.38 แต่สะอาดกว่า)</p>`)}
 
-      ${step(5, 'ขายพลอยที่ตลาดพลอยจันท์', [[I.rawdealer, 'เถ้าแก่ทอง: รับซื้อพลอยก้อน'], [I.big, 'เฮียใหญ่: เม็ดใหญ่'], [I.clean, 'เจ๊ใส: สีสวย สะอาด']],
+      ${step(5, 'ขายพลอยที่ตลาดพลอยจันท์', [[I.rawdealer, 'เฮียซี: รับซื้อพลอยก้อน'], [I.big, 'เฮียใหญ่: เม็ดใหญ่'], [I.clean, 'เจ๊ใส: สีสวย สะอาด']],
         `<p>แผงพลอยอยู่ <b>กลางหมู่บ้าน</b> (หมายเลข ②) เดินไปคุยกด ${key('E')} — ระบบจะบอกราคาก่อนกดยืนยันทุกครั้ง</p><ul><li>ขายก้อนได้เงินเร็วแต่ถูก • เจียแล้วขายได้แพงกว่ามาก</li><li><b>เฮียใหญ่</b> ให้ราคาดีกับเม็ดใหญ่ • <b>เจ๊ใส</b> ให้ราคาดีกับเม็ดสีสวยสะอาด</li><li>ขายพลอยได้ <b>ที่ไทยเท่านั้น</b> ต่างประเทศไม่มีคนรับซื้อ</li></ul>`)}
 
       ${step(6, 'ซื้ออุปกรณ์และของกิน', [[I.smith, 'ร้านอุปกรณ์ (ขวา)'], [I.cart, 'ร้านอาหาร/น้ำ']],
@@ -8883,7 +8883,7 @@ const UI = (() => {
         </table>
       </div>
       <div class="labladder"><b>เทียบราคาตามเฉดสีของ${GEMS[g.type].name}</b> <small class="muted">(ราคาตลาดต่อกะรัต เม็ด 1 กะรัตสะอาด — เฉดสดจัดหายากจึงแพงกว่าหลายเท่า แม้สะอาดเท่ากัน)</small><div>${ladder}</div></div>
-      <div class="prices">${g.state === 'raw' ? `<div><small>เถ้าแก่ทองรับซื้อก้อน</small><b>${money(rawPrice(g))}</b></div><div><small>ถ้าเจียแล้ว (ประเมินคร่าว ๆ)</small><b>${money(Math.round(cutOffers({ ...g, state: 'cut', carat: g.carat * 0.45, flaw: Math.max(0, g.flaw - 1), polish: 0.95 }).clean))}+</b></div>` : cutBuyers().map(x => `<div><small>${x.name} (${x.like})</small><b>${money(o[x.k])}</b></div>`).join('')}</div>
+      <div class="prices">${g.state === 'raw' ? `<div><small>เฮียซีรับซื้อก้อน</small><b>${money(rawPrice(g))}</b></div><div><small>ถ้าเจียแล้ว (ประเมินคร่าว ๆ)</small><b>${money(Math.round(cutOffers({ ...g, state: 'cut', carat: g.carat * 0.45, flaw: Math.max(0, g.flaw - 1), polish: 0.95 }).clean))}+</b></div>` : cutBuyers().map(x => `<div><small>${x.name} (${x.like})</small><b>${money(o[x.k])}</b></div>`).join('')}</div>
       </div>
       <div class="row end"><button class="btn" data-a="back">ย้อนกลับ</button></div>`, a => { if (a === 'back') (back || bag)(); }, { wide: true });
     backFn = back || bag;
