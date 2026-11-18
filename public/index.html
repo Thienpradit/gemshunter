@@ -1149,7 +1149,7 @@ function modText(x) { if (!x || !x.mods) return ''; return Object.entries(x.mods
 function lootTag(x) { const q = (x && x.q) || 0; return q ? `<span class="lootq q${q}">${LOOT_Q[q].name}</span> ` : ''; }
 function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.35) : 5) * (obj && x.mods ? LOOT_Q[q].sell : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
 const CONSUMABLES = {
-  water: { name: 'น้ำดื่ม', stamina: 25, price: 3 },
+  water: { name: 'น้ำดื่ม', stamina: 25, price: 20 / 33 }, /* 20 บาท */
   rice: { name: 'ข้าวเหนียวหมูปิ้ง', stamina: 45, price: 8 },
   herb: { name: 'ยาสมุนไพร', hp: 40, price: 15 },
   // ของใช้ฟื้นสเตมินาเพิ่ม (เครื่องดื่ม = ปุ่ม 2 • อาหาร = ปุ่ม 3)
@@ -8516,11 +8516,11 @@ const UI = (() => {
   function agentBack() {
     const c = countryOfMap(G.map.id), C = COUNTRIES[c]; const rl = raws(); const local = g => Math.max(1, Math.round(rawPrice(g) * 0.6));
     show('back', dlgHead('agent', 'เจ้าหน้าที่ตั๋ว', `ตั๋วเครื่องบินกลับจันทบุรี ${money(C.ticket)} ถ้าเงินไม่พอ พ่อค้าท้องถิ่นรับซื้อพลอยก้อนได้นะ แต่ให้แค่ 60% ของราคาที่ไทย`) +
-      `<p class="muted small">เงิน ${money(STATE.coins)} • น้ำดื่ม ${STATE.cons.water || 0} ขวด</p><div class="row end"><button class="btn" data-a="water" ${STATE.coins >= 5 ? '' : 'disabled'}>ซื้อน้ำดื่ม ${baht(5)} บาท</button><button class="btn gold" data-a="buy" ${STATE.coins >= C.ticket ? '' : 'disabled'}>ซื้อตั๋วกลับไทย ${baht(C.ticket)} บาท</button></div>
+      `<p class="muted small">เงิน ${money(STATE.coins)} • น้ำดื่ม ${STATE.cons.water || 0} ขวด</p><div class="row end"><button class="btn" data-a="water" ${STATE.coins >= CONSUMABLES.water.price ? '' : 'disabled'}>ซื้อน้ำดื่ม ${baht(CONSUMABLES.water.price)} บาท</button><button class="btn gold" data-a="buy" ${STATE.coins >= C.ticket ? '' : 'disabled'}>ซื้อตั๋วกลับไทย ${baht(C.ticket)} บาท</button></div>
       <h4>พ่อค้าท้องถิ่นรับซื้อพลอยก้อน (60%)</h4><div class="list">${rl.length ? rl.map(g => gemRow(g, `${money(local(g))}<br><button class="btn small" data-a="sell" data-id="${g.id}">ขาย</button>`, false, 'none')).join('') : '<div class="empty">ไม่มีพลอยก้อน</div>'}</div>`,
       (a, b) => {
         if (a === 'buy' && STATE.coins >= C.ticket) { STATE.coins -= C.ticket; SFX.play('coin'); saveGame(); close(); toast('✈ บินกลับจันทบุรี… เอาพลอยไปเจียที่บ้านได้เลย', 'quest'); goMap('village', 'airport'); }
-        else if (a === 'water' && STATE.coins >= 5) { STATE.coins -= 5; STATE.cons.water = (STATE.cons.water || 0) + 1; SFX.play('coin'); saveGame(); hud(); agentBack(); }
+        else if (a === 'water' && STATE.coins >= CONSUMABLES.water.price) { STATE.coins -= CONSUMABLES.water.price; STATE.cons.water = (STATE.cons.water || 0) + 1; SFX.play('coin'); saveGame(); hud(); agentBack(); }
         else if (a === 'sell') { const g = rl.find(x => x.id === +b.dataset.id); if (!g) return; const p2 = local(g); removeGem(g.id); STATE.coins += p2; STATE.stats.sold++; questEvent('sell', 1); SFX.play('coin'); saveGame(); hud(); agentBack(); }
       }, { wide: true });
   }
