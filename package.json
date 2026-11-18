@@ -1,0 +1,9 @@
+{
+  "name": "gemshunter-server",
+  "version": "1.0.0",
+  "description": "นักล่าอัญมณี — เซิร์ฟเวอร์เกม (บัญชี เซฟบนคลาวด์ อันดับจริง)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "pg": "^8.13.1" }
+}
