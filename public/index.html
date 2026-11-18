@@ -1819,7 +1819,7 @@ function migrateSave(s) {
     st.pos = { ...st.pos, ...s.pos };
     if (/^mine/.test(s.pos.map) && !mineOk) st.pos = /^mine(~\d)?$/.test(s.pos.map) ? { map: 'mine', x: -1, y: -1, dir: 'down' } : { ...st.pos, map: 'village', x: -1, y: -1 }; // เหมืองแบบเก่า → เริ่มที่ปากเหมือง
   }
-  st.muted = !!s.muted; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
+  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
   st.savedAt = Number(s.savedAt) || 0;
   const maxId = Math.max(0, ...st.inv.map(g => g.id), ...st.queue.jobs.map(j => j.gem.id));
   st.nextId = Math.max(st.nextId, maxId + 1);
@@ -1956,10 +1956,65 @@ const SFX = (() => {
         nbuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
         const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       }
-      if (ac.state === 'suspended') ac.resume();
+      if (ac.state !== 'running') { try { const pr = ac.resume(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {} } /* iOS: กลับจากพื้นหลังสถานะเป็น 'interrupted' ไม่ใช่ 'suspended' → สั่ง resume ทุกครั้งที่ยังไม่ running */
     } catch (e) { ac = null; }
     return ac;
   }
+  /* เสียงหายหลังสลับแอปบนโทรศัพท์: ถ้าแตะจอแล้วสั่ง resume ไปแล้วแต่ยังไม่กลับมา running → ทิ้งตัวเดิมแล้วสร้างใหม่ */
+  let stuckAt = 0;
+  function revive() {
+    if (!ac) return ensure();
+    if (ac.state === 'running') { stuckAt = 0; return ac; }
+    if (ac.state === 'closed' || (stuckAt && performance.now() - stuckAt > 700)) { try { ac.close(); } catch (e) {} ac = null; master = null; mGain = null; mMode = null; stuckAt = 0; mNext = 0; return ensure(); }
+    if (!stuckAt) stuckAt = performance.now();
+    return ensure();
+  }
+  // ---------- เพลงบรรเลงพื้นหลัง (สังเคราะห์สด): เมือง = ทำนองเบา ๆ อบอุ่น • เหมือง = เสียงก้องมืด ๆ มีน้ำหยด ----------
+  let mGain = null, mMode = null, mWant = null, mNext = 0, mStep = 0;
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function mTone(f, t, dur, type, vol, atk = 0.02, f2 = 0) {
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(mGain); o.start(t); o.stop(t + dur + 0.05);
+  }
+  const TOWN_BEAT = 60 / 70;
+  const TOWN_CH = [[48, 55, 64], [45, 52, 60], [53, 57, 60], [43, 55, 62], [45, 52, 60], [53, 57, 60], [48, 55, 64], [43, 55, 62]]; /* C Am F G Am F C G */
+  const TOWN_MEL = [[[0, 76, 1.5], [1.5, 79, .5], [2, 81, 2]], [[0, 79, 1], [1, 76, 1], [2, 72, 2]], [[0, 74, 1.5], [1.5, 76, .5], [2, 79, 1], [3, 81, 1]], [[0, 79, 3]],
+    [[0, 84, 1.5], [1.5, 81, .5], [2, 79, 2]], [[0, 81, 1], [1, 79, 1], [2, 76, 1], [3, 74, 1]], [[0, 76, 2], [2, 79, 1], [3, 76, 1]], [[0, 74, 3]]];
+  function townBar(t, bar) {
+    const ch = TOWN_CH[bar], B = TOWN_BEAT;
+    for (const n of ch) mTone(hz(n), t, B * 4.2, 'sine', 0.035, 0.6);                                   /* แพดคอร์ดนุ่ม ๆ */
+    mTone(hz(ch[0] - 12), t, B * 2, 'triangle', 0.05, 0.03); mTone(hz(ch[0] - 12), t + B * 2, B * 1.8, 'triangle', 0.035, 0.03); /* เบส */
+    const arp = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[1] + 12]; for (let i = 0; i < 8; i++) mTone(hz(arp[i % 4]), t + i * B / 2, B * 0.9, 'sine', 0.018, 0.01); /* อาร์เปจโจ */
+    for (const [b, n, d] of TOWN_MEL[bar]) { mTone(hz(n - 12), t + b * B, d * B * 1.15, 'triangle', 0.055, 0.015); mTone(hz(n), t + b * B, d * B * 0.8, 'sine', 0.014, 0.015); } /* ทำนอง */
+    return B * 4;
+  }
+  const MINE_NOTES = [57, 60, 62, 64, 67, 69];
+  function mineBar(t) {
+    const L = 8; mTone(55, t, L + 1.5, 'sine', 0.11, 2.2); mTone(82.4, t, L + 1.5, 'sine', 0.05, 3); mTone(110.6, t + 1, L, 'sine', 0.022, 3); /* เสียงฮัมต่ำ ๆ ของถ้ำ */
+    const k = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < k; i++) { const n = MINE_NOTES[Math.floor(Math.random() * MINE_NOTES.length)], at = t + Math.random() * (L - 3); mTone(hz(n), at, 3.6, 'sine', 0.03, 0.9); mTone(hz(n) * 1.5, at + 0.3, 3, 'sine', 0.008, 1); } /* โน้ตลอย ๆ ห่าง ๆ */
+    const dn = Math.floor(Math.random() * 3); for (let i = 0; i < dn; i++) { const at = t + Math.random() * L, f = 1500 + Math.random() * 900; mTone(f, at, 0.13, 'sine', 0.03, 0.004, f * 0.55); mTone(f * 0.98, at + 0.24, 0.13, 'sine', 0.011, 0.004, f * 0.55); mTone(f * 0.97, at + 0.5, 0.13, 'sine', 0.005, 0.004, f * 0.55); } /* น้ำหยด + เสียงสะท้อน */
+    return L;
+  }
+  function musicTick() {
+    if (!ac || ac.state !== 'running' || !master) return;
+    const on = !(STATE && (STATE.muted || STATE.music === false)) && !document.hidden, want = on ? mWant : null;
+    if (!mGain) { mGain = ac.createGain(); mGain.gain.value = 0.0001; mGain.connect(master); }
+    const now = ac.currentTime;
+    if (want !== mMode) { /* เปลี่ยนฉาก/ปิดเพลง: หรี่ของเดิมลงก่อน แล้วค่อยเริ่มของใหม่ */
+      mGain.gain.cancelScheduledValues(now); mGain.gain.setValueAtTime(Math.max(0.0001, mGain.gain.value), now); mGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+      mMode = want; mNext = now + 0.9; mStep = 0;
+      if (want) { mGain.gain.setValueAtTime(0.0001, now + 0.9); mGain.gain.exponentialRampToValueAtTime(want === 'mine' ? 0.8 : 0.6, now + 2.6); }
+      return;
+    }
+    if (!mMode) return;
+    if (mNext < now) mNext = now + 0.05;
+    while (mNext < now + 1.2) { mNext += mMode === 'mine' ? mineBar(mNext) : townBar(mNext, mStep++ % 8); }
+  }
+  setInterval(() => { try { musicTick(); } catch (e) {} }, 300);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { revive(); } catch (e) {} } });
+  addEventListener('pageshow', () => { try { if (ac) revive(); } catch (e) {} });
+  for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, () => { try { revive(); } catch (e) {} }, { capture: true, passive: true });
   function tone(f, dur, type = 'sine', vol = 0.25, t0 = 0, f2 = 0) {
     const t = ac.currentTime + t0, o = ac.createOscillator(), g = ac.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
@@ -1973,7 +2028,9 @@ const SFX = (() => {
     s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
   }
   return {
-    unlock: ensure,
+    unlock: revive,
+    music(mode) { mWant = mode || null; },
+    get state() { return ac ? ac.state : 'none'; },
     play(name, arg) {
       if (STATE && STATE.muted) return;
       if (!ensure()) return;
@@ -7193,7 +7250,7 @@ function flyTo(destCountry) {
   };
   requestAnimationFrame(tick);
 }
-function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; }
+function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; SFX.music(isMine(G.map) ? 'mine' : 'town'); /* เพลงพื้นหลังตามฉาก */ }
 function banner(text) { G.banner = { text, t: 0 }; }
 function zoneAt(m, x, y) { if (!isMine(m)) return null; const ty = Math.floor((y - 2) / 16); return ZONE_KEYS[mineZoneIdx(ty)]; }
 function depthM() { return Math.max(0, Math.round((PL.y / 16 - 4) * 1.5)); }
@@ -9326,6 +9383,7 @@ const UI = (() => {
   function menu() {
     show('menu', `<h3>เมนู</h3><div class="opts col">
       <button class="btn" data-a="snd">เสียง: ${STATE.muted ? 'ปิด' : 'เปิด'}</button>
+      <button class="btn" data-a="mus">🎵 เพลงบรรเลง: ${STATE.music === false ? 'ปิด' : 'เปิด'}</button>
       <button class="btn" data-a="cmove">🖱 คลิกเมาส์เพื่อเดิน: ${STATE.clickMove !== false ? 'เปิด' : 'ปิด'}</button>
       <p class="muted small" style="margin:-2px 0 4px">${STATE.clickMove !== false ? 'คลิกซ้ายที่พื้น = เดินไป • คลิกหิน = เดินไปขุด • คลิกขวา = ฟัน/ยิง' : 'เดินด้วย WASD อย่างเดียว • คลิกซ้าย (ค้างได้) = ขุด/ฟัน/ยิง ไปทางเมาส์ โดยไม่เดิน'}</p>
       <button class="btn" data-a="board">🏆 บอร์ดโชว์พลอยทั้งเกม</button>
@@ -9336,6 +9394,7 @@ const UI = (() => {
       <p class="muted small">${NET.online ? esc(NET.statusText()) : storageOK ? `บันทึกอัตโนมัติในเครื่องนี้ • ล่าสุด ${STATE.savedAt ? fmtClock(STATE.savedAt) : '-'}` : 'เบราว์เซอร์นี้บันทึกไม่ได้'}</p>`,
       a => {
         if (a === 'snd') { STATE.muted = !STATE.muted; saveGame(); menu(); }
+        else if (a === 'mus') { STATE.music = STATE.music === false; saveGame(); menu(); }
         else if (a === 'cmove') { STATE.clickMove = STATE.clickMove === false; G.mouseTap = false; PL.path = null; PL.act = null; SFX.play('click'); saveGame(); hintSync(); menu(); }
         else if (a === 'board') board();
         else if (a === 'player') player();
