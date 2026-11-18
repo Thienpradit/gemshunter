@@ -1151,14 +1151,14 @@ function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = IT
 const CONSUMABLES = {
   water: { name: 'น้ำดื่ม', stamina: 25, price: 20 / 33 }, /* 20 บาท */
   rice: { name: 'ข้าวเหนียวหมูปิ้ง', stamina: 45, price: 3.2 },
-  herb: { name: 'ยาสมุนไพร', hp: 40, price: 15 },
+  herb: { name: 'ยาสมุนไพร', hp: 40, price: 6 },
   // ของใช้ฟื้นสเตมินาเพิ่ม (เครื่องดื่ม = ปุ่ม 2 • อาหาร = ปุ่ม 3)
   coconut: { name: 'น้ำมะพร้าวสด', stamina: 60, price: 3.6 },
   energy: { name: 'เครื่องดื่มชูกำลัง', stamina: 120, price: 9.6 },
   mango: { name: 'ข้าวเหนียวมะม่วง', stamina: 90, price: 7.2 },
   // ของใช้ฟื้นเลือดเพิ่ม (ปุ่ม 1)
-  bandage: { name: 'ผ้าพันแผล', hp: 80, price: 34 },
-  medkit: { name: 'ชุดปฐมพยาบาล', hp: 200, price: 95 },
+  bandage: { name: 'ผ้าพันแผล', hp: 80, price: 13.6 },
+  medkit: { name: 'ชุดปฐมพยาบาล', hp: 200, price: 38 },
   a9: { name: 'กระสุนปืนสั้น 9 มม.', ammo: true, pack: 15, price: 60 },
   a762: { name: 'กระสุนอาก้า 7.62 มม.', ammo: true, pack: 30, price: 180 },
   warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 100 / 33 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
