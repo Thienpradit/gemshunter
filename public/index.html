@@ -1690,6 +1690,9 @@ function climateAdvice(k) {
 }
 // ============ เลเวลตัวละคร 1–99 (แนว Diablo) + ระดับเหมือง 5 ขั้น ============
 const MAX_LV = 99, PTS_PER_LV = 5;
+/* เลเวลอัปแต่ละครั้ง: HP สูงสุด +10 และสเตมินาสูงสุด +3 (เดิม +2/+1) • ศัตรูตีแรงขึ้น 11% ของค่าพื้นฐานต่อเลเวลของมัน (เดิม 6%)
+   → ศัตรูทั่วไปเลเวลเท่าเราตีทีละราว 9–10% ของ HP ตลอดทุกช่วงเลเวล • ศัตรูเลเวลต่ำกว่าตีเบา เลเวลสูงกว่าตีหนัก */
+const HP_PER_LV = 10, STA_PER_LV = 3, MON_DMG_PER_LV = 0.11;
 // EXP ที่ต้องใช้จากเลเวล lv ไป lv+1: โตแบบทวีคูณ (เลเวลต้นขึ้นไว เลเวลสูงต้องเก็บนานมาก)
 // เลเวลขั้นต่ำที่สวมใส่อุปกรณ์ได้ ตามระดับของชิ้น (ธรรมดา ดี หายาก ยอดเยี่ยม ตำนาน)
 const ITEM_REQ = [1, 3, 12, 50, 50]; /* ยอดเยี่ยมและตำนาน: ใส่ได้และเริ่มดรอปที่ Lv 50 ขึ้นไป */
@@ -6509,7 +6512,7 @@ const SPAWN_SLOW = 10; // ศัตรูเกิดใหม่ช้าลง
    ชนิดศัตรูขยับได้เล็กน้อย: ตัวใหญ่/บอส +2 • โครงกระดูกระดับสูง +1 ต่อขั้น • งู/ค้างคาว −1 */
 function monDepthLevel(o, tier) { const lo = monLevel('snake', tier), hi = monLevel('brute', tier), f = clamp((o.y / 16 - 14) / (MINE_H - 22), 0, 1), def = MONS[o.type] || {};
   const bias = (def.big || o.type === 'brute' || o.type === 'boss' ? 2 : 0) + (o.var || 0) - (o.type === 'snake' || o.type === 'bat' ? 1 : 0); return clamp(Math.round(lo + (hi - lo) * f + bias), lo, hi); }
-function monTier(o, tier) { const T = MINE_TIERS[tier - 1]; o.tier = tier; o.lv = typeof MINE_H === 'number' && o.y != null ? monDepthLevel(o, tier) : monLevel(o.type, tier, o.var); o.xp = monXp(o.type, tier, o.var); o.hp = o.max = Math.max(1, Math.round(o.hp * monPower(o.lv) / 6 * (MONS[o.type].big || o.type === 'brute' || o.type === 'boss' ? 0.5 : 1))); /* ตัวใหญ่/บอส HP พื้นฐานสูงอยู่แล้ว คูณครึ่งเดียวพอ */ o.dmgMul = (o.dmgMul || 1) * (1 + 0.06 * (o.lv - 1)); if (tier > 1) o.coinMul = (o.coinMul || 1) * T.coin; return o; }
+function monTier(o, tier) { const T = MINE_TIERS[tier - 1]; o.tier = tier; o.lv = typeof MINE_H === 'number' && o.y != null ? monDepthLevel(o, tier) : monLevel(o.type, tier, o.var); o.xp = monXp(o.type, tier, o.var); o.hp = o.max = Math.max(1, Math.round(o.hp * monPower(o.lv) / 6 * (MONS[o.type].big || o.type === 'brute' || o.type === 'boss' ? 0.5 : 1))); /* ตัวใหญ่/บอส HP พื้นฐานสูงอยู่แล้ว คูณครึ่งเดียวพอ */ o.dmgMul = (o.dmgMul || 1) * (1 + MON_DMG_PER_LV * (o.lv - 1)); if (tier > 1) o.coinMul = (o.coinMul || 1) * T.coin; return o; }
 /* พลังศัตรูผูกกับเลเวลของมัน (ไม่ใช่ตัวคูณตายตัวต่อระดับเหมืองแบบเดิม): monPower(lv) ≈ ดาเมจต่อครั้งของผู้เล่นเลเวลเดียวกันที่ใส่ของตามเลเวล
    HP = HP พื้นฐาน × monPower/6 → ศัตรูทั่วไปเลเวลเท่าเราตายใน ~5–7 ที • เลเวลสูงกว่าเรา 8 เลเวลต้องตี ~2 เท่า และมันตีเราแรงขึ้น 6%/เลเวล */
 function monPower(lv) { return 6 + 0.9 * lv + 0.012 * lv * lv; }
@@ -6759,7 +6762,7 @@ function pstats() {
   const pickItem = STATE.items.find(x => x.uid === STATE.equip.pick);
   const weaponItem = STATE.items.find(x => x.uid === STATE.equip.weapon), wBroken = !!(weaponItem && weaponItem.dur != null && weaponItem.dur <= 0); /* ดาบ/ปืนพัง: ยังใช้ได้แต่พลังเหลือ 25% จนกว่าจะซ่อม */
   const CS = charState(), AT = CS.attr, lvB = CS.lv - 1, mT = G.map && G.map.tier ? MINE_TIERS[G.map.tier - 1] : null;
-  return { e, pick: p, pickItem, weaponItem, wBroken, weapon: w, lv: CS.lv, dmgMul: 1 + AT.str * 0.015, wMul: (1 + (w.mdmg || 0)) * (wBroken ? 0.25 : 1), crit: Math.min(0.6, AT.dex * 0.002 + (STATE.hand === 'weapon' ? w.crit || 0 : 0) + sum('crit') + (s && s.crit || 0)), /* คริติคอลจากอาวุธ + ชุด/หมวก/ถุงมือ/รองเท้า/โล่ (รวมสูงสุด +60%) */ maxHp: CONFIG.hpMax + lvB * 2 + AT.vit * 3 + sum('hp') + (w.mods && w.mods.hp || 0) + (p.mods && p.mods.hp || 0) + (s && s.mods && s.mods.hp || 0), maxSta: CONFIG.staminaMax + lvB + AT.ene * 2 + sum('sta'), def: sum('def') + (s ? s.def : 0),
+  return { e, pick: p, pickItem, weaponItem, wBroken, weapon: w, lv: CS.lv, dmgMul: 1 + AT.str * 0.015, wMul: (1 + (w.mdmg || 0)) * (wBroken ? 0.25 : 1), crit: Math.min(0.6, AT.dex * 0.002 + (STATE.hand === 'weapon' ? w.crit || 0 : 0) + sum('crit') + (s && s.crit || 0)), /* คริติคอลจากอาวุธ + ชุด/หมวก/ถุงมือ/รองเท้า/โล่ (รวมสูงสุด +60%) */ maxHp: CONFIG.hpMax + lvB * HP_PER_LV + AT.vit * 3 + sum('hp') + (w.mods && w.mods.hp || 0) + (p.mods && p.mods.hp || 0) + (s && s.mods && s.mods.hp || 0), maxSta: CONFIG.staminaMax + lvB * STA_PER_LV + AT.ene * 2 + sum('sta'), def: sum('def') + (s ? s.def : 0),
     block: s ? s.block : 0, light: sum('light') + (p.mods && p.mods.light || 0), luck: Math.round(((p.luck || 0) + (w.mods && w.mods.luck || 0) + sum('luck') + (s && s.mods && s.mods.luck || 0) + (mT ? mT.luck : 0)) * 100) / 100, speed: 1 + sum('speed') + (p.mods && p.mods.speed || 0) + Math.min(0.3, AT.dex * 0.002), warm: sum('warm'), regenHp: Math.round((sum('rhp') + (s && s.mods && s.mods.rhp || 0) + (p.mods && p.mods.rhp || 0)) * 100) / 100, regenSta: Math.round((sum('rsta') + (p.mods && p.mods.rsta || 0)) * 100) / 100, coinFind: Math.min(3, Math.round((sum('coin') + (w.mods && w.mods.coin || 0) + (s && s.mods && s.mods.coin || 0)) * 100) / 100) }; /* coinFind: เหรียญจากศัตรู +% รวมจากอุปกรณ์ทุกชิ้น (เพดาน +300%) */
 }
 
@@ -7140,9 +7143,9 @@ function gainXp(n, monLv) {
   S.xp += n; let ups = 0;
   while (S.lv < MAX_LV && S.xp >= xpNeed(S.lv)) { S.xp -= xpNeed(S.lv); S.lv++; S.pts += PTS_PER_LV; ups++; }
   if (S.lv >= MAX_LV) S.xp = 0;
-  if (ups) { const ps = pstats(); STATE.hp = ps.maxHp; STATE.sta = ps.maxSta; SFX.play('done'); banner(`⬆ เลเวลอัป! Lv ${S.lv}`); floatText(PL.x, PL.y - 44, `LEVEL UP! Lv ${S.lv}`, '#ffe680', 2);
+  if (ups) { const ps = pstats(); STATE.hp = ps.maxHp; STATE.sta = ps.maxSta; SFX.play('done'); banner(`⬆ เลเวลอัป! Lv ${S.lv}`); floatText(PL.x, PL.y - 44, `LEVEL UP! Lv ${S.lv}`, '#ffe680', 2); floatText(PL.x, PL.y - 60, `HP +${ups * HP_PER_LV} • สเตมินา +${ups * STA_PER_LV}`, '#9af0a0', 2.4);
     for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 60; G.parts.push({ k: 'star', x: PL.x, y: PL.y - 12, z: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 0, life: 0.7, max: 0.7, col: i % 2 ? '#ffe680' : '#ffffff' }); }
-    toast(`⬆ <b>เลเวลอัป! ตอนนี้ Lv ${S.lv}</b> — ได้แต้มสถานะ +${ups * PTS_PER_LV} (เหลือ ${S.pts} แต้ม) HP/สเตมินาเต็ม • กด C เพื่อลงแต้ม`, 'quest'); saveGame(); }
+    toast(`⬆ <b>เลเวลอัป! ตอนนี้ Lv ${S.lv}</b> — ได้แต้มสถานะ +${ups * PTS_PER_LV} (เหลือ ${S.pts} แต้ม) • HP สูงสุด +${ups * HP_PER_LV} สเตมินาสูงสุด +${ups * STA_PER_LV} และเติมเต็ม • กด C เพื่อลงแต้ม`, 'quest'); saveGame(); }
   UI.hud(); return n;
 }
 function useSlot(cat) {
