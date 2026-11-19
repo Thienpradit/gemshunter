@@ -7922,7 +7922,9 @@ function action() {
   if (it) return doInteract(it);
   /* ไม่สลับของในมือให้อัตโนมัติ: ถืออะไรอยู่ก็ใช้อันนั้นจนกว่าผู้เล่นจะกดสลับเอง (Q / ปุ่มสลับ) */
   if (STATE.hand === 'pick') {
-    const r = frontRock(true);
+    const mr = mouseRock(), r = mr !== undefined ? mr : adjOnly(frontRock(true));
+    if (mr === null) { if (!G.farT || G.time - G.farT > 2) { G.farT = G.time; toast('ขุดได้เฉพาะก้อนที่อยู่ติดตัว — เดินเข้าไปใกล้ก่อน', 'muted'); } G.holdAct = false; return; }
+    if (mr) { const dx = mr.tx * 16 + 8 - PL.x, dy = mr.ty * 16 + 8 - (PL.y - 6); PL.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
     if (r && r.bedrock) { toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); G.holdAct = false; return; }
     if (r) return startSwing('dig', r);
     if (!isMine(G.map)) return;
@@ -7966,6 +7968,15 @@ function clickTarget(cx, cy) {
   if (it.hit) { const h = it.hit; return w.x >= h.x && w.x <= h.x + h.w && w.y >= h.y && w.y <= h.y + h.h ? it : null; }
   return null;
 }
+// ---------- ขุดได้เฉพาะก้อนที่ติดตัว: ช่องรอบตัว 8 ทิศ (แนวทแยงต้องมีช่องว่างคั่นอย่างน้อยหนึ่งด้าน ไม่ขุดทะลุมุม) • ห้ามขุดข้ามก้อนไปอีกช่อง ----------
+function plTile() { return [Math.floor(PL.x / 16), Math.floor((PL.y - 4) / 16)]; }
+function isAdjRock(tx, ty) { const m = G.map, [px, py] = plTile(), dx = tx - px, dy = ty - py; if ((!dx && !dy) || Math.abs(dx) > 1 || Math.abs(dy) > 1) return false;
+  if (dx && dy) { const sol = t => t === TILE.WALL || t === TILE.BEDROCK; if (sol(tileAt(m, px + dx, py)) && sol(tileAt(m, px, py + dy))) return false; } return true; }
+function rockObj(tx, ty) { const m = G.map, t = tileAt(m, tx, ty); return t === TILE.WALL ? { tx, ty, i: MI(m, tx, ty) } : t === TILE.BEDROCK ? { tx, ty, i: MI(m, tx, ty), bedrock: true } : null; }
+function adjOnly(r) { return r && isAdjRock(r.tx, r.ty) ? r : null; }
+// หินใต้เมาส์: undefined = เมาส์ไม่ได้ชี้หิน • null = ชี้หินที่อยู่ไกล (ขุดไม่ได้) • {..} = ก้อนที่ติดตัว ขุดได้
+function mouseRock() { if (!G.mouseIn || G.touch || !G.mouse || !isMine(G.map)) return undefined; const tx = Math.floor(G.mouse.x / 16), ty = Math.floor(G.mouse.y / 16), r = rockObj(tx, ty); if (!r) return undefined; return isAdjRock(tx, ty) ? r : null; }
+function digTarget() { const mr = mouseRock(); if (mr !== undefined) return mr; return adjOnly(frontRock()); } /* ก้อนที่จะขุด: ตามเมาส์ก่อน ถ้าเมาส์ไม่ได้ชี้หินใช้ก้อนตรงหน้า */
 // หินที่อยู่ในแนวเมาส์ (ไกลสุด ~1.5 ช่อง)
 function rockToward(a) {
   const m = G.map; if (!isMine(m)) return null; const c = Math.cos(a), s = Math.sin(a); let bed = null;
@@ -7991,7 +8002,8 @@ function useAtMouse() {
   }
   PL.path = null;
   if (STATE.hand === 'pick') {
-    const r = rockToward(a);
+    const mr = mouseRock(); if (mr === null) { if (!G.farT || G.time - G.farT > 2) { G.farT = G.time; toast('ขุดได้เฉพาะก้อนที่อยู่ติดตัว — เดินเข้าไปใกล้ก่อน', 'muted'); } G.holdAct = false; return; }
+    const r = mr !== undefined ? mr : adjOnly(rockToward(a));
     if (r && r.bedrock) { if (!G.bedT || G.time - G.bedT > 2) { G.bedT = G.time; toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); } G.holdAct = false; return; }
     if (r) return startSwing('dig', r);
     return; /* ถือพลั่วแต่ไม่มีหินให้ขุดทางนั้น: ไม่ทำอะไร (ไม่ฟันศัตรู) */
@@ -8459,6 +8471,9 @@ function tapWorld(w) {
   const walkable = (tx, ty) => tx >= 0 && ty >= 0 && tx < m.w && ty < m.h && m.walk[MI(m, tx, ty)];
   let gx, gy, rockGoal = null;
   const ttx = Math.floor(w.x / 16), tty = Math.floor(w.y / 16);
+  if (!target && isMine(m) && STATE.hand === 'pick' && (tileAt(m, ttx, tty) === TILE.WALL || tileAt(m, ttx, tty) === TILE.BEDROCK) && isAdjRock(ttx, tty) && PL.state !== 'swing') { /* คลิกก้อนที่ติดตัว: ขุดก้อนนั้นเลย ไม่ต้องเดิน */
+    const r = rockObj(ttx, tty); PL.path = null; PL.act = null; const dx = ttx * 16 + 8 - PL.x, dy = tty * 16 + 8 - (PL.y - 6); PL.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    if (r.bedrock) { toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); return 'act'; } G.holdAct = true; G.mouseAct = true; startSwing('dig', r); return 'act'; }
   if (!target && isMine(m) && tileAt(m, ttx, tty) === TILE.WALL) {
     // แตะหิน → เดินไปช่องข้าง ๆ แล้วขุด
     // แตะหินก้อนไหนก็ได้: ถ้าก้อนนั้นอยู่ลึกในผนัง ให้ขุดก้อนที่ใกล้จุดที่แตะที่สุดซึ่งเดินไปถึงได้ (ขุดเข้าไปหาเรื่อย ๆ)
@@ -8580,7 +8595,7 @@ function update(dt) {
   if (isMine(m)) { const dm = depthM(); if (dm > (STATE.stats.deepest || 0)) STATE.stats.deepest = dm; }
   if (m.npcs) for (const n of m.npcs) { n.t += dt; const d = Math.hypot(n.x - PL.x, n.y - PL.y); if (d < 56) { const dx = PL.x - n.x, dy = PL.y - n.y; n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy > 0 ? 'down' : n.baseDir); } else n.dir = n.baseDir; }
   G.target = blocked ? null : nearestTarget();
-  G.rock = blocked || G.target || STATE.hand !== 'pick' ? null : frontRock();
+  G.rock = blocked || STATE.hand !== 'pick' ? null : (() => { const mr = mouseRock(); if (mr !== undefined) return mr; return G.target ? null : adjOnly(frontRock()); })(); /* กรอบเล็งหินตามเมาส์ (เฉพาะก้อนที่ติดตัว) */
   updateMonsters(blocked && !G.trans ? 0 : dt);
   updateDrops(dt);
   for (const p of G.parts) {
@@ -8610,7 +8625,7 @@ function update(dt) {
 function finishPath() {
   PL.path = null; const it = PL.act; PL.act = null;
   if (!it) return;
-  if (it.rock) { PL.dir = it.rock.dir; const r = frontRock(); if (r && !r.bedrock && STATE.hand === 'pick') startSwing('dig', r); else if (r && STATE.hand !== 'pick') toast('สลับเป็นพลั่ว (Q) เพื่อขุด', 'muted'); return; }
+  if (it.rock) { PL.dir = it.rock.dir; const r = adjOnly(rockObj(it.rock.tx, it.rock.ty)) || adjOnly(frontRock()); /* ขุดก้อนที่คลิกไว้ตรง ๆ */ if (r && !r.bedrock && STATE.hand === 'pick') startSwing('dig', r); else if (r && STATE.hand !== 'pick') toast('สลับเป็นพลั่ว (Q) เพื่อขุด', 'muted'); return; }
   if (Math.hypot(it.x - PL.x, it.y - PL.y) <= it.r + 3) doInteract(it); else faceTo(it.x, it.y);
 }
 
