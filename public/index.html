@@ -898,6 +898,7 @@ const DEFAULT_CONFIG = {
   staminaRegenVillage: 14,      // ฟื้นต่อวินาทีในหมู่บ้าน
   hpMax: 100,
   infiniteCoins: true,          // โหมดเงินไม่จำกัด (ปิดได้ที่ เมนู → ค่าทดสอบ)
+  testGod: true,                // ลิงก์ทดลอง (ไม่ออนไลน์): ตีทีเดียวตาย + อมตะ • เว็บจริงบังคับปิด
   testMaxLv: true,              // ลิงก์ทดลอง (ไม่ออนไลน์): เลเวลตันทันที → เข้าเหมืองได้ทุกระดับ ใส่ของได้ทุกชิ้น • เว็บจริงบังคับปิด
   monsters: true,               // ปิดเพื่อทดสอบการขุดอย่างเดียว
   hireFeePerGem: 30,            // ค่าจ้างช่างต่อเม็ด
@@ -6820,6 +6821,7 @@ function drawArrows(g, S, T) { if (G.clouds) for (const c of G.clouds) { const a
     g.fillStyle = '#d8dce4'; g.beginPath(); g.moveTo(x1 + ux * 2.5, y1 + uy * 2.5); g.lineTo(x1 - uy * 1.5, y1 + ux * 1.5); g.lineTo(x1 + uy * 1.5, y1 - ux * 1.5); g.closePath(); g.fill();
     g.fillStyle = '#e8e0d0'; g.fillRect(x0 - 0.8, y0 - 0.8, 1.6, 1.6); } }
 function hitMonster(e, dmg, fromX, fromY) {
+  if (typeof testGod === 'function' && testGod()) dmg = 1e9; /* โหมดทดสอบ: ตีทีเดียวตาย */
   const def = MONS[e.type];
   const crit = Math.random() < 0.12 + (pstats().crit || 0); dmg = Math.max(1, Math.round(dmg * (0.85 + Math.random() * 0.3) * (crit ? 1.8 : 1) * lvDmgOut(e.lv))); if (STATE.hand === 'weapon') { const lps = pstats(); if (lps.weapon.leech && STATE.hp > 0 && STATE.hp < lps.maxHp) { STATE.hp = Math.min(lps.maxHp, STATE.hp + lps.weapon.leech); floatText(PL.x, PL.y - 34, '+' + lps.weapon.leech, '#7dff9a', 0.7); } } /* ออปชันดูดเลือดของอาวุธประชิด */
   if (def.weakRec && e.recT > 0) { dmg = Math.round(dmg * def.weakRec); floatText(e.x, e.y - 44, 'จุดอ่อน!', '#ffb0ff', 0.6); } /* บอสเนตร: ช่วงฟื้นตัวดวงตาเปิด โดนแรงขึ้น */
@@ -7341,7 +7343,9 @@ function rollGem(hx, hy, zk, vein, luck) {
 function floatText(x, y, text, col, dur = 1.4, big = 0) { G.floats.push({ x, y, text, col, t: 0, dur, big }); } /* big: ข้อความเด่น (เจอพลอย) — เด้งขยายตอนโผล่ ลอยขึ้นแล้วค้างให้อ่าน ค่อยจางตอนท้าย */
 
 // ---------- HP / หมดสติ ----------
+const testGod = () => CONFIG.testGod && !(typeof NET !== 'undefined' && NET.online);
 function hurtPlayer(dmg, fx, fy, who) {
+  if (testGod()) return; /* โหมดทดสอบ: อมตะ */
   if (PL.inv > 0 || G.down || G.trans) return false;
   const ps = pstats();
   if (Math.random() < ps.block) { floatText(PL.x, PL.y - 28, 'บล็อก!', '#bfe6ff', 0.8); SFX.play('hit'); PL.inv = 0.4; return false; }
@@ -8294,7 +8298,7 @@ const NET = (() => {
       const s = await api('/api/status', null, { timeout: 6000 });
       if (s.status !== 200 || !s.data.gem) return;                      // ไม่ใช่เซิร์ฟเวอร์เกม → โหมดเดิม
       N.online = true; document.body.classList.add('online');
-      { const D = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); for (const k in D) CONFIG[k] = D[k]; CONFIG.infiniteCoins = false; CONFIG.testMaxLv = false; CONFIG.monsters = true; } /* ออนไลน์: ใช้ค่ามาตรฐานของเกมเสมอ ไม่มีเงินไม่จำกัด และไม่อ่านค่าทดสอบที่ตั้งไว้ในเครื่อง */
+      { const D = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); for (const k in D) CONFIG[k] = D[k]; CONFIG.infiniteCoins = false; CONFIG.testMaxLv = false; CONFIG.testGod = false; CONFIG.monsters = true; } /* ออนไลน์: ใช้ค่ามาตรฐานของเกมเสมอ ไม่มีเงินไม่จำกัด และไม่อ่านค่าทดสอบที่ตั้งไว้ในเครื่อง */
       while (!s.data.accounts) { await new Promise(ok => blockScreen('ระบบบัญชีปิดชั่วคราว', 'เซิร์ฟเวอร์กำลังมีปัญหากับฐานข้อมูล ลองใหม่อีกครั้งในอีกสักครู่', 'ลองใหม่', ok)); const s2 = await api('/api/status'); if (s2.status === 200) s.data.accounts = s2.data.accounts; }
       token = ls.get(TK);
       let got = null, note = '';
