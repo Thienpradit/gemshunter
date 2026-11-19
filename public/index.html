@@ -4256,6 +4256,7 @@ const PIX = (() => {
   function sheet(L, tool) { // โมเดลนักขุด 64x64: {ทิศ} × {idle[4], walk[4], swing[4]} สร้างเมื่อใช้ทิศนั้นครั้งแรก
     const k = JSON.stringify(L) + '|' + (tool || ''); let s = sheetCache.get(k); if (s) return s;
     s = {}; for (const d of ['down', 'up', 'right', 'left']) { let v = null; Object.defineProperty(s, d, { get() { return v || (v = { idle: lazyFrames(16, f => MINER.frame(L, tool, d, 'idle', f)), walk: lazyFrames(8, f => MINER.frame(L, tool, d, 'walk', f)), swing: lazyFrames(MINER.SWING_N, f => MINER.frame(L, tool, d, 'dig', f)), fire: lazyFrames(4, f => MINER.frame(L, tool, d, 'fire', f)) }); } }); }
+    for (const [d, base, sg] of [['dr', 'down', 1], ['dl', 'down', -1], ['ur', 'up', 1], ['ul', 'up', -1]]) { let v = null; const tf = (arr, n) => lazyFrames(n, f => turnFrame(arr[f], sg)); Object.defineProperty(s, d, { get() { return v || (v = { idle: tf(s[base].idle, 16), walk: tf(s[base].walk, 8), swing: tf(s[base].swing, MINER.SWING_N) }); } }); }
     sheetCache.set(k, s); return s;
   }
   // หน้าตาผู้เล่นตามอุปกรณ์
@@ -4308,6 +4309,30 @@ const PIX = (() => {
   // วาดตัวละครที่ตำแหน่งเท้า (sx, sy) • o: {L, dir, moving, anim, idleT, swing(0..1|null), tool, tint, tintA, scale}
   // ท่าล้ม: เฟรมยืนหันหน้า หมุนล้มไปด้านข้างทีละขั้น (k = 0..3 → 0°..90°) • grey = ร่างที่นอนแน่นิ่ง (ซีดลง)
   const fallCache = new Map();
+  /* มุมเฉียง (8 ทิศ): สร้างจากเฟรมหน้าตรง/หลังตรงของตัวละครชุดนั้น ๆ โดย "หมุนตัวรอบแกนตั้ง" —
+     จุดภาพกลางลำตัวเลื่อนไปทางที่หัน มากสุดที่กลางตัว และเป็นศูนย์ที่ขอบตัว (เหมือนผิวทรงกระบอกที่หมุน) หัวหมุนมากกว่าลำตัว ขาหมุนน้อยสุด
+     ใช้ได้กับทุกชุด ทุกหมวก ทุกของในมือ ทุกท่า (ยืน เดิน ขุด ฟัน ยิง) โดยไม่ต้องวาดแยกทีละชิ้น */
+  function turnFrame(fr, sgn) {
+    const W = fr.width, H = fr.height, res = fr.res || 1, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const src = fr.getContext('2d').getImageData(0, 0, W, H), out = new ImageData(W, H), S = src.data, D = out.data;
+    /* หาขอบเขตตัวละคร (ไม่รวมของที่ยื่นออกไปไกล): ใช้ครึ่งล่างของเฟรมซึ่งเป็นลำตัว/ขา หาแกนกลาง */
+    let x0 = W, x1 = 0, y0 = H, y1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (S[(y * W + x) * 4 + 3] > 40) { if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    for (let y = Math.round(y1 - 6 * res); y <= y1; y++) for (let x = 0; x < W; x++) if (S[(y * W + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    const cx = (x0 + x1) / 2, Rb = 9.5 * res, hTop = y1 - 30 * res; /* ตัวสูง ~30 จุดจากเท้า: หัว = ส่วนบน 13 จุด */
+    /* หัว (สูงจากเท้า > 18 จุด): หน้าตา/ผม/หมวกเลื่อนไปทางที่หัน แบบผิวทรงกลมหมุน (ขอบหัวอยู่ที่เดิม)
+       ลำตัว แขน ขา: บีบแคบลง 14% รอบแกนกลาง (ไหล่เฉียงเข้าหากล้อง) + เลื่อนลายกลางตัวไปทางที่หันเล็กน้อย */
+    const SQ = 0.86;
+    for (let y = 0; y < H; y++) {
+      const fromFeet = (y1 - y) / res, head = fromFeet > 18.5;
+      for (let x = 0; x < W; x++) {
+        let sx;
+        if (head) { const R = 8 * res, u = (x - cx - 0.6 * res * sgn) / R; if (u > -1 && u < 1) sx = x - 0.6 * res * sgn - 2.6 * res * sgn * (1 - u * u); else sx = cx + (x - cx) / SQ; /* นอกหัว (ของที่ถือยื่นขึ้นมา): บีบเท่าลำตัว ให้ด้าม/ใบมีดต่อเนื่องกับช่วงล่าง */ }
+        else { sx = cx + (x - cx) / SQ; const R = 8 * res, u = (sx - cx) / R; if (u > -1 && u < 1) sx -= (fromFeet > 8 ? 1.4 : 0.6) * res * sgn * (1 - u * u); }
+        sx = Math.round(sx); if (sx < 0 || sx >= W) continue; const i = (y * W + x) * 4, j = (y * W + sx) * 4; D[i] = S[j]; D[i + 1] = S[j + 1]; D[i + 2] = S[j + 2]; D[i + 3] = S[j + 3];
+      }
+    }
+    c.getContext('2d').putImageData(out, 0, 0); c.res = res; c.noHD = fr.noHD; return c;
+  }
   function fallSpr(L, k, grey) { const fr = sheet(L, null).down.idle[0]; let m = fallCache.get(fr); if (!m) fallCache.set(fr, m = {}); const key = k + (grey ? 'g' : ''); if (m[key]) return m[key];
     const D = Math.ceil(fr.height * 1.5), c = document.createElement('canvas'); c.width = c.height = D; /* จุดหมุน (เท้า) อยู่ค่อนไปทางซ้าย ให้ตัวที่ล้มนอนไปทางขวาไม่ถูกตัดขอบ */ const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
     x.translate(D / 3, D * 0.8); x.rotate(k / 7 * Math.PI / 2); x.drawImage(fr, -fr.width / 2, -fr.height + 2 * fr.res);
@@ -4324,7 +4349,7 @@ const PIX = (() => {
     if (o.tint && o.tintA > 0) { g.globalAlpha = Math.min(1, o.tintA); g.drawImage(tintOf(fr, o.tint), x, y, w, h); g.globalAlpha = 1; }
     return 29 * sc;
   }
-  return { cv, sh, rampOf, ramp, hsh, vn, mkP, outline, flipH, sheet, lookOf, toolSpr, charFrame, drawChar, fallSpr, corpseSpr, tintOf, CW, CH };
+  return { cv, sh, rampOf, ramp, hsh, vn, mkP, outline, flipH, sheet, lookOf, toolSpr, charFrame, drawChar, turnFrame, fallSpr, corpseSpr, tintOf, CW, CH };
 })();
 
 // =====================================================================
@@ -6863,6 +6888,16 @@ function mouseFight() { // คลิกซ้าย = ตี เฉพาะเ�
   for (const e of G.mons) { const dx = e.x - PL.x, dy = (e.y - 6) - (PL.y - 8); if (Math.hypot(dx, dy) > reach + MONS[e.type].r) continue; let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = Math.PI * 2 - da; if (da < 1.1) return true; }
   return false; }
 function aimAngle() { const mo = G.mouse || { x: PL.x + DIRV[PL.dir][0] * 20, y: PL.y - 10 + DIRV[PL.dir][1] * 20 }; return Math.atan2(mo.y - (PL.y - 10 / (G.TILT || 1)), mo.x - PL.x); }
+/* 8 ทิศสำหรับ "ภาพ" ตัวละคร (การเล่นยังคิด 4 ทิศเหมือนเดิม): มุมเฉียงใช้เมื่อเดินเฉียง/เล็งเฉียง และไม่ขัดกับทิศหลักที่หันอยู่ */
+const DIR8 = ['right', 'dr', 'down', 'dl', 'left', 'ul', 'up', 'ur'], DIR8_PART = { dr: ['down', 'right'], dl: ['down', 'left'], ur: ['up', 'right'], ul: ['up', 'left'] };
+function dir8OfAngle(a) { return DIR8[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]; }
+function faceDir8() {
+  if (PL.state === 'swing' && PL.kind === 'dig') return PL.dir; /* ขุดหิน: หันตรงเข้าหาก้อนหินเสมอ */
+  let d = null;
+  if (PL.faceA != null && G.time - (PL.faceT || -9) < 0.7) d = dir8OfAngle(PL.faceA); /* เพิ่งฟัน/ยิงไปทางนี้ */
+  else if (PL.mvA != null) d = dir8OfAngle(PL.mvA);
+  return d && DIR8_PART[d] && DIR8_PART[d].includes(PL.dir) ? d : PL.dir;
+}
 function dirOfAngle(a) { const c = Math.cos(a), s = Math.sin(a); return Math.abs(c) > Math.abs(s) ? (c < 0 ? 'left' : 'right') : (s < 0 ? 'up' : 'down'); }
 // คลิกโดน NPC/ร้านที่อยู่ใกล้ = คุย/เข้าร้าน (ไม่ต้องกด E)
 function clickTarget(cx, cy) {
@@ -6886,7 +6921,7 @@ function useAtMouse() {
   if (tg) G.chaseTg = tg; else if (!gun && G.chaseTg && !G.chaseTg.dead && G.mons.includes(G.chaseTg)) tg = G.chaseTg; /* กดค้างไล่ตีตัวเดิมต่อ แม้กล้องเลื่อนจนเมาส์ไม่ได้ชี้โดนตัวมันแล้ว (ไม่ยืนฟันลม) */
   if (!tg && !gun) { const reach = (STATE.hand === 'weapon' ? w.range : 18) + 14; let bd = 1e9; for (const e of G.mons) { const dx = e.x - PL.x, dy = (e.y - 6) - (PL.y - 8), d = Math.hypot(dx, dy); if (d > reach + MONS[e.type].r) continue; let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = Math.PI * 2 - da; if (da < 1.1 && d < bd) { bd = d; tg = e; } } }
   if (tg) a = Math.atan2((tg.y - 6) - (PL.y - 8), tg.x - PL.x);
-  PL.aim = a; PL.aimT = G.time; PL.dir = dirOfAngle(a); PL.act = null;
+  PL.aim = a; PL.aimT = G.time; PL.dir = dirOfAngle(a); PL.act = null; PL.faceA = a; PL.faceT = G.time;
   if (gun) { PL.path = null; return fireGun(); }
   if (tg) { // ระยะประชิด: ถึงตัวก็ฟันเลย • ยังไม่ถึงให้เดินเข้าไปหาแล้วฟันต่อ (กดค้างได้)
     const reach = (STATE.hand === 'weapon' ? w.range : 18) + MONS[tg.type].r, d = Math.hypot(tg.x - PL.x, (tg.y - 6) - (PL.y - 8));
@@ -6900,7 +6935,7 @@ function useAtMouse() {
     if (r && r.bedrock) { if (!G.bedT || G.time - G.bedT > 2) { G.bedT = G.time; toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); } G.holdAct = false; return; }
     if (r) return startSwing('dig', r);
   }
-  startSwing('attack'); PL.dir = dirOfAngle(a);
+  startSwing('attack'); PL.dir = dirOfAngle(a); PL.faceA = a; PL.faceT = G.time;
 }
 // ---------- ปืน ----------
 function gunAim(range) {
@@ -6924,7 +6959,7 @@ function fireGun() {
   wearWeapon();
   const a = (G.mouseAct && PL.aim != null ? PL.aim : gunAim(w.range)) + (Math.random() - 0.5) * w.spread * 2;
   const ca = Math.cos(a), sa = Math.sin(a);
-  if (Math.abs(ca) > Math.abs(sa)) PL.dir = ca < 0 ? 'left' : 'right'; else PL.dir = sa < 0 ? 'up' : 'down';
+  if (Math.abs(ca) > Math.abs(sa)) PL.dir = ca < 0 ? 'left' : 'right'; else PL.dir = sa < 0 ? 'up' : 'down'; PL.faceA = a; PL.faceT = G.time;
   const mx = PL.x + ca * 12, my = PL.y - 10 + sa * 8;
   G.bullets.push({ x: mx, y: my, vx: ca * 520, vy: sa * 520, life: w.range / 520, dmg: Math.round(w.dmg * pstats().dmgMul * pstats().wMul), px: mx, py: my });
   G.muzzle.push({ x: PL.x + ca * 13, y: PL.y - 15 / (G.TILT || 1) + sa * 8, a, t: 0 }); /* ไฟปากกระบอก: วาดที่ระดับปืนในมือ (ชดเชยมุมกล้องเอียง) — เดิมไปโผล่แถวเท้า */
@@ -7403,15 +7438,15 @@ function update(dt) {
     if (!PL.impact && PL.swingT >= PL.swingDur * 0.48) { PL.impact = true; resolveImpact(); }
     if (PL.swingT >= PL.swingDur) { PL.state = 'idle'; if (G.holdAct && !blocked) (G.mouseAct ? useAtMouse() : action()); }
     // เดินต่อได้ระหว่างฟัน/ขุด (หน้ายังหันไปทางที่โจมตี) — ไม่ต้องหยุดยืนทุกครั้งที่กดใช้ของ
-    if (!blocked && (ix || iy)) { const sp = CONFIG.playerSpeed * ps.speed * dt * (STATE.sta < 5 ? 0.7 : 1) * (2 / 3), l = Math.hypot(ix, iy); PL.path = null; PL.moving = tryMove(ix / l * sp, iy / l * sp); }
+    if (!blocked && (ix || iy)) { const sp = CONFIG.playerSpeed * ps.speed * dt * (STATE.sta < 5 ? 0.7 : 1) * (2 / 3), l = Math.hypot(ix, iy); PL.path = null; PL.moving = tryMove(ix / l * sp, iy / l * sp); PL.mvA = Math.atan2(iy, ix); }
   } else if (!blocked) {
     const sp = CONFIG.playerSpeed * ps.speed * dt * (STATE.sta < 5 ? 0.7 : 1);
     if (ix || iy) {
       PL.path = null; PL.act = null;
       const l = Math.hypot(ix, iy); const dx = ix / l * sp, dy = iy / l * sp;
       if (G.joy && G.joy.moved) PL.dir = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? 'left' : 'right') : (iy < 0 ? 'up' : 'down');
-      else if (ix && !iy) PL.dir = ix < 0 ? 'left' : 'right'; else if (iy && !ix) PL.dir = iy < 0 ? 'up' : 'down'; else if (iy && PL.dir !== 'left' && PL.dir !== 'right') PL.dir = iy < 0 ? 'up' : 'down';
-      PL.moving = tryMove(dx, dy);
+      else if (ix && !iy) PL.dir = ix < 0 ? 'left' : 'right'; else if (iy && !ix) PL.dir = iy < 0 ? 'up' : 'down'; else { const hd = ix < 0 ? 'left' : 'right', vd = iy < 0 ? 'up' : 'down'; if (PL.dir !== hd && PL.dir !== vd) PL.dir = vd; } /* เดินเฉียง: ทิศหลักต้องเป็นหนึ่งในสองทิศที่กำลังเดิน (ภาพใช้มุมเฉียง 8 ทิศ) */
+      PL.moving = tryMove(dx, dy); PL.mvA = Math.atan2(dy, dx);
       { /* เดินชนประตูวาร์ป = เข้าเลย (จอยสติ๊กมือถือ/ปุ่มเดิน ไม่ต้องกดปุ่มเข้าอีก) */
         const wd = m.interact.find(i => (i.kind === 'warpIn' || i.kind === 'warpBack') && Math.abs(i.x - PL.x) < 13 && Math.abs(i.y - PL.y) < 13);
         if (wd && (Math.hypot(wd.x - PL.x, wd.y - PL.y) < 7 || dx * (wd.x - PL.x) + dy * (wd.y - PL.y) > 0)) { doInteract(wd); return; } }
@@ -7423,7 +7458,7 @@ function update(dt) {
         if (d < 1.5) { PL.path.shift(); if (!PL.path.length) finishPath(); }
         else {
           const k = Math.min(sp, d) / d; const ox = PL.x, oy = PL.y;
-          tryMove(dx * k, dy * k); PL.moving = true;
+          tryMove(dx * k, dy * k); PL.moving = true; PL.mvA = Math.atan2(dy, dx);
           if (Math.abs(dx) > Math.abs(dy)) PL.dir = dx < 0 ? 'left' : 'right'; else PL.dir = dy < 0 ? 'up' : 'down';
           if (Math.hypot(PL.x - ox, PL.y - oy) < sp * 0.2) { PL.stuckT += dt; if (PL.stuckT > 0.5) { PL.path.shift(); PL.stuckT = 0; if (!PL.path.length) finishPath(); } } else PL.stuckT = 0;
         }
@@ -7667,7 +7702,7 @@ function drawPlayer(g, S, T) {
   {
     let jx = hurtNow ? Math.sin(G.time * 70) * 1.5 : 0, jy = hurtNow ? -Math.sin(G.redT / 0.35 * Math.PI) * 3 : 0;
     { const rk = STATE.hand === 'weapon' && G.lastShot != null && PL.aim != null ? Math.max(0, 1 - (G.time - G.lastShot) / 0.11) : 0; if (rk > 0) { jx -= Math.cos(PL.aim) * 1.8 * rk; jy -= Math.sin(PL.aim) * 1.2 * rk; } } /* แรงถีบปืน: ตัวสะบัดถอยเล็กน้อยทุกนัด */
-    if (PIXEL) PIX.drawChar(g, S(PL.x) + jx, T(PL.y) + jy, { L: PIX.lookOf(CHARS.player, eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shield: eqs.shield, dir: PL.dir, aim: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && (G.mouseIn && G.mouse) ? Math.atan2((G.mouse.y - PL.y) * G.TILT + 12, G.mouse.x - PL.x) : null, moving: PL.moving && PL.state !== 'swing', anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : null, tintA: Math.min(0.7, G.redT * 2.4), fire: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && G.lastShot != null && G.time - G.lastShot < 0.18 ? (G.time - G.lastShot) / 0.18 : null, fall: G.down && PL.fallT0 != null ? clamp((G.time - PL.fallT0) / 0.55, 0, 1) : null });
+    if (PIXEL) PIX.drawChar(g, S(PL.x) + jx, T(PL.y) + jy, { L: PIX.lookOf(CHARS.player, eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shield: eqs.shield, dir: faceDir8(), aim: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && (G.mouseIn && G.mouse) ? Math.atan2((G.mouse.y - PL.y) * G.TILT + 12, G.mouse.x - PL.x) : null, moving: PL.moving && PL.state !== 'swing', anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : null, tintA: Math.min(0.7, G.redT * 2.4), fire: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && G.lastShot != null && G.time - G.lastShot < 0.18 ? (G.time - G.lastShot) / 0.18 : null, fall: G.down && PL.fallT0 != null ? clamp((G.time - PL.fallT0) / 0.55, 0, 1) : null });
     else RIG.draw(g, S(PL.x) + jx, T(PL.y) + jy, { L: RIG.lookOf(CHARS.player, eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shieldId: eqs.shield, dir: PL.dir, moving: PL.moving && PL.state !== 'swing', mvb: PL.mvb, turn: PL.turnT, anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : null, tintA: Math.min(0.7, G.redT * 2.4) });
   }
   if (PL.state === 'swing' && PL.kind === 'dig') { const k = PL.swingT / PL.swingDur; if (k > 0.36 && k < 0.62) { /* เส้นแรงเหวี่ยงตอนฟาดลง: โค้งจาง ๆ ตามทิศที่ขุด */
