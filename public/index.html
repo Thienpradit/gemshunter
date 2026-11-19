@@ -1890,6 +1890,7 @@ function migrateSave(s) {
   const inv = Array.isArray(s.inv) ? s.inv : Array.isArray(s.inventory) ? s.inventory : Array.isArray(s.bag) ? s.bag : [];
   st.inv = inv.map(g => normGem(g, st)).filter(Boolean);
   st.showcase = {}; if (s.showcase && typeof s.showcase === 'object') for (const k in s.showcase) { const g = normGem(s.showcase[k], st); if (g) st.showcase[showcaseKey(g)] = g; } /* คอลเลกชัน: กล่องละ ประเทศที่ขุด + ชนิด + สี (คีย์ ประเทศ|ชนิด:สี) • เซฟเก่าที่คีย์ไม่มีประเทศ ย้ายเข้ากล่องของประเทศที่ขุดเม็ดนั้น */
+  if (typeof s.bag === 'number' || (typeof s.bag === 'string' && /^\d+$/.test(s.bag))) st.bag = clamp(Math.floor(Number(s.bag)) || 0, 0, BAGS.length - 1); /* ขนาดกระเป๋าที่ซื้อแล้ว (เดิมไม่ได้อ่านกลับตอนโหลดเซฟ ทำให้รีเซ็ตเป็นใบแรก) */
   if (s.safe && typeof s.safe === 'object') st.safe = { lv: clamp(Number(s.safe.lv) | 0, 0, SAFES.length - 1), gems: (Array.isArray(s.safe.gems) ? s.safe.gems : []).map(g => normGem(g, st)).filter(Boolean) };
   st.questIdx = clamp(Number(s.questIdx ?? s.quest?.idx ?? 0) || 0, 0, QUESTS.length);
   st.questProg = Number(s.questProg ?? s.quest?.progress ?? s.soldCount ?? 0) || 0;
