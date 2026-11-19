@@ -1126,6 +1126,8 @@ function rollLoot(id, boost = 0, rnd = Math.random, g = 0, goldMul = 1) { /* gol
 const effCache = new WeakMap();
 // ไอเทมจริงของชิ้นนั้น = ค่าพื้นฐานจากตาราง + ค่าบวกที่สุ่มได้
 for (const k in ITEMS) if (ITEMS[k].slot === 'pick' && ITEMS[k].luck) ITEMS[k].luck = Math.round(ITEMS[k].luck * 0.6 * 100) / 100; /* ค่าโชคพื้นฐาน (ขั้น +0) ลดเหลือ 60% แล้วให้ขั้นดันขึ้นแทน */
+const SHOP_PRICE_MUL = 0.5; /* ลดราคาสินค้าในร้านทุกอย่างลงครึ่งหนึ่ง (อุปกรณ์ กระสุน อาหาร ยา) — ไม่รวมประตูวาร์ปและกระเป๋าซึ่งลดไปแล้ว */
+for (const k in ITEMS) if (ITEMS[k].price) ITEMS[k].price = Math.round(ITEMS[k].price * SHOP_PRICE_MUL);
 // ---------- ขั้นของอุปกรณ์ (+0 ถึง +9): ร้านขายขั้นตามเลเวลผู้เล่น (ทุก 10 เลเวลขึ้น 1 ขั้น) • ของดรอปได้ขั้นตามเลเวลศัตรู ----------
 const GRADE_MAX = 9, SHOP_MAX_TIER = 2, SHOP_MAX_TIER_PICK = 1; /* พลั่ว: ร้านขายแค่ธรรมดา–ดี • หายากถึงตำนานได้จากศัตรูเท่านั้น */
 const shopMaxTier = id => ITEMS[id].slot === 'pick' ? SHOP_MAX_TIER_PICK : SHOP_MAX_TIER;
@@ -1152,7 +1154,7 @@ function effItem(x) { if (!x) return null; const base = ITEMS[x.id]; if (!base) 
   if (gb) for (const k in gb) e[k] = r2((base[k] || 0) + gb[k]); if (x.mods) for (const k in x.mods) e[k] = r2((e[k] || 0) + x.mods[k]); if (base.dur) e.dur = maxDur(x); effCache.set(x, e); return e; }
 function modText(x) { if (!x || !x.mods) return ''; return Object.entries(x.mods).map(([k, v]) => { const L = MOD_LABEL[k] || [k, '']; return `${L[0]} +${L[1] === '%' ? Math.round(v * 100) + '%' : v + L[1]}`; }).join(' • '); }
 function lootTag(x) { const q = (x && x.q) || 0; return q ? `<span class="lootq q${q}">${LOOT_Q[q].name}</span> ` : ''; }
-function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.175) : 2.5) * /* ขายอุปกรณ์คืนร้านได้ 17.5% ของราคาซื้อ (เดิม 35% ลดลงครึ่งหนึ่ง) */ (obj && x.mods ? LOOT_Q[q].sell * DROP_SELL_MUL : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
+function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.35) : 2.5) * /* ราคาขายคืน = 35% ของราคาร้านปัจจุบัน (ราคาร้านลดครึ่งแล้ว → ได้เงินเท่ากับที่ปรับไว้ก่อนหน้า ไม่ลดซ้ำ) */ (obj && x.mods ? LOOT_Q[q].sell * DROP_SELL_MUL : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
 const DROP_SELL_MUL = 0.3; /* ของที่ดรอปจากศัตรู (มีออปชันสุ่ม) ขายได้ 30% ของสูตรเดิม — ของที่ซื้อจากร้านขายคืนได้เท่าเดิม */
 const CONSUMABLES = {
   water: { name: 'น้ำดื่ม', stamina: 25, price: 40 / 33 }, /* 40 บาท */
@@ -1169,6 +1171,7 @@ const CONSUMABLES = {
   a762: { name: 'กระสุนอาก้า 7.62 มม.', ammo: true, pack: 30, price: 180 },
   warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 100 / 33 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
 };
+for (const k in CONSUMABLES) if (k !== 'warp' && CONSUMABLES[k].price) CONSUMABLES[k].price *= SHOP_PRICE_MUL;
 // หมวดของใช้ตามปุ่มลัด: 1 = ฟื้นเลือด • 2 = เครื่องดื่ม • 3 = อาหาร (เรียงจากฟื้นน้อย → มาก)
 const CONS_CAT = { hp: ['herb', 'bandage', 'medkit'], drink: ['water', 'coconut', 'energy'], food: ['rice', 'mango'] };
 const CONS_CAT_OF = {}; for (const k in CONS_CAT) for (const id of CONS_CAT[k]) CONS_CAT_OF[id] = k;
