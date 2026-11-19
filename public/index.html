@@ -2056,7 +2056,7 @@ const SFX = (() => {
      → ไม่พยายามปลุกตัวเดิม: จำไว้ว่าเพิ่งกลับจากพื้นหลัง (away) แล้วตอนผู้เล่นแตะจอครั้งแรก ทิ้งตัวเดิมและสร้างตัวเสียงใหม่ในจังหวะแตะนั้นเลย */
   let stuckAt = 0, away = false;
   function fresh() {
-    try { if (ac) ac.close(); } catch (e) {} ac = null; master = null; mGain = null; mMode = null; stuckAt = 0; mNext = 0; away = false;
+    try { if (ac) ac.close(); } catch (e) {} ac = null; master = null; mGain = null; mMode = null; mSrc = null; stuckAt = 0; mNext = 0; away = false;
     const c = ensure(); if (!c) return c;
     try { const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); } catch (e) {} /* เสียงเงียบ 1 ตัวอย่าง: ปลดล็อกเสียงบน iOS */
     return c;
@@ -2097,6 +2097,10 @@ const SFX = (() => {
     if (Math.random() < 0.3) mTone(70 + Math.random() * 20, t + Math.random() * L, 1.6, 'sine', 0.05, 0.5, 48); /* เสียงครืนต่ำ ๆ ไกล ๆ ของหิน */
     return L;
   }
+  /* เพลงไฟล์ (วนลูปไม่มีรอยต่อ): เหมืองชั้น 1 ใช้ไฟล์ mine1.mp3 — โหลดครั้งแรกที่ต้องใช้ ตัดช่วงเงียบหัว-ท้ายของ mp3 ออกจากจุดวน ถ้าโหลดไม่ได้จะใช้เสียงถ้ำแบบเดิมแทน */
+  const TRACKS = { mine1: 'mine1.mp3' }, trackBuf = {}; let mSrc = null;
+  function loadTrack(k) { if (trackBuf[k] !== undefined) return; trackBuf[k] = null;
+    fetch(TRACKS[k]).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(a => new Promise((ok, no) => ac.decodeAudioData(a, ok, no))).then(b => { const d = b.getChannelData(0), th = 0.004; const cap = Math.floor(b.sampleRate * 0.1); let i0 = 0, i1 = d.length - 1; while (i0 < cap && Math.abs(d[i0]) < th) i0++; while (i1 > d.length - 1 - cap && Math.abs(d[i1]) < th) i1--; /* ตัดเฉพาะช่วงเงียบที่ตัวเข้ารหัส mp3 เติมมา (ไม่เกิน 0.1 วิ ต่อด้าน) */ b._ls = i0 / b.sampleRate; b._le = (i1 + 1) / b.sampleRate; trackBuf[k] = b; }).catch(() => { trackBuf[k] = false; }); }
   function musicTick() {
     if (!ac || ac.state !== 'running' || !master) return;
     const on = !(STATE && (STATE.muted || STATE.music === false)) && !document.hidden, want = on ? mWant : null;
@@ -2104,13 +2108,15 @@ const SFX = (() => {
     const now = ac.currentTime;
     if (want !== mMode) { /* เปลี่ยนฉาก/ปิดเพลง: หรี่ของเดิมลงก่อน แล้วค่อยเริ่มของใหม่ */
       mGain.gain.cancelScheduledValues(now); mGain.gain.setValueAtTime(Math.max(0.0001, mGain.gain.value), now); mGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+      if (mSrc) { const s0 = mSrc; mSrc = null; try { s0.stop(now + 0.7); } catch (e) {} }
       mMode = want; mNext = now + 0.9; mStep = 0;
-      if (want) { mGain.gain.setValueAtTime(0.0001, now + 0.9); mGain.gain.exponentialRampToValueAtTime(want === 'mine' ? 0.8 : 0.6, now + 2.6); }
+      if (want) { mGain.gain.setValueAtTime(0.0001, now + 0.9); mGain.gain.exponentialRampToValueAtTime(want === 'mine' ? 0.8 : want === 'mine1' ? 0.5 : 0.6, now + 2.6); }
       return;
     }
     if (!mMode) return;
+    if (TRACKS[mMode]) { loadTrack(mMode); const b = trackBuf[mMode]; if (b) { if (!mSrc) { const s1 = ac.createBufferSource(); s1.buffer = b; s1.loop = true; s1.loopStart = b._ls; s1.loopEnd = b._le; s1.connect(mGain); s1.start(Math.max(now, mNext), b._ls); mSrc = s1; } return; } }
     if (mNext < now) mNext = now + 0.05;
-    while (mNext < now + 1.2) { mNext += mMode === 'mine' ? mineBar(mNext) : townBar(mNext, mStep++ % 8); }
+    while (mNext < now + 1.2) { mNext += mMode === 'mine' || mMode === 'mine1' ? mineBar(mNext) : townBar(mNext, mStep++ % 8); }
   }
   setInterval(() => { try { musicTick(); } catch (e) {} }, 300);
   const wentAway = () => { if (ac) { away = true; try { ac.suspend(); } catch (e) {} } };
@@ -2133,6 +2139,7 @@ const SFX = (() => {
     unlock: revive,
     music(mode) { mWant = mode || null; },
     get state() { return ac ? ac.state : 'none'; },
+    get track() { const b = trackBuf[mMode]; return { mode: mMode, playing: !!mSrc, loop: mSrc ? [mSrc.loopStart, mSrc.loopEnd, b && b.duration] : null }; },
     play(name, arg) {
       if (STATE && STATE.muted) return;
       if (!ensure()) return;
@@ -8296,7 +8303,7 @@ function flyTo(destCountry) {
   };
   requestAnimationFrame(tick);
 }
-function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; SFX.music(isMine(G.map) ? 'mine' : 'town'); /* เพลงพื้นหลังตามฉาก */ }
+function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; SFX.music(isMine(G.map) ? ((G.map.tier || 1) === 1 ? 'mine1' : 'mine') : 'town'); /* เพลงพื้นหลังตามฉาก */ }
 function banner(text) { G.banner = { text, t: 0 }; }
 function zoneAt(m, x, y) { if (!isMine(m)) return null; const ty = Math.floor((y - 2) / 16); return ZONE_KEYS[mineZoneIdx(ty)]; }
 function depthM() { return Math.max(0, Math.round((PL.y / 16 - 4) * 1.5)); }

@@ -8,7 +8,7 @@ const { handleApi } = require('./accounts');
 
 const PORT = process.env.PORT || 3000;
 const PUB = path.join(__dirname, 'public');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8' };
 const VERSION = (process.env.RENDER_GIT_COMMIT || crypto.createHash('sha1').update(fs.readFileSync(path.join(PUB, 'index.html'))).digest('hex')).slice(0, 10);
 
 // ไฟล์หน้าเกมใหญ่ (~1.2MB) → บีบอัดครั้งเดียวแล้วเก็บไว้ในหน่วยความจำ
