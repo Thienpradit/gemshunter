@@ -7028,16 +7028,16 @@ function pixGround(m, tx0, ty0, tx1, ty1) {
     }
   }
 }
-function paintRegion(m, tx0, ty0, tx1, ty1) {
+function paintRegion(m, tx0, ty0, tx1, ty1, OPT) { /* OPT = { g, r3 }: วาดลงผืนผ้าใบอื่นที่จุด 0,0 (ใช้ทำภาพหินก้อนแบบ 3 มิติตอนเดินเข้าใกล้) */
   tx0 = clamp(tx0, 0, m.w - 1); ty0 = clamp(ty0, 0, m.h - 1); tx1 = clamp(tx1, 0, m.w - 1); ty1 = clamp(ty1, 0, m.h - 1);
-  const g = m.bgG, RW = (tx1 - tx0 + 1) * 16, RH = (ty1 - ty0 + 1) * 16;
+  const g = OPT ? OPT.g : m.bgG, RW = (tx1 - tx0 + 1) * 16, RH = (ty1 - ty0 + 1) * 16;
   const img = g.createImageData(RW, RH), d = img.data;
   const cache = paintRegion.cache || (paintRegion.cache = {}); const rgb = h => cache[h] || (cache[h] = hexRgb(h));
   const q = (pal, v) => pal[clamp(Math.floor(v * pal.length), 0, pal.length - 1)];
   const isOpen = t => t === TILE.FLOOR || t === TILE.WATER;
   const isRock = t => t === TILE.WALL || t === TILE.BEDROCK;
   const district = m.vein && MINE_DISTRICTS[m.tier - 1];
-  const R3 = !!(m.vein && (typeof window !== 'undefined' && window.ROCK3D != null ? window.ROCK3D : CONFIG.rock3d)); /* ต้นแบบหินแบบ 3 มิติ (ปิดไว้ก่อน) */
+  const R3 = !!(m.vein && (OPT ? OPT.r3 : (typeof window !== 'undefined' && window.ROCK3D != null ? window.ROCK3D : CONFIG.rock3d))); /* ต้นแบบหินแบบ 3 มิติ (ปิดไว้ก่อน) */
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const ti = MI(m, tx, ty), t = m.t[ti], zk = ZONE_KEYS[m.zone[ti]] || 'gravel';
     const below = tileAt(m, tx, ty + 1), above = tileAt(m, tx, ty - 1), left = tileAt(m, tx - 1, ty), right = tileAt(m, tx + 1, ty);
@@ -7165,6 +7165,7 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
       d[k] = r * (1 - dark); d[k + 1] = gg * (1 - dark); d[k + 2] = b * (1 - dark); d[k + 3] = 255;
     }
   }
+  if (OPT) { g.putImageData(img, 0, 0); return; }
   g.putImageData(img, tx0 * 16, ty0 * 16); if (typeof PIXEL !== 'undefined' && PIXEL && !m.vein) pixGround(m, tx0, ty0, tx1, ty1); HD.invalidate(m, tx0 * 16, ty0 * 16, tx1 * 16 + 16, ty1 * 16 + 16);
   if (!m.vein) return;
   // ลายละเอียดในเหมือง
@@ -8139,6 +8140,22 @@ function resolveImpact() {
   rollGem(hx, hy, zk, vein, ps.luck);
   tryDigHaunt(m, hx, hy, zk);
 }
+// ---------- หินใกล้ตัว: ปกติผนังหินเป็นผืนเดียว • เดินเข้าใกล้ (หรือเล็งจะขุด) ก้อนนั้นค่อย ๆ ปรากฏเป็นก้อนหิน 3 มิติ เห็นรูปทรง ขอบ เงา และสายแร่ ----------
+const NEAR_ROCK_R = 46, NEAR_ROCK_FADE = 24;
+function rock3dTile(m, tx, ty) { const i = MI(m, tx, ty), sig = [tileAt(m, tx - 1, ty), tileAt(m, tx + 1, ty), tileAt(m, tx, ty - 1), tileAt(m, tx, ty + 1), tileAt(m, tx, ty - 2), m.vein[i]].join(','), C = m.r3c || (m.r3c = new Map()), key = i + '|' + sig;
+  let c = C.get(key); if (c) return c; if (C.size > 260) C.clear();
+  c = document.createElement('canvas'); c.width = 16; c.height = 16; paintRegion(m, tx, ty, tx, ty, { g: c.getContext('2d'), r3: true }); C.set(key, c); return c; }
+function drawNearRocks(g, m, S, T) { if (!m.vein || G.down) return;
+  const ptx = Math.floor(PL.x / 16), pty = Math.floor((PL.y - 4) / 16), tg = G.rock || (PL.state === 'swing' && PL.kind === 'dig' && PL.digTile) || null, now = G.time;
+  const NR = G.nearRk || (G.nearRk = {}), seen = {};
+  for (let ty = pty - 3; ty <= pty + 3; ty++) for (let tx = ptx - 3; tx <= ptx + 3; tx++) { const t = tileAt(m, tx, ty); if (t !== TILE.WALL && t !== TILE.BEDROCK) continue;
+    const i = MI(m, tx, ty), d = Math.hypot(tx * 16 + 8 - PL.x, ty * 16 + 10 - (PL.y - 4)), isT = tg && tg.tx === tx && tg.ty === ty;
+    let want = isT ? 1 : clamp((NEAR_ROCK_R - d) / NEAR_ROCK_FADE, 0, 1); seen[i] = 1; const cur = NR[i] || 0, a = cur + clamp(want - cur, -0.08, 0.12); NR[i] = a; /* ค่อย ๆ จางเข้า/ออก ไม่โผล่ทันที */
+    if (a <= 0.01) continue; const c = rock3dTile(m, tx, ty), y0 = T(ty * 16), h = T(ty * 16 + 16) - y0;
+    g.save(); g.globalAlpha = a; g.drawImage(c, S(tx * 16), y0, 16, h);
+    const below = tileAt(m, tx, ty + 1); if (below === TILE.FLOOR) { const y1 = T(ty * 16 + 16), y2 = T(ty * 16 + 22); const gr = g.createLinearGradient(0, y1, 0, y2); gr.addColorStop(0, 'rgba(0,0,0,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(S(tx * 16 + 2), y1, 15, y2 - y1); } /* เงาตกบนพื้นด้านหน้าก้อน */
+    g.restore(); }
+  for (const k in NR) if (!seen[k]) { NR[k] -= 0.08; if (NR[k] <= 0) delete NR[k]; } }
 // ---------- หินงอกกลับ: บล็อกที่ขุดแล้วกลับมาเป็นหินหลังขุด 10 นาที (นับเวลาจริง แม้ออกจากเหมืองไปแล้ว) ----------
 const REGEN_MS = 10 * 60 * 1000;
 function regenList(m) {
@@ -8706,6 +8723,7 @@ function render() {
   if (isMine(m)) {
     // ประกายสายแร่ + รอยแตกของหินที่กำลังขุด
     const tx0 = Math.max(0, Math.floor(camX / 16)), ty0 = Math.max(0, Math.floor(camY / 16)), tx1 = Math.min(m.w - 1, Math.ceil((camX + VW) / 16)), ty1 = Math.min(m.h - 1, Math.ceil((camY + VH) / 16));
+    drawNearRocks(g, m, S, T);
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const i = MI(m, tx, ty); if (m.vein[i] && Math.sin(t * 2.2 + tx * 1.7 + ty * 3.1) > 0.93) { g.fillStyle = '#ffffff'; const sx = tx * 16 + 4 + (tx * 5 + ty) % 8, sy = ty * 16 + 4 + (ty * 3 + tx) % 8; g.fillRect(S(sx), T(sy - 1), 1, 3); g.fillRect(S(sx - 1), T(sy), 3, 1); } }
     for (const k in G.dmg) { const i = +k, tx = i % m.w, ty = (i / m.w) | 0; if (m.t[i] !== TILE.WALL) { delete G.dmg[k]; continue; } const frac = 1 - G.dmg[k] / rockMaxHp(m, i); const x = tx * 16, y = ty * 16; g.strokeStyle = 'rgba(10,6,4,0.85)'; g.lineWidth = 1; g.beginPath(); const n = 1 + Math.floor(frac * 4); for (let j = 0; j < n; j++) { const a = hash2(i, j, 3) * 6.28; g.moveTo(S(x + 8), T(y + 9)); g.lineTo(S(x + 8 + Math.cos(a) * 7), T(y + 9 + Math.sin(a) * 6)); } g.stroke(); }
     if (G.rock && !UI.isOpen()) { const r = G.rock, a = 0.55 + Math.sin(t * 6) * 0.25; g.strokeStyle = r.bedrock ? `rgba(160,140,140,${a})` : `rgba(255,230,140,${a})`; g.lineWidth = 1; g.strokeRect(S(r.tx * 16) + 0.5, T(r.ty * 16) + 0.5, 15, 15); }
