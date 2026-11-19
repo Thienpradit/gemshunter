@@ -6260,8 +6260,8 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
   // ป้ายโซน
   const L = C.layers;
   m.labels.push({ x: 24 * 16 + 8, y: 12 * 16, text: `${L[0]} • ขุดหินได้ทุกก้อน`, col: '#ffe0a0', small: true });
-  m.labels.push({ x: m.pathX[MINE_Z1 + 1] * 16 + 8, y: (MINE_Z1 + 1) * 16, text: `${L[1]} • ${country === 'thai' ? 'ระวังค้างคาวและซอมบี้' : 'ระวังกลุ่มโจร'}`, col: '#bfe0ff', small: true });
-  m.labels.push({ x: m.pathX[MINE_Z2 + 1] * 16 + 8, y: (MINE_Z2 + 1) * 16, text: `${L[2]} • ${country === 'thai' ? 'ซอมบี้และโครงกระดูก!' : 'หัวหน้าโจรซ่อนอยู่!'}`, col: '#e0c8ff', small: true });
+  m.labels.push({ x: m.pathX[MINE_Z1 + 1] * 16 + 8, y: (MINE_Z1 + 1) * 16, text: `${L[1]} • ${tier === 2 ? 'ระวังปู ตะขาบ และเห็ดพ่นผง' : 'ระวังค้างคาวและซอมบี้'}`, col: '#bfe0ff', small: true });
+  m.labels.push({ x: m.pathX[MINE_Z2 + 1] * 16 + 8, y: (MINE_Z2 + 1) * 16, text: `${L[2]} • ${tier === 2 ? 'ภูติหิน • บอสเฝ้าทางลง!' : 'ซอมบี้และโครงกระดูก!'}`, col: '#e0c8ff', small: true });
   const outTo = country === 'thai' ? 'village' : 'out_' + country;
   m.labels.push({ x: 24 * 16 + 8, y: 22, text: country === 'thai' ? 'ทางออก ↑ หมู่บ้าน' : `ทางออก ↑ ${C.short} (สนามบิน • ร้านค้า)`, col: '#fff4c0' });
   addObj(m, ART.exit, 24 * 16 + 8, 2 * 16 + 4, { sortY: 0 });
@@ -6645,7 +6645,7 @@ const SPAWN_TABLE = {
 if (typeof COUNTRIES !== 'undefined') for (const k in COUNTRIES) { const M = COUNTRIES[k].mons; if (M && M[1] && M[2]) { M[1].push(['spider', 8]); M[2].push(['spider', 12]); M[2].push(['archer', 18]); } } /* แมงมุมยักษ์: มีในเหมืองทุกประเทศ ชั้นอุโมงค์และชั้นลึก */
 // ตารางศัตรูของเหมืองจันทบุรีระดับ 2 (เหมืองลึก): ปากเหมืองเจอหนู/ค้างคาวทีละตัว → อุโมงค์เริ่มเจอปู ตะขาบ เห็ด → ชั้นลึกเจอเห็ดคู่ปู และภูติหิน • มินิบอส/บอสอย่างละตัวที่ก้นเหมือง
 const T2_TABLE = { gravel: [['rat', 55], ['batc', 45]], tunnel: [['rat', 14], ['batc', 14], ['crab', 28], ['centi', 26], ['mush', 18]], deep: [['crab', 20], ['centi', 16], ['mush', 26], ['spirit', 38]] };
-const t2Mine = m => (m.tier || 1) === 2 && countryOfMap(m.id) === 'thai';
+const t2Mine = m => (m.tier || 1) === 2; /* ทุกประเทศใช้ศัตรูชุดเดียวกันตามชั้น: ชั้น 2 = ชุดเหมืองลึก • ชั้นอื่น = ชุดมาตรฐาน (SPAWN_TABLE) เลเวลสูงขึ้นตามชั้น */
 const _white = new Map();
 function whiteOf(c) { if (_white.has(c)) return _white.get(c); const w = mk(c.width, c.height); w.g.drawImage(c, 0, 0); w.g.globalCompositeOperation = 'source-in'; w.g.fillStyle = '#ffffff'; w.g.fillRect(0, 0, c.width, c.height); _white.set(c, w.c); return w.c; }
 
@@ -6695,7 +6695,7 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
   for (let cy = 16; cy < m.h - 4; cy += GROUP_CELL) for (let cx = 2; cx < m.w - 4; cx += GROUP_CELL) { if (rnd() > GROUP_FILL) continue;
     for (let tries = 0; tries < 30; tries++) { const tx = cx + Math.floor(rnd() * GROUP_CELL), ty = cy + Math.floor(rnd() * GROUP_CELL); if (tx < 2 || ty < 16 || tx >= m.w - 2 || ty >= m.h - 2) continue; const i = MI(m, tx, ty);
       if (m.t[i] !== TILE.FLOOR || m.protect[i]) continue; if (m.t[i + 1] !== TILE.FLOOR && m.t[i - 1] !== TILE.FLOOR) continue;
-      const zz = ZONE_KEYS[m.zone[i]], T2 = t2Mine(m), list = T2 ? T2_TABLE[zz] : c === 'thai' ? SPAWN_TABLE[zz].list : COUNTRIES[c].mons[['gravel', 'tunnel', 'deep'].indexOf(zz)]; let acc = rnd() * list.reduce((t, e) => t + e[1], 0), type = list[0][0]; for (const e of list) { acc -= e[1]; if (acc <= 0) { type = e[0]; break; } }
+      const zz = ZONE_KEYS[m.zone[i]], T2 = t2Mine(m), list = T2 ? T2_TABLE[zz] : SPAWN_TABLE[zz].list; let acc = rnd() * list.reduce((t, e) => t + e[1], 0), type = list[0][0]; for (const e of list) { acc -= e[1]; if (acc <= 0) { type = e[0]; break; } }
       const def = MONS[type], n = def.big || type === 'brute' || (T2 && zz === 'gravel') ? 1 : type === 'bandit' ? 3 + Math.floor(rnd() * 2) : 2 + Math.floor(rnd() * 3);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: n > 1 && rnd() < 0.34, champDead: false }); break; } } /* ราว 1 ใน 3 ของกลุ่มมีแม่ทัพนำ */
   if (t2Mine(m) && G2.length > 2) { /* ก้นเหมือง: กลุ่มที่ลึกที่สุด = บอส โกเลมแกนไพลิน • ลึกรองลงมา = มินิบอส แมงป่องหางทับทิม */
