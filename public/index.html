@@ -592,7 +592,10 @@ body.touch #btnAct{right:max(14px,env(safe-area-inset-right));bottom:max(14px,en
 body.touch #btnSwap{right:calc(max(14px,env(safe-area-inset-right)) + 100px)!important;bottom:max(14px,env(safe-area-inset-bottom))!important;width:56px!important;height:56px!important}
 body.touch #btnWarp{right:max(14px,env(safe-area-inset-right))!important;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 102px)!important;transform:none!important;min-width:0!important;padding:6px 12px 8px 8px!important;gap:6px!important;border-radius:10px!important}
 body.touch #btnWarp small{display:none}body.touch #btnWarp b{font-size:12px}body.touch #btnWarp .wi{font-size:18px}
-body.touch #toasts{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 170px)!important;width:min(94vw,460px)}
+body.touch #toasts{bottom:auto!important;top:calc(4px + env(safe-area-inset-top))!important;left:calc(200px + env(safe-area-inset-left))!important;right:calc(180px + env(safe-area-inset-right));width:auto!important;transform:none!important}
+body.touch .toast{font-size:12px!important;padding:4px 8px;line-height:1.35}
+body.touch .toast img{width:18px;height:18px}
+@media (orientation:portrait){body.touch #toasts{left:8px!important;right:8px;top:calc(150px + env(safe-area-inset-top))!important}}
 @media (orientation:portrait){
   body.touch #btnAct{bottom:calc(max(6px,env(safe-area-inset-bottom)) + 72px)}
   body.touch #btnSwap{bottom:calc(max(6px,env(safe-area-inset-bottom)) + 72px)!important}
@@ -8074,13 +8077,13 @@ function rollGem(hx, hy, zk, vein, luck) {
   if (res === 'none') { floatText(hx, hy - 18, 'เจอแต่เศษหิน', '#e0d6c4', 1.5); setTimeout(() => SFX.play('rubble'), 60); }
   else {
     if (bagFull()) { floatText(hx, hy - 18, 'กระเป๋าเต็ม! พลอยหล่นหาย', '#ff8a7a', 1.4); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ขายพลอย หรือซื้อกระเป๋าใหญ่ขึ้นที่ร้านอุปกรณ์ (แท็บ “กระเป๋า”)`, 'bad'); SFX.play('rubble'); return; }
-    const gem = makeRawGem(res, zk, Math.random, c); gem.run = STATE.mineRun || 1; STATE.inv.push(gem); STATE.stats.found++; { const gx = gainXp(Math.round(GEM_XP[clamp(gemRarity(gem), 0, 4)] * MINE_TIERS[(G.map.tier || 1) - 1].xp * (1 + (pstats().pick.gxp || 0)))); if (gx) floatText(PL.x, PL.y - 46, `+${gx} EXP`, '#b8a0ff', 2.4); } /* ขุดเจอพลอยก็ได้ EXP */
+    const gem = makeRawGem(res, zk, Math.random, c); gem.run = STATE.mineRun || 1; STATE.inv.push(gem); STATE.stats.found++; const TCH = document.body.classList.contains('touch'); /* จอสัมผัส: ตอนเจอพลอยแสดงแถบข้อความเดียว (ไม่มีตัวหนังสือลอยทับตัวผู้เล่น) */ const gx = gainXp(Math.round(GEM_XP[clamp(gemRarity(gem), 0, 4)] * MINE_TIERS[(G.map.tier || 1) - 1].xp * (1 + (pstats().pick.gxp || 0)))); if (gx && !TCH) floatText(PL.x, PL.y - 46, `+${gx} EXP`, '#b8a0ff', 2.4); /* ขุดเจอพลอยก็ได้ EXP */
     if (bagUsed() >= bagCap() - 5) toast(`🎒 กระเป๋าใกล้เต็ม ${bagUsed()}/${bagCap()}`, 'bad');
     const col = gemHex(gem);
     G.flashes.push({ x: hx, y: hy, col, t: 0, dur: 1.1 });
     for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, s = 15 + Math.random() * 45; G.parts.push({ k: 'star', x: hx, y: hy, z: 4, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vz: 0, life: 0.6 + Math.random() * 0.6, max: 1.2, col: i % 3 ? col : '#ffffff', size: 1 }); }
     G.parts.push({ k: 'gemfly', x: hx, y: hy, z: 0, vx: 0, vy: 0, vz: 0, life: 2.6, max: 2.6, gem, col });
-    floatText(hx, hy - 30, `พบ${GEMS[res].name}! เกรด ${GRADES[gem.flaw]} • ${gem.carat.toFixed(2)} กะรัต`, shade(col, 0.45), 4, 1);
+    if (!TCH) floatText(hx, hy - 30, `พบ${GEMS[res].name}! เกรด ${GRADES[gem.flaw]} • ${gem.carat.toFixed(2)} กะรัต`, shade(col, 0.45), 4, 1);
     if (gem.jumbo) { // ฉากพิเศษ: พลอยก้อนยักษ์
       banner(`🏆 พบ${nameWith(GEMS[res].name, 'ก้อนยักษ์')} ${gem.carat.toFixed(2)} กะรัต! 🏆`); G.shake = Math.max(G.shake, 7);
       for (let k = 0; k < 4; k++) setTimeout(() => G.flashes.push({ x: hx, y: hy, col: k % 2 ? '#ffffff' : col, t: 0, dur: 1.4 }), k * 220);
@@ -8088,7 +8091,7 @@ function rollGem(hx, hy, zk, vein, luck) {
       toast(`🏆 <b>พลอยก้อนยักษ์!</b> ${gemName(gem)} ${gem.carat.toFixed(2)} กะรัต — หายากประมาณ 1 ใน 10,000 เม็ด เจียแล้วได้เม็ดใหญ่ 10 กะรัตขึ้นไป`, 'quest');
     }
     const rr = gemRarity(gem);
-    toast(`<img src="${gemIconURL(gem)}"> พบ<b>${gemName(gem)}</b> <span class="rbadge" style="--rc:${RARITY_COLS[rr]}">${RARITY_NAMES[rr]}</span> — ${gemDesc(gem)}`, rr >= 3 ? 'quest' : 'good');
+    toast(`<img src="${gemIconURL(gem)}"> พบ<b>${gemName(gem)}</b> <span class="rbadge" style="--rc:${RARITY_COLS[rr]}">${RARITY_NAMES[rr]}</span> — ${gemDesc(gem)}${TCH && gx ? ` • <b>+${gx} EXP</b>` : ''}`, rr >= 3 ? 'quest' : 'good');
     if (rr >= 3) { if (!gem.jumbo) banner(`✦ พบพลอยระดับ${RARITY_NAMES[rr]}! ✦`); G.flashes.push({ x: hx, y: hy, col: '#ffffff', t: 0, dur: 1.6 }); G.shake = Math.max(G.shake, 4); setTimeout(() => SFX.play('done'), 250); }
     SFX.play('gem', res);
     if (res === 'sapphire') questEvent('findRuby', 1);
@@ -8303,7 +8306,7 @@ function flyTo(destCountry) {
   };
   requestAnimationFrame(tick);
 }
-function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; SFX.music(isMine(G.map) ? 'mine' + clamp(G.map.tier || 1, 1, 5) : 'town'); /* เพลงพื้นหลังตามฉาก */ }
+function setTheme() { document.body.dataset.theme = countryOfMap(G.map.id) || 'thai'; SFX.music(isMine(G.map) ? 'mine' : 'town'); /* เพลงพื้นหลังตามฉาก */ }
 function banner(text) { G.banner = { text, t: 0 }; }
 function zoneAt(m, x, y) { if (!isMine(m)) return null; const ty = Math.floor((y - 2) / 16); return ZONE_KEYS[mineZoneIdx(ty)]; }
 function depthM() { return Math.max(0, Math.round((PL.y / 16 - 4) * 1.5)); }
@@ -9332,7 +9335,7 @@ const UI = (() => {
       if (!/quest|good|bad/.test(cls)) return; // ข้อความทั่วไปแสดงแค่ในกล่องแชต
     }
     const box = $('#toasts'); const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; box.appendChild(d);
-    while (box.children.length > 4) box.firstChild.remove();
+    while (box.children.length > (document.body.classList.contains('touch') ? 1 : 4)) box.firstChild.remove(); /* จอสัมผัส: แสดงทีละแถบเดียว */
     setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 400); }, /\bbig\b/.test(cls) ? 7000 : cls === 'quest' ? 4200 : 3000);
   };
 
