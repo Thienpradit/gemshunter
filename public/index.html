@@ -3128,6 +3128,9 @@ function buildArt() {
   ART.chars = {}; for (const k in CHARS) if (k !== 'player') ART.chars[k] = buildCharSheet(CHARS[k], ['idle']);
   ART.playerSheets = {};
   ART.mon = { snake: sprImg4('snake'), bat: sprImg4('bat'), scorpion: sprImg4('scorpion'), mud: sprImg4('mud'), ghost: sprImg4('ghost') };
+  { /* ทางลงชั้นถัดไปของเหมือง: ปากบันไดหินลงไปในความมืด */ const { c, g } = mk(34, 26); const R2 = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    R2(2, 4, 30, 20, '#2a2622'); R2(3, 3, 28, 1, '#2a2622'); R2(4, 6, 26, 17, '#0c0a09'); for (let k = 0; k < 4; k++) { R2(6 + k * 2, 8 + k * 4, 22 - k * 4, 3, ['#6a6258', '#544c44', '#3e3832', '#2a2622'][k]); R2(6 + k * 2, 8 + k * 4, 22 - k * 4, 1, ['#8a8276', '#6e665c', '#524a42', '#3a342e'][k]); }
+    for (let x = 2; x < 32; x += 5) { R2(x, 2, 4, 3, '#7a7268'); R2(x, 2, 4, 1, '#9a9288'); } R2(1, 4, 3, 20, '#6a6258'); R2(30, 4, 3, 20, '#5a524a'); R2(1, 4, 1, 20, '#8a8276'); R2(1, 23, 32, 2, '#4a443c'); c.noHD = true; ART.descend = c; }
   ART.stallRawImg = sprStallImg('raw'); ART.stallCutImg = sprStallImg('cut');
   ART.bi = {}; for (const k of ['workshop', 'house', 'smith', 'jewel', 'foodCart']) ART.bi[k] = sprStallImg(k); /* อาคารในหมู่บ้าน + รถเข็นขายอาหาร: ภาพวาดสำเร็จ */
   ART.mon.spider = sprImg4('spider');
@@ -6260,6 +6263,12 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
   m.interact.push({ kind: 'exitMine', to: outTo, x: 24 * 16 + 8, y: 3 * 16 + 4, r: 16, label: 'ขึ้นสู่ผิวดิน', verb: 'ขึ้น' });
   addObj(m, ART.cart, 20 * 16 + 8, 8 * 16 + 13, { solid: [24, 8] }); addObj(m, ART.crate, 29 * 16 + 8, 7 * 16 + 13, { solid: [12, 6] }); addObj(m, ART.barrel, 28 * 16 + 8, 9 * 16 + 13, { solid: [10, 5] });
   m.lights.push({ x: 24 * 16 + 8, y: 2 * 16, r: 76, col: '#fff4d0', flick: 0, sun: true });
+  /* ทางลงชั้นถัดไป: อยู่สุดทางหลักที่ก้นเหมือง (ไม่มีเมนูเลือกชั้นแล้ว — เข้าเหมืองทางเดียว เดินลึกลงไปจนเจอบันไดจึงลงชั้นต่อไป) */
+  if (tier < MINE_TIERS.length) { let dy = H - 8; while (dy > MINE_Z2 + 2 && !(m.pathX[dy] != null && m.t[MI(m, m.pathX[dy], dy)] === TILE.FLOOR)) dy--; const dx = clamp(m.pathX[dy] != null ? m.pathX[dy] : 24, 3, W - 4), NT = MINE_TIERS[tier];
+    for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) { const i = MI(m, dx + xx, dy + yy); if (dy + yy >= H - 1 || m.t[i] === TILE.BEDROCK) continue; m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; m.protect[i] = 1; }
+    const X = dx * 16 + 8, Y = dy * 16 + 12; addObj(m, ART.descend, X, Y, { solid: [26, 8], kind: 'building', sortY: Y - 10 });
+    m.interact.push({ kind: 'descend', to: mineIdTier(mapIdOf(country), tier + 1), x: X, y: Y + 8, r: 20, label: `ลงสู่${NT.name} (ชั้น ${tier + 1}) • ศัตรู Lv ${monLevel('snake', tier + 1)}–${monLevel('brute', tier + 1)} • ต้อง Lv ${NT.req}`, verb: 'ลง', hit: { x: X - 17, y: Y - 26, w: 34, h: 30 } });
+    m.labels.push({ x: X, y: Y - 34, text: `ทางลง ↓ ${NT.name}`, col: NT.col }); m.lights.push({ x: X, y: Y - 8, r: 64, col: NT.col, flick: 0 }); m.descend = { x: X, y: Y }; }
   m.spawn = { x: 24 * 16 + 8, y: 6 * 16 + 10, dir: 'down' };
   m.bg = paintMapBG(m);
   buildWalkGrid(m);
@@ -7169,7 +7178,8 @@ function doInteract(it) {
     case 'enterHouse': return goMap('house');
     case 'travel': return UI.travel();
     case 'agentBack': return UI.agentBack();
-    case 'enterMine': return UI.mineSelect(it.to || 'mine');
+    case 'enterMine': STATE.mineTier = 1; return goMap(mineIdTier(it.to || 'mine', 1)); /* เข้าเหมืองทางเดียว: เริ่มที่ชั้น 1 เสมอ ชั้นต่อไปลงทางบันไดก้นเหมือง */
+    case 'descend': { const nt = mineTierOf(it.to), NT = MINE_TIERS[nt - 1]; if (charState().lv < NT.req) { toast(`ยังลงไม่ได้ — ${NT.name} ต้องเลเวล ${NT.req} (ตอนนี้ Lv ${charState().lv})`, 'bad'); SFX.play('deny'); return; } STATE.mineTier = nt; return goMap(it.to); }
     case 'exitMine': return goMap(it.to || 'village');
     case 'deathBag': return takeDeathBag(it.bag);
     case 'warpIn': return STATE.warp ? goMap(STATE.warp.town, 'warpIn') : null;
@@ -7629,7 +7639,7 @@ function update(dt) {
   if (PL._ld !== PL.dir) { if (PL._ld) PL.turnT = 1; PL._ld = PL.dir; } PL.turnT = Math.max(0, (PL.turnT || 0) - dt * 7);
   if (!PL.moving && PL.mvb > 0.02) PL.anim += dt * 4 * PL.mvb; // ค่อยๆ หยุดก้าว
   if (PL.moving) { PL.anim += Math.max(moved / 9, dt * 4); PL.stepT += dt; if (PL.stepT > 0.3) { PL.stepT = 0; SFX.play('step'); } if (Math.random() < dt * 6 && isMine(m)) G.parts.push({ k: 'dust', x: PL.x + (Math.random() - 0.5) * 6, y: PL.y, z: 0, vx: 0, vy: -3, vz: 0, life: 0.5, max: 0.5, col: '#a89880', size: 1.5 }); }
-  if (!G.trans && G.transCool <= 0 && !blocked) for (const t of m.triggers) if (PL.x > t.x && PL.x < t.x + t.w && PL.y > t.y && PL.y < t.y + t.h) { if (t.kind === 'enterMine') { PL.path = null; PL.act = null; UI.mineSelect(t.to || 'mine', () => { PL.y += 16; G.transCool = 0.8; }); } else goMap(t.to || 'village', t.spawn); break; }
+  if (!G.trans && G.transCool <= 0 && !blocked) for (const t of m.triggers) if (PL.x > t.x && PL.x < t.x + t.w && PL.y > t.y && PL.y < t.y + t.h) { if (t.kind === 'enterMine') { PL.path = null; PL.act = null; STATE.mineTier = 1; goMap(mineIdTier(t.to || 'mine', 1)); } else goMap(t.to || 'village', t.spawn); break; }
   const z = zoneAt(m, PL.x, PL.y);
   if (isMine(m) && z && z !== G.zone) { const first = !G.zone; G.zone = z; const tr = m.tier || 1, T = MINE_TIERS[tr - 1]; banner(`⛏ ${T.name} (ระดับ ${tr}/${MINE_TIERS.length}) • ${zoneName(m, z)}`); if (first) toast(`ลงมาถึง <b style="color:${T.col}">${T.name} — ระดับ ${tr}</b> • ศัตรู Lv ${monLevel('snake', tr)}–${monLevel('brute', tr)}`, 'good'); UI.hud(); } /* บอกระดับเหมืองทุกครั้งที่ลงมา/เปลี่ยนโซน */
   if (isMine(m)) { const dm = depthM(); if (dm > (STATE.stats.deepest || 0)) STATE.stats.deepest = dm; }
