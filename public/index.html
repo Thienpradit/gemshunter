@@ -2808,6 +2808,16 @@ function sprShowcase() { // ตู้โชว์คอลเลกชันพ�
   R(g, 3, 33, 4, 3, dk); R(g, 23, 33, 4, 3, dk);
   return addOutline(c, '#20120a');
 }
+function sprGemCase() { // กระเป๋าเดินทางใส่พลอย: กระเป๋าหนังเปิดฝา ด้านในบุกำมะหยี่ มีพลอยเรียงเป็นช่อง (วางอยู่ปากเต็นท์ของผู้เล่นในต่างประเทศ)
+  const { c, g } = mk(26, 20); const lt = '#a8692e', md = '#7a4a22', dk = '#4a2a10', vv = '#3a1648', vl = '#5a2a70', br = '#d9a441';
+  R(g, 2, 1, 22, 9, md); R(g, 2, 1, 22, 1, lt); R(g, 3, 2, 20, 7, vv); R(g, 3, 2, 20, 1, vl);                       // ฝาเปิดตั้ง (ด้านในกำมะหยี่)
+  R(g, 5, 4, 16, 1, '#6a3a80'); R(g, 5, 6, 16, 1, '#6a3a80');                                                       // สายรัดในฝา
+  R(g, 1, 10, 24, 8, md); R(g, 1, 10, 24, 1, lt); R(g, 1, 17, 24, 1, dk); R(g, 2, 11, 22, 5, vv);                   // ตัวกระเป๋า + ถาดกำมะหยี่
+  [['#e8284f', '#ffb0c0'], ['#3a6ad8', '#b0c8ff'], ['#1ea464', '#a0f0c0'], ['#f0c030', '#fff0a0'], ['#9058c8', '#e0c0ff'], ['#30d8e0', '#c0ffff']].forEach((cl, i) => { R(g, 3 + i * 3.5 | 0, 12, 2, 2, cl[0]); P(g, 3 + i * 3.5 | 0, 12, cl[1]); });
+  [['#f08068', '#ffd0c0'], ['#e8e8f0', '#ffffff'], ['#48b030', '#c0f0a0'], ['#d8203a', '#ffa0b0'], ['#6a5ad8', '#c0b8ff'], ['#f0a040', '#ffe0a0']].forEach((cl, i) => { R(g, 4 + i * 3.5 | 0, 14, 2, 2, cl[0]); P(g, 4 + i * 3.5 | 0, 14, cl[1]); });
+  R(g, 1, 10, 2, 2, br); R(g, 23, 10, 2, 2, br); R(g, 11, 17, 4, 2, br); R(g, 0, 12, 1, 4, dk); R(g, 25, 12, 1, 4, dk); // มุมทองเหลือง ตัวล็อก หูหิ้ว
+  return addOutline(c, '#20120a');
+}
 function sprSafe() { // ตู้เซฟเหล็กในบ้าน: บานประตูหนา หน้าปัดหมุนรหัส มือจับ บานพับ
   const { c, g } = mk(22, 26); const st = '#6e7884', lt = '#9aa6b2', dk = '#444c56', dd = '#2c323a';
   R(g, 1, 2, 20, 22, st); R(g, 1, 2, 20, 2, lt); R(g, 1, 2, 2, 22, lt); R(g, 19, 4, 2, 20, dk); R(g, 1, 22, 20, 2, dk);
@@ -6668,10 +6678,9 @@ function buildOutpost(country) {
   for (const [spr, x, y, w, row] of [[TS.stallRaw, RWX, RWY, 76, 37], [TS.stallCut, CTX, CTY, 84, 36]]) { const [top, bot] = splitSprite(spr, row); addObj(m, top, x, y, { sortY: y - 34, kind: 'building' }); addObj(m, bot, x, y, { solid: [w, 22], kind: 'building' }); }
   addObj(m, TS.smith, SMX, SMY, { solid: [TS.smith.width - 8, 30], kind: 'building' });
   addObj(m, TS.workshop, TNX, TNY, { solid: [TS.workshop.width - 8, 30], kind: 'building' }); /* ช่างเจียระไนประจำประเทศ: เป็นบ้าน (เดิมเป็นเต็นท์) */
-  if (PTX) { addObj(m, TS.tent, PTX, PTY, { solid: [40, 12], kind: 'building' }); addObj(m, sprShowcase(), PTX + 34, PTY + 6, { solid: [26, 8], kind: 'showcase' });
+  if (PTX) { addObj(m, TS.tent, PTX, PTY, { solid: [40, 12], kind: 'building' }); addObj(m, sprGemCase(), PTX, PTY + 9, { solid: [20, 5], kind: 'showcase' }); /* กระเป๋าเดินทางใส่พลอยวางเปิดอยู่ปากเต็นท์ */
     addSign(m, 'house', 'เต็นท์ของคุณ', '', PTX, PTY - 36);
-    m.interact.push({ kind: 'showcase', x: PTX + 34, y: PTY + 14, r: 26, label: 'กล่องสะสมพลอย (ตู้โชว์คอลเลกชัน)', verb: 'เปิดดู', hit: { x: PTX + 34 - 15, y: PTY - 30, w: 30, h: 44 } });
-    m.interact.push({ kind: 'showcase', x: PTX, y: PTY + 12, r: 24, label: 'เต็นท์ของคุณ • กล่องสะสมพลอย', verb: 'เปิดดู', hit: { x: PTX - 22, y: PTY - 36, w: 44, h: 44 } }); }
+    m.interact.push({ kind: 'showcase', x: PTX, y: PTY + 16, r: 26, label: 'กระเป๋าเดินทางใส่พลอย (คอลเลกชันของคุณ)', verb: 'เปิดดู', hit: { x: PTX - 22, y: PTY - 36, w: 44, h: 52 } }); }
   addObj(m, TS.foodCart, FDX, FDY, { solid: [36, 10], kind: 'building' });
   addObj(m, ART.sign, (MX - 3) * 16 + 8, 5 * 16 + 4, { solid: [6, 4] });
   const npcO = (key, name, x, y) => { const n = { key, name, x, y, dir: 'down', baseDir: 'down', t: Math.random() * 3 }; m.npcs.push(n); m.solids.push({ x: x - 5, y: y - 5, w: 10, h: 6, ref: n }); return n; };
@@ -9730,6 +9739,7 @@ const UI = (() => {
   // ---------- ตู้เซฟในบ้าน: ย้ายพลอย กระเป๋า ⇄ ตู้ (เมนูแบบเดียวกับหน้าขาย) ----------
   let safeTab = 'in', safeSel = new Set();
   // ---------- ตู้โชว์คอลเลกชันพลอย (ในบ้าน): กล่องละชนิด ใส่พลอยของเราได้ชนิดละ 1 เม็ด แสดงราคาประเมินรายเม็ดและรวมทั้งคอลเลกชัน ----------
+  let scCase = false; /* เปิดจากกระเป๋าเดินทางในเต็นท์ต่างประเทศ (คอลเลกชันเดียวกับตู้โชว์ที่บ้าน ต่างแค่ชื่อหัวหน้าต่าง) */
   let scView = null; /* ดูตู้โชว์ของผู้เล่นคนอื่น (อ่านอย่างเดียว): { name, lv, sc } • null = ตู้ของเราเอง */
   async function viewShowcase(name) { const me = curPlayer(); scPage = 1; scSlot = null; scSel = ''; scCty = ''; scFilter = 'all';
     if (me && me.name === name) { scView = { name, lv: STATE.lv || 1, sc: showcaseState(), me: true }; SFX.play('click'); return showcase(); }
@@ -9745,7 +9755,7 @@ const UI = (() => {
     const mine = (t, c) => RO ? [] : [...STATE.inv.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'bag' })), ...S.gems.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'safe' }))].sort((a, b) => estValue(b.g) - estValue(a.g));
     const canT = t => GEMS[t].colors.some((_, c) => !SC[t + ':' + c] && mine(t, c).length), nm = x => { const i = x.indexOf(' ('); return i > 0 ? [x.slice(0, i), x.slice(i + 2).replace(/\)$/, '')] : [x, '']; };
     const dots = t => `<div class="scdots">${GEMS[t].colors.map((C, c) => `<i class="${SC[t + ':' + c] ? 'on' : ''}" style="--dc:${C[1]}"></i>`).join('')}</div>`;
-    const head = `<h3>💎 ${V ? `ตู้โชว์ของ ${esc(V.name)}${V.me ? ' (คุณ)' : ''} • Lv ${V.lv}` : 'ตู้โชว์คอลเลกชันพลอย'}</h3><div class="schead"><div class="scprog"><div class="scprog-t"><span>ชนิดพลอย <b>${haveT}</b>/${allTypes.length}</span><span>สี <b>${haveC}</b>/${allTypes.length * NC}</span></div><div class="scbar"><i style="width:${(haveC / (allTypes.length * NC) * 100).toFixed(1)}%"></i></div></div><div class="sctot"><small>ราคาประเมินรวมทั้งคอลเลกชัน</small><b>${money(total)}</b></div></div>`;
+    const head = `<h3>${!V && scCase ? '🧳' : '💎'} ${V ? `ตู้โชว์ของ ${esc(V.name)}${V.me ? ' (คุณ)' : ''} • Lv ${V.lv}` : scCase ? 'กระเป๋าเดินทางใส่พลอย' : 'ตู้โชว์คอลเลกชันพลอย'}</h3><div class="schead"><div class="scprog"><div class="scprog-t"><span>ชนิดพลอย <b>${haveT}</b>/${allTypes.length}</span><span>สี <b>${haveC}</b>/${allTypes.length * NC}</span></div><div class="scbar"><i style="width:${(haveC / (allTypes.length * NC) * 100).toFixed(1)}%"></i></div></div><div class="sctot"><small>ราคาประเมินรวมทั้งคอลเลกชัน</small><b>${money(total)}</b></div></div>`;
     const tool = extra => `<div class="sctool"><div class="scseg">${[[1, '💎 ชนิดพลอย'], [2, '🎨 ทุกสี']].map(([k, t]) => `<button class="${scPage === k ? 'on' : ''}" data-a="scpage" data-p="${k}">${t}</button>`).join('')}</div><label>ประเทศ <select class="sel" id="sccty"><option value="">ทุกประเทศ</option>${COUNTRY_KEYS.map(k => `<option value="${k}" ${scCty === k ? 'selected' : ''}>${COUNTRIES[k].short} (${allTypes.filter(t => originKeys(t).includes(k)).length})</option>`).join('')}</select></label>${extra}</div>`;
     const bindSel = () => { for (const [id, fn] of [['#sccty', v => { scCty = v; }], ['#scsel', v => { scSel = v; }], ['#scflt', v => { scFilter = v; }]]) { const el = $(id); if (el) el.addEventListener('change', e => { fn(e.target.value); SFX.play('click'); showcase(); }); } };
     const backB = V ? '<button class="btn" data-a="scboard">◀ กลับไปบอร์ด</button>' : '';
@@ -9760,8 +9770,8 @@ const UI = (() => {
         (a, b) => { if (common(a, b)) return;
           if (a === 'scback') { scSlot = null; SFX.play('click'); return showcase(); }
           if (RO) return;
-          if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t && (g.color | 0) === c); if (i < 0) return; const g = arr[i]; if (SC[key]) arr[i] = SC[key]; else arr.splice(i, 1); SC[key] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> สี${CN[0]} ลงตู้โชว์แล้ว • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
-          if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากตู้โชว์ไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
+          if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t && (g.color | 0) === c); if (i < 0) return; const g = arr[i]; if (SC[key]) arr[i] = SC[key]; else arr.splice(i, 1); SC[key] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> สี${CN[0]} ${scCase ? 'ลงกระเป๋าสะสมแล้ว' : 'ลงตู้โชว์แล้ว'} • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
+          if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากคอลเลกชันไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
       api.onE = null; return; }
     const colBox = (t, c) => { const g = SC[t + ':' + c], n = g ? 0 : mine(t, c).length, CN = GEMS[t].colors[c], [th, en] = nm(CN[0]); return `<div class="scbox ${g ? 'on' : n ? 'can' : 'off'}" data-a="scslot" data-k="${t}:${c}" style="--gc:${CN[1]}">${n ? `<span class="scbadge">ใส่ได้ ${n}</span>` : ''}<div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : ''}</div><b>${th}</b><em>${en || '&nbsp;'}</em><span class="scp ${g ? '' : 'muted'}">${g ? money(estValue(g)) : 'ว่าง'}</span></div>`; };
     if (scPage === 2) { const pick = scSel && GEMS[scSel] ? [scSel] : types;
@@ -10680,7 +10690,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: (cty) => { scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: (cty) => { scCase = !!(cty && COUNTRIES[cty]); scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
