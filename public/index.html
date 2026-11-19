@@ -851,6 +851,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
     <div id="zonechip" class="chip frame"></div>
     <div id="climchip" class="chip frame clim ok" style="display:none!important"></div>
     <div id="onchip" class="chip frame" style="display:none" title="ผู้เล่นที่ออนไลน์อยู่ตอนนี้"></div>
+    <button id="btnPin" class="hbtn frame" title="ปักหมุดตรงที่ยืนอยู่ — เห็นบนแผนที่ย่อ (P) • ยืนทับหมุดเดิมแล้วกดอีกครั้งเพื่อถอน">📍</button>
     <button id="btnCps" class="hbtn frame" title="คัมภีร์จุดเซฟ — วาร์ปไปจุดเซฟในเหมือง (M)">📜</button>
     <button id="btnBoard" class="hbtn frame" title="บอร์ดโชว์พลอยทั้งเกม">🏆</button>
     <button id="btnMenu" class="hbtn frame" title="เมนู (Esc)">☰</button>
@@ -1771,7 +1772,7 @@ let saveDirty = false;
 function heroDefault() { try { const v = localStorage.getItem('nlpc_heroPick'); return v === 'female' ? 'female' : 'male'; } catch (e) { return 'male'; } } /* ตัวละครที่เลือกตอนสมัคร (ชาย/หญิง) */
 function newState() {
   return {
-    hero: heroDefault(), cps: {},
+    hero: heroDefault(), cps: {}, pins: {},
     v: SAVE_VERSION, durV: 2, coins: CONFIG.startCoins, inv: [], questIdx: 0, questProg: 0,
     stats: { sold: 0, soldCut: 0, dug: 0, found: 0, earned: 0, kills: 0, deepest: 0 },
     queue: { jobs: [], startAt: 0 },
@@ -1839,7 +1840,7 @@ function migrateSave(s) {
     st.pos = { ...st.pos, ...s.pos };
     if (/^mine/.test(s.pos.map) && !mineOk) st.pos = /^mine(~\d)?$/.test(s.pos.map) ? { map: 'mine', x: -1, y: -1, dir: 'down' } : { ...st.pos, map: 'village', x: -1, y: -1 }; // เหมืองแบบเก่า → เริ่มที่ปากเหมือง
   }
-  st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {};
+  st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
   st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
   st.savedAt = Number(s.savedAt) || 0;
@@ -7160,7 +7161,7 @@ function updateBullets(dt) {
   for (const f of G.muzzle) f.t += dt; G.muzzle = G.muzzle.filter(f => f.t < 0.06);
 }
 function drawBullets(g, S, T) {
-  drawArrows(g, S, T);
+  drawPins(g, S, T); drawArrows(g, S, T);
   for (const b of G.bullets) { g.strokeStyle = 'rgba(255,230,140,0.95)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(S(b.x - b.vx * 0.018), T(b.y - b.vy * 0.018)); g.lineTo(S(b.x), T(b.y)); g.stroke(); g.fillStyle = '#fff6d0'; g.fillRect(S(b.x) - 0.5, T(b.y) - 0.5, 1.5, 1.5); }
   g.globalCompositeOperation = 'lighter';
   for (const f of G.muzzle) { const x = S(f.x), y = T(f.y), r = 6 - f.t * 40; const gr = g.createRadialGradient(x, y, 0, x, y, Math.max(1, r * 1.8)); gr.addColorStop(0, 'rgba(255,250,200,0.95)'); gr.addColorStop(0.5, 'rgba(255,170,60,0.7)'); gr.addColorStop(1, 'rgba(255,120,30,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, Math.max(1, r * 1.8), 0, 7); g.fill(); g.save(); g.translate(x, y); g.rotate(f.a); g.fillStyle = 'rgba(255,240,170,0.9)'; g.beginPath(); g.moveTo(0, -2); g.lineTo(9, 0); g.lineTo(0, 2); g.fill(); g.restore(); }
@@ -7400,6 +7401,15 @@ function takeDeathBag(b) {
 }
 // ประตูขากลับที่เมืองเปิดอยู่ 1 นาที ถ้าไม่กลับเข้าไปจะจางหายไปเอง (ประตูวาร์ปบานนั้นหมดไป)
 const WARP_BACK_SEC = Infinity; /* ไม่จำกัดเวลา: ประตูขากลับเปิดรอจนกว่าจะใช้ */
+// ---------- ปักหมุด: ปักตรงที่ยืน (สูงสุด 6 หมุดต่อแผนที่) เห็นบนแผนที่ย่อ อยู่นอกวงจะชี้ทิศที่ขอบ • ยืนทับหมุดเดิมแล้วกดอีกครั้ง = ถอน ----------
+const PIN_MAX = 6;
+function togglePin() { if (!G.map || G.down || G.trans) return; if (!STATE.pins) STATE.pins = {}; const id = G.map.id, L = STATE.pins[id] || (STATE.pins[id] = []);
+  const near = L.findIndex(p => Math.hypot(p.x - PL.x, p.y - PL.y) < 26);
+  if (near >= 0) { L.splice(near, 1); toast('ถอนหมุดแล้ว', 'good'); SFX.play('click'); }
+  else { if (L.length >= PIN_MAX) L.shift(); L.push({ x: Math.round(PL.x), y: Math.round(PL.y) }); toast(`📍 ปักหมุดแล้ว (${L.length}/${PIN_MAX}) • ดูได้บนแผนที่ย่อ • ยืนทับหมุดแล้วกด P อีกครั้งเพื่อถอน`, 'good'); SFX.play('done'); }
+  if (!L.length) delete STATE.pins[id]; saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; }
+function drawPins(g, S, T) { const L = STATE.pins && G.map && STATE.pins[G.map.id]; if (!L) return; for (const p of L) { const x = S(p.x), y = T(p.y), b = Math.sin(G.time * 3 + p.x) * 1;
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(x, y, 4, 1.6, 0, 0, 7); g.fill(); g.strokeStyle = '#3a1410'; g.lineWidth = 1; g.fillStyle = '#e0392e'; g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x - 4, y - 10 + b); g.arc(x, y - 11 + b, 4.2, Math.PI, 0); g.lineTo(x, y - 1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y - 11.5 + b, 1.5, 0, 7); g.fill(); } }
 function warpBackLeft() { const w = STATE && STATE.warp; return w && w.used ? Math.max(0, WARP_BACK_SEC - (Date.now() - (w.usedAt || 0)) / 1000) : null; }
 function warpBackTick() {
   const w = STATE && STATE.warp; if (!w || !w.used || !G.map || G.trans) return; const left = warpBackLeft(), here = G.map.id === w.town;
@@ -7761,8 +7771,8 @@ function drawMinimap(dt) {
     }
   }
   // ---- จุดใช้งาน (ร้าน/แผง/บ้าน/สนามบิน): ไอคอนชัด ๆ • ถ้าอยู่นอกวง จะปักไว้ที่ขอบวงตามทิศ ให้เห็นตลอด ----
-  { const IC = { craft: ['⚙', '#3a6ad0'], rawdealer: ['⛏', '#3a8a4a'], cutdealer: ['💎', '#a83a6a'], smith: ['🛡', '#7a5a3a'], jeweler: ['💍', '#b03a8a'], aunt: ['🍚', '#c86a2a'], deathBag: ['🎒', '#c8442a'], warpIn: ['🌀', '#6a4a9a'], warpBack: ['🌀', '#6a4a9a'], enterHouse: ['🏠', '#8a4a2a'], travel: ['✈', '#2a7ab0'], enterMine: ['⛰', '#4a4a52'] };
-    for (const it of m.interact || []) { const ic = IC[it.kind]; if (!ic) continue; let [qx, qy] = W2S(it.x, it.y - 14); const dx = qx - C, dy = qy - C, d = Math.hypot(dx, dy), out = d > Rin - 10, an = Math.atan2(dy, dx);
+  { const IC = { craft: ['⚙', '#3a6ad0'], rawdealer: ['⛏', '#3a8a4a'], cutdealer: ['💎', '#a83a6a'], smith: ['🛡', '#7a5a3a'], jeweler: ['💍', '#b03a8a'], aunt: ['🍚', '#c86a2a'], deathBag: ['🎒', '#c8442a'], warpIn: ['🌀', '#6a4a9a'], warpBack: ['🌀', '#6a4a9a'], enterHouse: ['🏠', '#8a4a2a'], travel: ['✈', '#2a7ab0'], enterMine: ['⛰', '#4a4a52'], descend: ['⬇', '#2a5ab0'], cp: ['✦', '#1a7aa0'], pin: ['📍', '#7a1a14'] };
+    for (const it of [...(m.interact || []), ...(m.cp ? [{ kind: 'cp', x: m.cp.x + 16, y: m.cp.y + 10 }] : []), ...((STATE.pins && STATE.pins[m.id]) || []).map(p => ({ kind: 'pin', x: p.x, y: p.y + 14 }))]) { const ic = IC[it.kind]; if (!ic) continue; let [qx, qy] = W2S(it.x, it.y - 14); const dx = qx - C, dy = qy - C, d = Math.hypot(dx, dy), out = d > Rin - 10, an = Math.atan2(dy, dx);
       if (out) { qx = C + Math.cos(an) * (Rin - 10); qy = C + Math.sin(an) * (Rin - 10); g.fillStyle = '#ffe9a0'; g.strokeStyle = '#140a04'; g.lineWidth = 1; g.beginPath(); g.moveTo(qx + Math.cos(an) * 12, qy + Math.sin(an) * 12); g.lineTo(qx + Math.cos(an + 0.9) * 8, qy + Math.sin(an + 0.9) * 8); g.lineTo(qx + Math.cos(an - 0.9) * 8, qy + Math.sin(an - 0.9) * 8); g.closePath(); g.fill(); g.stroke(); }
       const r = out ? 7.5 : 9; g.fillStyle = '#140a04'; g.beginPath(); g.arc(qx, qy, r + 1.6, 0, 7); g.fill(); g.fillStyle = ic[1]; g.beginPath(); g.arc(qx, qy, r, 0, 7); g.fill(); g.strokeStyle = '#ffe9a0'; g.lineWidth = 1.4; g.beginPath(); g.arc(qx, qy, r - 0.6, 0, 7); g.stroke();
       g.font = (out ? 9 : 11) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(ic[0], qx, qy + 0.5); } }
@@ -8091,6 +8101,7 @@ function setupInput() {
     let dx = PL.x, dy = PL.y; for (const [ox, oy] of [[20, 0], [-20, 0], [0, -14], [0, 16]]) if (boxFree(m, PL.x + ox, PL.y + oy)) { dx = PL.x + ox; dy = PL.y + oy; break; } // ประตูโผล่ข้างตัว ไม่ถูกตัวละครบัง
     STATE.cons.warp--; STATE.warp = { map: m.id, town: (ex && ex.to) || 'village', x: PL.x, y: PL.y, dx, dy, tx: 0, ty: 0, used: false };
     SFX.play('door'); syncWarpDoor(G.time); saveGame(); UI.hud(); toast(`ประตูวาร์ปเปิดแล้ว! กด T อีกครั้งหรือคลิกที่ประตู ตัวละครจะเดินไปเข้าเอง (เหลือ ${STATE.cons.warp} บาน)`, 'good'); };
+  $('#btnPin').addEventListener('click', togglePin); addEventListener('keydown', e => { if (e.code === 'KeyP' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) togglePin(); });
   $('#btnCps').addEventListener('click', () => UI.cps()); addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) UI.cps(); });
   $('#btnWarp').addEventListener('click', warpStart); addEventListener('keydown', e => { if (e.code === 'KeyT' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) warpStart(); });
   $('#btnBag').addEventListener('click', () => { if (UI.current() === 'equip') UI.close(); else if (STATE.items.some(x => x.nw)) UI.equipment('gear'); else UI.bag(); }); /* มีของใหม่ → เปิดที่แถบอุปกรณ์ให้เห็นป้าย NEW */
