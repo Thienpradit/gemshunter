@@ -1136,7 +1136,9 @@ const SHOP_ITEMS = [...REGEN_ITEMS, 'pick6', 'pick7', 'pick2', 'pick8', 'pick9',
 const DUR_Q = [1, 1.3, 1.7];
 function maxDur(x) { const it = x && ITEMS[x.id]; if (!it || !it.dur) return 0; return Math.round(it.dur * (x.mods ? DUR_Q[x.q || 0] || 1 : 1)); }
 function repairCost(x) { const it = ITEMS[x.id]; if (!it.dur) return 0; const mx = maxDur(x), miss = mx - (x.dur ?? mx); return miss <= 0 ? 0 : Math.max(5, Math.ceil(it.price * 0.21 * miss / mx)); }
-function makeItem(uid, id, g) { const o = { uid, id }; if (ITEMS[id].dur) o.dur = ITEMS[id].dur; if (g > 0) o.g = g; return o; }
+function makeItem(uid, id, g, lv) { const o = { uid, id }; if (ITEMS[id].dur) o.dur = ITEMS[id].dur; if (g > 0) o.g = g; if (lv > 0) o.lv = lv; return o; }
+// เลเวลของชิ้น (lv): ของดรอป/ของร้านมีเลเวลเท่าตัวละคร ณ ตอนได้มา (ดรอปอาจสูงกว่า 1) — ค่าพลังไล่ตามเลเวลทุกเลเวล (lv/10 = ขั้นแบบทศนิยม) • ของเก่าที่ไม่มี lv ใช้ขั้น g เดิม
+function itemGe(x) { return x && x.lv > 0 ? x.lv / 10 : (x && x.g) || 0; }
 // ---------- ของดรอปแบบสุ่ม: ปกติ / หายาก / ทอง — แต่ละชิ้นสุ่มค่าบวกไม่เหมือนกัน ยิ่งหายากยิ่งบวกเยอะและหลายอย่าง ----------
 // ทุกชิ้นที่ดรอปมีออปชันสุ่มของตัวเอง ไล่จากน้อยไปมาก: ปกติ = 1 อย่าง ค่าเล็ก • หายาก = 2 อย่าง ค่ากลาง • ทอง = 3 อย่าง ค่าสูง
 const LOOT_Q = [{ name: 'ปกติ', col: '#e8e2d0', sell: 1.1, n: [1, 1] }, { name: 'หายาก', col: '#5ab0ff', sell: 1.8, n: [1, 2] }, { name: 'ทอง', col: '#ffc832', sell: 3.5, n: [1, 3] }]; /* จำนวนออปชันสุ่มได้ตั้งแต่ 1 ถึงเพดานของคุณภาพ — ออปชันน้อยชิ้น ค่าแต่ละอันสูงขึ้น (ดู LOOT_FOCUS) */
@@ -1174,10 +1176,10 @@ const GEM_XP = [3, 8, 20, 50, 150]; /* EXP ตอนขุดเจอพลอ�
 function gradeOf(lv) { return clamp(Math.floor((lv || 1) / 10), 0, GRADE_MAX); }
 function shopGrade() { return gradeOf(STATE.lv || 1); }
 function gradeBonus(it, g) { if (!(g > 0)) return null; const B = {}, m = 0.12 * g, r2 = v => Math.round(v * 100) / 100;
-  if (it.slot === 'weapon') B.dmg = Math.max(g, Math.round(it.dmg * m));
+  if (it.slot === 'weapon') B.dmg = Math.max(Math.floor(g), Math.round(it.dmg * m));
   else if (it.slot === 'pick') { B.luck = r2((it.luck || 0) * 0.1333 * g); B.stac = r2(0.03 * g); } /* โชคของพลั่วโตตามขั้น: +0 = 60% ของค่าเต็ม • +5 = ค่าเต็ม • +9 = 1.3 เท่า — พลั่วระดับสูงแต่ขั้นต่ำจึงยังเจอพลอยไม่เยอะ */
   else if (it.slot === 'shield') { B.def = Math.max(1, Math.round((it.def || 0) * m)); B.block = r2(0.01 * g); }
-  else { B.def = Math.max(1, Math.round((it.def || 0) * m)); B.hp = Math.round((it.hp || 0) * m) + 2 * g; if (it.sta) B.sta = Math.round(it.sta * m); }
+  else { B.def = Math.max(1, Math.round((it.def || 0) * m)); B.hp = Math.round((it.hp || 0) * m + 2 * g); if (it.sta) B.sta = Math.round(it.sta * m); }
   return B; }
 function gradePriceMul(g, gun) { return 1 + (gun ? 0.2 : 0.8) * (g || 0); } /* ปืนแพงอยู่แล้ว ขึ้นราคาตามขั้นน้อยกว่า */
 // ชื่อของดรอป: ตั้งจากออปชันที่สุ่มได้ (ปกติ = ชื่อ + ฉายาท้าย • หายาก = มีคำขยาย • ทอง = มีสมญาเจ้าของ)
@@ -1187,9 +1189,9 @@ const LOOT_OWNER = ['ของราชาเหมือง', 'ของจอ�
 function instName(x) { const base = ITEMS[x.id]; if (!base) return ''; let n = base.name + (x.g ? ' +' + x.g : ''); if (!x.mods) return n; const ks = Object.keys(x.mods), q = x.q || 0;
   if (q >= 1 && ks[1] && LOOT_PRE[ks[1]]) n += LOOT_PRE[ks[1]].replace(/^/, ' '); if (ks[0] && LOOT_SUF[ks[0]]) n += ' ' + LOOT_SUF[ks[0]];
   if (q >= 2) { let h = 0; for (const k of ks) h += k.charCodeAt(0) + Math.round(x.mods[k] * 100); n += ' ' + LOOT_OWNER[h % LOOT_OWNER.length]; } return n; }
-function effItem(x) { if (!x) return null; const base = ITEMS[x.id]; if (!base) return null; if (!x.mods && !x.g) return base; let e = effCache.get(x); if (e) return e;
-  const r2 = v => Math.round(v * 100) / 100, gb = gradeBonus(base, x.g || 0);
-  e = { ...base, q: x.q || 0, mods: x.mods || null, g: x.g || 0, name: instName(x), price: base.price ? Math.round(base.price * gradePriceMul(x.g, base.gun)) : base.price };
+function effItem(x) { if (!x) return null; const base = ITEMS[x.id]; if (!base) return null; if (!x.mods && !x.g && !x.lv) return base; let e = effCache.get(x); if (e) return e;
+  const r2 = v => Math.round(v * 100) / 100, gb = gradeBonus(base, itemGe(x));
+  e = { ...base, q: x.q || 0, mods: x.mods || null, g: x.g || 0, lv: x.lv || 0, name: instName(x), price: base.price ? Math.round(base.price * gradePriceMul(itemGe(x), base.gun)) : base.price };
   if (gb) for (const k in gb) e[k] = r2((base[k] || 0) + gb[k]); if (x.mods) for (const k in x.mods) e[k] = r2((e[k] || 0) + x.mods[k]); if (base.dur) e.dur = maxDur(x); effCache.set(x, e); return e; }
 function modText(x) { if (!x || !x.mods) return ''; return Object.entries(x.mods).map(([k, v]) => { const L = MOD_LABEL[k] || [k, '']; return `${L[0]} +${L[1] === '%' ? Math.round(v * 100) + '%' : v + L[1]}`; }).join(' • '); }
 function lootTag(x) { const q = (x && x.q) || 0; return q ? `<span class="lootq q${q}">${LOOT_Q[q].name}</span> ` : ''; }
@@ -1736,7 +1738,7 @@ const HP_PER_LV = 10, STA_PER_LV = 3, MON_DMG_PER_LV = 0.11;
 // เลเวลขั้นต่ำที่สวมใส่อุปกรณ์ได้ ตามระดับของชิ้น (ธรรมดา ดี หายาก ยอดเยี่ยม ตำนาน)
 const ITEM_REQ = [1, 3, 12, 50, 50]; /* ยอดเยี่ยมและตำนาน: ใส่ได้และเริ่มดรอปที่ Lv 50 ขึ้นไป */
 /* รับได้ทั้งรหัสไอเทม (ของในร้านแบบพื้นฐาน) และชิ้นจริง (มีขั้น +g: ต้องการเลเวล g×10 ด้วย) */
-function itemReq(x) { const o = x && typeof x === 'object' ? x : null, it = ITEMS[o ? o.id : x]; return it ? Math.max(it.req || ITEM_REQ[clamp(it.tier || 0, 0, 4)], o && o.g ? o.g * 10 : 1) : 1; }
+function itemReq(x) { const o = x && typeof x === 'object' ? x : null, it = ITEMS[o ? o.id : x]; return it ? Math.max(it.req || ITEM_REQ[clamp(it.tier || 0, 0, 4)], o && o.lv > 0 ? o.lv : o && o.g ? o.g * 10 : 1) : 1; }
 function canWear(x) { return (STATE.lv || 1) >= itemReq(x); }
 function reqTag(x) { const r = itemReq(x); return `<span class="lvreq ${canWear(x) ? '' : 'no'}" title="เลเวลของอุปกรณ์ — ต้องมีเลเวลถึงจึงสวมได้">Lv ${r}</span>`; } /* อุปกรณ์ทุกชิ้นบอกเลเวลเสมอ (รวม Lv 1) • สีแดง = เลเวลเรายังไม่ถึง */
 function xpNeed(lv) { return lv >= MAX_LV ? Infinity : Math.round(12 * Math.pow(lv, 1.8) * Math.pow(1.05, lv)); } /* ชันขึ้นตามเลเวลแบบ Diablo 3: ช่วงต้นแทบเท่าเดิม เลเวลสูงต้องเก็บมากขึ้นหลายเท่า */
@@ -1877,7 +1879,7 @@ function migrateSave(s) {
   }
   // v3: อุปกรณ์ สเตมินา HP และเหมืองที่ขุดแล้ว (เซฟ v1/v2 ได้ของเริ่มต้น)
   if (Array.isArray(s.items) && s.items.length) {
-    st.items = s.items.filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid), id: x.id }; if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ if (x.mods && typeof x.mods === 'object') { const md = {}; for (const k in x.mods) if (MOD_LABEL[k] && Number(x.mods[k]) > 0) md[k] = Number(x.mods[k]); if (Object.keys(md).length) { o.q = x.q === 1 || x.q === 2 ? x.q : 0; o.mods = md; } } return o; });
+    st.items = s.items.filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid), id: x.id }; { const g0 = Math.floor(Number(x.g)) || 0, l0 = Math.floor(Number(x.lv)) || 0; if (g0 > 0) o.g = Math.min(g0, GRADE_MAX); if (l0 > 0) o.lv = Math.min(l0, MAX_LV); } /* เก็บขั้น/เลเวลของชิ้นไว้ตอนโหลดเซฟ (เดิมหายตอนโหลด ทำให้ของกลับไปเป็นขั้น 0) */ if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ if (x.mods && typeof x.mods === 'object') { const md = {}; for (const k in x.mods) if (MOD_LABEL[k] && Number(x.mods[k]) > 0) md[k] = Number(x.mods[k]); if (Object.keys(md).length) { o.q = x.q === 1 || x.q === 2 ? x.q : 0; o.mods = md; } } return o; });
     st.nextUid = Math.max(Number(s.nextUid) || 1, ...st.items.map(x => x.uid + 1));
     for (const k of ['helmet', 'gloves', 'boots', 'shield']) { const u = s.equip && s.equip[k]; st.equip[k] = st.items.some(x => x.uid === u && ITEMS[x.id].slot === k) ? u : 0; }
     for (const k of ['pick', 'weapon', 'armor']) { const u = s.equip && s.equip[k]; if (st.items.some(x => x.uid === u && ITEMS[x.id].slot === k)) st.equip[k] = u; else { const f = st.items.find(x => ITEMS[x.id].slot === k); if (f) st.equip[k] = f.uid; else { st.items.push(makeItem(st.nextUid, k === 'pick' ? 'pick1' : k === 'weapon' ? 'wpn1' : 'arm1')); st.equip[k] = st.nextUid++; } } }
@@ -7588,11 +7590,11 @@ function killMonster(e) {
   if (e.stolen) floatText(e.x, e.y - 30, `ได้เงินที่ถูกขโมยคืน ${e.stolen}`, '#ffe680', 1.4);
   /* แม่ทัพ: ดรอปของเสมอ + โอกาส 50% ได้ของเพิ่มอีก 1 ชิ้น + โอกาสได้ของระดับดี/หายากสูงขึ้น 50% */
   for (let di = 0, dropN = ((window.NLPC && NLPC.forceDrop) || Math.random() < def.chance * ITEM_DROP_MUL * ((STATE.lv || 1) < 12 ? 1.3 : 1) || e.champ) ? 1 + (e.champ && Math.random() < 0.5 ? 1 : 0) : 0; di < dropN; di++) { /* ศัตรูเยอะขึ้น (เป็นกลุ่ม) จึงลดโอกาสดรอปต่อตัวลง • แม่ทัพดรอปของเสมอ */ /* ช่วงเริ่มเล่น (ต่ำกว่า Lv 12) ของดรอปบ่อยขึ้น */
-    let id = (window.NLPC && NLPC.forceDrop) || def.drops[pickWeighted(def.drops.map(d => d[1]))][0], dg = gradeOf(e.lv || 1); let lootBoost = 0; const m = G.map;
+    let id = (window.NLPC && NLPC.forceDrop) || def.drops[pickWeighted(def.drops.map(d => d[1]))][0], dg = gradeOf(e.lv || 1), dLv = 0; let lootBoost = 0; const m = G.map;
     if (!CONSUMABLES[id] && !(window.NLPC && NLPC.forceDrop)) { const lv = STATE.lv || 1, mt = (G.map && G.map.tier) || e.tier || 1, mLo = monLevel('snake', mt), mHi = monLevel('brute', mt);
       /* เลเวลของของดรอปคุมสองชั้น: (1) ไม่เกินเลเวลเรา +2 (2) อยู่ในช่วงเลเวลศัตรูของเหมืองนั้น — เหมืองระดับ 1 (ศัตรู Lv 2–20) ได้ของไม่เกิน Lv 20 • เหมืองระดับ 2 (Lv 20–38) ได้ของ Lv 20–38 */
-      let cap = Math.min(mHi, lv + 2); if (lv < 50) cap = Math.min(cap, 49); /* ยอดเยี่ยม/ตำนานเริ่มที่ Lv 50 */
-      dg = clamp(Math.floor(cap / 10), mt > 1 ? Math.min(Math.ceil(mLo / 10), Math.floor(cap / 10)) : 0, GRADE_MAX);
+      /* เลเวลของของดรอป = เลเวลตัวละคร (25% สูงกว่า 1 เลเวล) — ดรอปได้ทุกเลเวล ไม่เกินเลเวลเรา +1 */
+      const cap = Math.min(MAX_LV, lv + (Math.random() < 0.25 ? 1 : 0)); dLv = cap; dg = gradeOf(cap);
       { /* ระดับของชิ้น (ดี/หายาก/ยอดเยี่ยม/ตำนาน) สุ่มแบบเดียวกับความหายากของพลอยที่ขุดเจอ: ส่วนใหญ่ได้ของธรรมดา–ดี • หายาก ~5% • ยอดเยี่ยม ~0.6% • ตำนาน ~0.08% (สองระดับบนเริ่มที่ Lv 50)
            ตัวคูณโอกาส: ค่าโชคของเรา ×(1+โชค×1.5) เหมือนพลอย • ชั้นอุโมงค์ ×1.4 ชั้นลึก ×2 • บอส/ซอมบี้ยักษ์ ×4 */
         const B = ITEMS[id], zi = m && m.zone ? m.zone[MI(m, clamp(Math.floor(e.x / 16), 0, m.w - 1), clamp(Math.floor(e.y / 16), 0, m.h - 1))] : 1, LK = (1 + (pstats().luck || 0) * 1.5) * [1, 1, 1.4, 2][zi || 1] * (def.chance >= 1 || def.big || e.type === 'brute' ? (e.champ ? 6 : 4) : e.champ ? 4.5 : 1 + (e.var || 0) * 0.5);
@@ -7600,7 +7602,7 @@ function killMonster(e) {
         const ok = Object.keys(ITEMS).filter(k => ITEMS[k].slot === B.slot && !ITEMS[k].gun === !B.gun && ITEMS[k].price && k !== 'pick1' && !CLIMATE_IDS.includes(k) && !REGEN_ITEMS.includes(k) && itemReq(k) <= cap && (ITEMS[k].tier || 0) <= want), top = Math.max(-1, ...ok.map(k => ITEMS[k].tier || 0)), best = ok.filter(k => (ITEMS[k].tier || 0) === top);
         if (best.length) id = best[Math.floor(Math.random() * best.length)]; else if (B.gun) id = 'herb'; else if (itemReq(id) > cap) id = 'herb'; }
       lootBoost = (pstats().luck || 0) * 1.5; }
-    dropAt(e.x + 4 + di * 9, e.y + di * 3, CONSUMABLES[id] ? { kind: 'cons', id, amount: CONSUMABLES[id].pack || 1 } : { kind: 'item', id, g: dg, ...rollLoot(id, (def.chance >= 1 ? (e.champ ? 1.5 : 1) : e.champ ? 1.2 : (e.var || 0) * 0.25) + lootBoost, Math.random, dg, def.boss2 ? 1.5 : 1) }); /* บอสใหญ่ประจำชั้น: โอกาสได้ของทอง (และชิ้นระดับยอดเยี่ยม/ตำนาน) ×1.5 */ /* โอกาสได้ของหายาก/ทองเท่ากันทุกเลเวลและทุกระดับเหมือง (หายาก ~24% ทอง ~6% • บอสและโครงกระดูกระดับสูงมีโบนัสตามชนิด) — ต่างกันที่ค่าของออปชัน ซึ่งโตตามขั้นของชิ้น */ /* ของทอง: ไม่มีก่อน Lv 3 • Lv 3–49 ออกยาก (ราว 1 ใน 3 ของอัตราปกติ) • Lv 50 ขึ้นไปอัตราปกติ */ /* ต่ำกว่า Lv 12: ส่วนใหญ่เป็นคุณภาพปกติ แต่ยังมีหายาก (~21%) และทอง (~2%) ได้ — ออปชันของชิ้นเลเวลต่ำบวกน้อยตามขั้นอยู่แล้ว */ /* อุปกรณ์ที่ดรอป: สุ่มระดับ ปกติ/หายาก/ทอง + ค่าบวก (บอสและโครงกระดูกระดับสูงมีโอกาสดีกว่า) */
+    dropAt(e.x + 4 + di * 9, e.y + di * 3, CONSUMABLES[id] ? { kind: 'cons', id, amount: CONSUMABLES[id].pack || 1 } : { kind: 'item', id, g: dg, lv: dLv, ...rollLoot(id, (def.chance >= 1 ? (e.champ ? 1.5 : 1) : e.champ ? 1.2 : (e.var || 0) * 0.25) + lootBoost, Math.random, dLv ? dLv / 10 : dg, def.boss2 ? 1.5 : 1) }); /* บอสใหญ่ประจำชั้น: โอกาสได้ของทอง (และชิ้นระดับยอดเยี่ยม/ตำนาน) ×1.5 */ /* โอกาสได้ของหายาก/ทองเท่ากันทุกเลเวลและทุกระดับเหมือง (หายาก ~24% ทอง ~6% • บอสและโครงกระดูกระดับสูงมีโบนัสตามชนิด) — ต่างกันที่ค่าของออปชัน ซึ่งโตตามขั้นของชิ้น */ /* ของทอง: ไม่มีก่อน Lv 3 • Lv 3–49 ออกยาก (ราว 1 ใน 3 ของอัตราปกติ) • Lv 50 ขึ้นไปอัตราปกติ */ /* ต่ำกว่า Lv 12: ส่วนใหญ่เป็นคุณภาพปกติ แต่ยังมีหายาก (~21%) และทอง (~2%) ได้ — ออปชันของชิ้นเลเวลต่ำบวกน้อยตามขั้นอยู่แล้ว */ /* อุปกรณ์ที่ดรอป: สุ่มระดับ ปกติ/หายาก/ทอง + ค่าบวก (บอสและโครงกระดูกระดับสูงมีโอกาสดีกว่า) */
   }
   questEvent('kill', 1); markDirty();
 }
@@ -7613,7 +7615,7 @@ function updateDrops(dt) {
       d.got = true; const hiLoot = d.kind !== 'coin' && d.kind !== 'cons' && (d.q === 2 || ITEMS[d.id].tier >= 3); /* ของทอง หรือของยอดเยี่ยม/ตำนาน */ SFX.play(hiLoot ? 'treasure' : 'pickup');
       if (d.kind === 'coin') { STATE.coins += d.amount; floatText(PL.x, PL.y - 30, `+${baht(d.amount)} บาท`, '#ffe680'); questEvent('coins'); }
       else if (d.kind === 'cons') { STATE.cons[d.id] = (STATE.cons[d.id] || 0) + d.amount; toast(`<img src="${itemIconURL(d.id)}"> ได้ ${CONSUMABLES[d.id].name}${d.amount > 1 ? ' ' + d.amount + ' นัด' : ''}`, 'good'); }
-      else { const uid = STATE.nextUid++, o = makeItem(uid, d.id, d.g); if (d.mods) { o.q = d.q || 0; o.mods = d.mods;  if (o.dur != null) o.dur = maxDur(o); /* ของดรอปหายาก/ทอง: ความทนทานเต็มตามคุณภาพ */ } o.nw = 1; STATE.items.push(o); /* nw = ของเพิ่งเก็บ ยังไม่เคยเปิดดู → ป้าย NEW */ const it = ITEMS[d.id]; /* ได้อุปกรณ์: แสดงแบบเดียวกับตอนขุดเจอพลอย — ไอคอนเด้งลอยเปล่งแสงแล้วพุ่งเข้าตัว + ข้อความลอยตัวใหญ่ บอกแค่ชื่อ */
+      else { const uid = STATE.nextUid++, o = makeItem(uid, d.id, d.g, d.lv); if (d.mods) { o.q = d.q || 0; o.mods = d.mods;  if (o.dur != null) o.dur = maxDur(o); /* ของดรอปหายาก/ทอง: ความทนทานเต็มตามคุณภาพ */ } o.nw = 1; STATE.items.push(o); /* nw = ของเพิ่งเก็บ ยังไม่เคยเปิดดู → ป้าย NEW */ const it = ITEMS[d.id]; /* ได้อุปกรณ์: แสดงแบบเดียวกับตอนขุดเจอพลอย — ไอคอนเด้งลอยเปล่งแสงแล้วพุ่งเข้าตัว + ข้อความลอยตัวใหญ่ บอกแค่ชื่อ */
         const lc = d.q ? LOOT_Q[d.q].col : TIER_COLORS[it.tier]; G.parts.push({ k: 'gemfly', x: d.x, y: d.y, z: 0, vx: 0, vy: 0, vz: 0, life: 2.2, max: 2.2, icon: PIXUI.icon(d.id), col: lc, plain: !hiLoot }); /* plain = ไม่มีแสงประกาย (เฉพาะของทองขึ้นไปถึงมีประกาย) */ floatText(d.x, d.y - 30, instName(o), shade(lc, 0.25), 3.6, 1); }
       saveGame(); UI.hud();
     }
@@ -9760,10 +9762,10 @@ const UI = (() => {
     else if (it.slot === 'pick') { add('แรงขุด', v(cur, 'power'), it.power, '', 1); R.push(['ใช้สเตมินา/ครั้ง', it.sta, null, '']); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } add('โชค', Math.round(v(cur, 'luck') * 100), Math.round((it.luck || 0) * 100), '%'); add('ประหยัดสเตมินา', Math.round(v(cur, 'stac') * 100), Math.round((it.stac || 0) * 100), '%'); }
     else if (it.slot === 'shield') { add('ป้องกัน', v(cur, 'def'), it.def, '', 1); add('บล็อก', Math.round(v(cur, 'block') * 100), Math.round(it.block * 100), '%', 1); }
     else { add('ป้องกัน', v(cur, 'def'), v(it, 'def'), '', 1); add('HP', v(cur, 'hp'), v(it, 'hp')); add('สเตมินา', v(cur, 'sta'), v(it, 'sta')); add('แสง', v(cur, 'light'), v(it, 'light')); add('เร็ว', Math.round(v(cur, 'speed') * 100), Math.round(v(it, 'speed') * 100), '%'); if (CLIMATE_ON) add('อบอุ่น', v(cur, 'warm'), v(it, 'warm')); add('เลือดฟื้น/วิ', v(cur, 'rhp'), v(it, 'rhp')); add('สเตมินาฟื้น', Math.round(v(cur, 'rsta') * 100), Math.round(v(it, 'rsta') * 100), '%'); }
-    return { cur, rows: R, same: X ? !!curX && (curX === X || (curX.id === id && (curX.g || 0) === (X.g || 0) && !curX.mods && !X.mods)) : e[it.slot] === id };
+    return { cur, rows: R, same: X ? !!curX && (curX === X || (curX.id === id && (curX.g || 0) === (X.g || 0) && (curX.lv || 0) === (X.lv || 0) && !curX.mods && !X.mods)) : e[it.slot] === id };
   }
   const cmpChips = (id, X) => { const c = cmpStats(id, X), nf = n => Number.isInteger(n) ? fmtNum(n) : String(Math.round(n * 100) / 100); return c.rows.map(([l, b, d, u]) => `<span class="schip cmpc${/ฟื้น/.test(l) ? ' regen' : ''}">${l} <b>${b > 0 && u !== '%' && l === 'อบอุ่น' ? '+' : ''}${nf(b)}${u}</b>${c.same || d === null ? '' : d ? `<i class="${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲+' : '▼'}${nf(d)}${u}</i>` : '<i class="eq">＝</i>'}</span>`).join(''); };
-  const shopX = id => ({ id, g: shopGrade() }); /* สินค้าในร้าน: ขั้นตามเลเวลผู้เล่นตอนนี้ */
+  const shopX = id => ({ id, g: shopGrade(), lv: STATE.lv || 1 }); /* สินค้าในร้าน: ขั้นตามเลเวลผู้เล่นตอนนี้ */
   const scard = (id, sel) => { const X = shopX(id), it = effItem(X), n = owned(id), c = cmpStats(id, X), ok = STATE.coins >= it.price;
     return `<div class="scard s2 tier${it.tier}${sel ? ' sel' : ''}" data-a="pick" data-id="${id}" data-tipshop="${id}"><span class="sicon"><img src="${itemIconURL(id)}" alt=""></span><div class="s2-tx"><span class="stier" style="color:${TIER_COLORS[it.tier]}">${TIER_NAMES[it.tier]} • ${it.gun ? 'ปืน' : SLOT_NAMES[it.slot]}${n ? ` • มีแล้ว ${n}` : ''} ${reqTag(X)}</span><b class="sname">${it.name}</b>
       <span class="schips">${cmpChips(id, X)}</span><small class="s2-vs">${c.same ? '✓ ใส่อยู่ตอนนี้' : c.cur ? `เทียบกับที่ใส่อยู่: ${c.cur.name}` : 'ช่องนี้ยังว่าง'}${it.gun ? ` • ใช้${CONSUMABLES[it.ammo].name} (มี ${STATE.cons[it.ammo] || 0})` : ''}</small></div>
@@ -9778,7 +9780,7 @@ const UI = (() => {
       <div class="eq2-stats"><span>❤ HP ${ps.maxHp}</span><span>⚡ สเตมินา ${ps.maxSta}</span><span>⚔ โจมตี ${ps.weapon.dmg}</span><span>⛏ แรงขุด ${ps.pick.power}</span><span>🛡 ป้องกัน ${ps.def}</span></div></aside>`;
   }
   const byPower = ids => ids.slice().sort((a, b) => ((ITEMS[a].gun ? 1 : 0) - (ITEMS[b].gun ? 1 : 0)) || ((ITEMS[a].tier || 0) - (ITEMS[b].tier || 0)) || ((ITEMS[a].price || 0) - (ITEMS[b].price || 0))); // อ่อนสุดอยู่บน → โหดสุดอยู่ล่าง (เรียงตามระดับ แล้วตามราคา)
-  const cardGrid = (ids, keep) => { ids = ids.filter(id => (ITEMS[id].tier || 0) <= shopMaxTier(id)); const mxT = ids.length && ITEMS[ids[0]].slot === 'pick' && shopTab === 'pick' ? SHOP_MAX_TIER_PICK : SHOP_MAX_TIER; if (!keep) ids = byPower(ids); const s = ids.includes(shopSel[shopTab]) ? shopSel[shopTab] : ids[0]; shopSel[shopTab] = s; return `<div class="shop2">${shopLeft(s)}<div class="shop2-r"><p class="shopnote">ร้านขายถึงระดับ <b style="color:${TIER_COLORS[mxT]}">${TIER_NAMES[mxT]}</b> • สินค้าตอนนี้เป็น <b>ขั้น +${shopGrade()}</b> (คุณ Lv ${STATE.lv || 1}${shopGrade() < GRADE_MAX ? ` — ถึง Lv ${(shopGrade() + 1) * 10} ร้านจะขายขั้น +${shopGrade() + 1}` : ''}) • ระดับ<b style="color:${TIER_COLORS[mxT + 1]}">${TIER_NAMES[mxT + 1]}</b>ถึง<b style="color:${TIER_COLORS[4]}">${TIER_NAMES[4]}</b>ต้องล่าจากศัตรูเท่านั้น</p><div class="shopgrid g2">${ids.map(id => scard(id, id === s)).join('')}</div></div></div>`; };
+  const cardGrid = (ids, keep) => { ids = ids.filter(id => (ITEMS[id].tier || 0) <= shopMaxTier(id)); const mxT = ids.length && ITEMS[ids[0]].slot === 'pick' && shopTab === 'pick' ? SHOP_MAX_TIER_PICK : SHOP_MAX_TIER; if (!keep) ids = byPower(ids); const s = ids.includes(shopSel[shopTab]) ? shopSel[shopTab] : ids[0]; shopSel[shopTab] = s; return `<div class="shop2">${shopLeft(s)}<div class="shop2-r"><p class="shopnote">ร้านขายถึงระดับ <b style="color:${TIER_COLORS[mxT]}">${TIER_NAMES[mxT]}</b> • สินค้าเป็น <b>Lv ${STATE.lv || 1}</b> เท่าเลเวลของคุณ และไล่ขึ้นทุกเลเวล • ระดับ<b style="color:${TIER_COLORS[mxT + 1]}">${TIER_NAMES[mxT + 1]}</b>ถึง<b style="color:${TIER_COLORS[4]}">${TIER_NAMES[4]}</b>ต้องล่าจากศัตรูเท่านั้น</p><div class="shopgrid g2">${ids.map(id => scard(id, id === s)).join('')}</div></div></div>`; };
   // ---------- ตารางโอกาสเจอพลอยในเหมือง (แสดงตอนเดินเข้าเหมือง) ----------
   function oddsCalc(c) {
     c = c || countryOfMap(G.map.id) || 'thai';
@@ -9897,7 +9899,7 @@ const UI = (() => {
           show('buyc', `<h3>ยืนยันการซื้อ</h3><div class="list">${itemRow(BX, money(it.price))}</div><div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อ ${baht(it.price)} บาท</button></div>`, a2 => {
             if (a2 === 'back') return shop();
             if (a2 !== 'ok' || STATE.coins < it.price) return; if (bagFull()) { SFX.play('deny'); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ซื้ออุปกรณ์เพิ่มไม่ได้ ขายของหรืออัปเกรดกระเป๋าก่อน`, 'bad'); return; }
-            STATE.coins -= it.price; const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g)); SFX.play('coin'); 
+            STATE.coins -= it.price; const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g, BX.lv)); SFX.play('coin'); 
             saveGame(); hud();
             show('bought', `<h3>ได้รับ ${it.name}</h3><div class="list">${itemRow(BX, '')}</div><div class="row end"><button class="btn" data-a="back">กลับไปร้าน</button><button class="btn gold" data-a="eq">สวมใส่เลย</button></div>`, a3 => { if (a3 === 'eq') { equipUid(uid); shop(); toast(`สวมใส่ ${it.name} แล้ว`, 'good'); } else shop(); });
           }); }
