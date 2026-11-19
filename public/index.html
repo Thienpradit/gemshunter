@@ -896,6 +896,7 @@ const DEFAULT_CONFIG = {
   staminaRegenVillage: 14,      // ฟื้นต่อวินาทีในหมู่บ้าน
   hpMax: 100,
   infiniteCoins: true,          // โหมดเงินไม่จำกัด (ปิดได้ที่ เมนู → ค่าทดสอบ)
+  testMaxLv: true,              // ลิงก์ทดลอง (ไม่ออนไลน์): เลเวลตันทันที → เข้าเหมืองได้ทุกระดับ ใส่ของได้ทุกชิ้น • เว็บจริงบังคับปิด
   monsters: true,               // ปิดเพื่อทดสอบการขุดอย่างเดียว
   hireFeePerGem: 30,            // ค่าจ้างช่างต่อเม็ด
   playerSpeed: 74,              // พิกเซลต่อวินาที (ความละเอียดเกม)
@@ -913,7 +914,8 @@ const DEFAULT_CONFIG = {
 const CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 const CONFIG_KEY = 'nlpc_config_v4'; // v2: ตารางโอกาสแบบยากขึ้น (ค่าที่เคยบันทึกแบบเก่าจะไม่ถูกใช้)
 const INF_COINS = 99999999;
-function topUpCoins() { if (CONFIG.infiniteCoins && typeof STATE !== 'undefined' && STATE && STATE.coins < INF_COINS) STATE.coins = INF_COINS; }
+function topUpCoins() { if (CONFIG.infiniteCoins && typeof STATE !== 'undefined' && STATE && STATE.coins < INF_COINS) STATE.coins = INF_COINS;
+  if (CONFIG.testMaxLv && typeof STATE !== 'undefined' && STATE && typeof charState === 'function' && !(typeof NET !== 'undefined' && NET.online)) { const S = charState(); if (S.lv < MAX_LV) { S.pts = (S.pts || 0) + (MAX_LV - S.lv) * PTS_PER_LV; S.lv = MAX_LV; S.xp = 0; try { const ps = pstats(); STATE.hp = ps.maxHp; STATE.sta = ps.maxSta || STATE.sta; } catch (e) {} } } }
 function loadConfigOverride() {
   try {
     const o = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null');
@@ -8130,7 +8132,7 @@ const NET = (() => {
   function overlay(html) { let el = document.getElementById('netAuth'); if (!el) { el = document.createElement('div'); el.id = 'netAuth'; document.body.appendChild(el); } el.innerHTML = `<div class="na-box">${html}</div>`; el.style.display = 'flex'; return el; }
   function hideOverlay() { const el = document.getElementById('netAuth'); if (el) el.remove(); }
   /* ความคืบหน้าในเครื่อง (เล่นไว้ก่อนสมัคร): เงินจากโหมดเงินไม่จำกัดของรุ่นทดสอบไม่นับ → ตั้งกลับเป็นเงินเริ่มต้น */
-  const localCarry = () => { const raw = ls.get(saveKey()); if (!raw) return null; try { const s = JSON.parse(raw); if (!(s && (s.lv > 1 || (s.stats && s.stats.dug > 0) || (s.inv && s.inv.length)))) return null; if (!(s.coins < INF_COINS)) s.coins = DEFAULT_CONFIG.startCoins; return JSON.stringify(s); } catch (e) { return null; } };
+  const localCarry = () => { const raw = ls.get(saveKey()); if (!raw) return null; try { const s = JSON.parse(raw); if (!(s && (s.lv > 1 || (s.stats && s.stats.dug > 0) || (s.inv && s.inv.length)))) return null; if (s.lv >= MAX_LV && !((s.stats && s.stats.kills) > 2000)) return null; /* เซฟจากโหมดทดสอบ (เลเวลตันทันที): ไม่ยกเข้าบัญชีจริง */ if (!(s.coins < INF_COINS)) s.coins = DEFAULT_CONFIG.startCoins; return JSON.stringify(s); } catch (e) { return null; } };
 
   function authScreen(msg) {
     return new Promise(done => {
@@ -8204,7 +8206,7 @@ const NET = (() => {
       const s = await api('/api/status', null, { timeout: 6000 });
       if (s.status !== 200 || !s.data.gem) return;                      // ไม่ใช่เซิร์ฟเวอร์เกม → โหมดเดิม
       N.online = true; document.body.classList.add('online');
-      { const D = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); for (const k in D) CONFIG[k] = D[k]; CONFIG.infiniteCoins = false; CONFIG.monsters = true; } /* ออนไลน์: ใช้ค่ามาตรฐานของเกมเสมอ ไม่มีเงินไม่จำกัด และไม่อ่านค่าทดสอบที่ตั้งไว้ในเครื่อง */
+      { const D = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); for (const k in D) CONFIG[k] = D[k]; CONFIG.infiniteCoins = false; CONFIG.testMaxLv = false; CONFIG.monsters = true; } /* ออนไลน์: ใช้ค่ามาตรฐานของเกมเสมอ ไม่มีเงินไม่จำกัด และไม่อ่านค่าทดสอบที่ตั้งไว้ในเครื่อง */
       while (!s.data.accounts) { await new Promise(ok => blockScreen('ระบบบัญชีปิดชั่วคราว', 'เซิร์ฟเวอร์กำลังมีปัญหากับฐานข้อมูล ลองใหม่อีกครั้งในอีกสักครู่', 'ลองใหม่', ok)); const s2 = await api('/api/status'); if (s2.status === 200) s.data.accounts = s2.data.accounts; }
       token = ls.get(TK);
       let got = null, note = '';
