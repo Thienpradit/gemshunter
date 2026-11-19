@@ -7407,7 +7407,17 @@ function makeChamp(o) { const def = MONS[o.type]; o.champ = true; o.name = 'แ�
 // ประตูวิเศษหน้าบันไดทางลง: ชั้นที่มีบอส ต้องฆ่าบอสของชั้นนั้นก่อน ประตูจึงสลาย (ฆ่าแล้วเปิดถาวรสำหรับเหมืองชั้นนั้น — เก็บใน STATE.gates)
 function gateBoss(m) { const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : (m && (m.tier || 1) === 1 && m.descend ? 'brute' : null); } /* ชั้น 1 ไม่มีบอส: ใช้มินิบอสซอมบี้ยักษ์ไพลินเป็นผู้เฝ้าประตู */
 function gateLocked(m) { return !!(m && m.descend && gateBoss(m) && !(STATE.gates && STATE.gates[m.id])); }
-function groupKill(e) { if (G.map && gateBoss(G.map) === e.type && !(STATE.gates && STATE.gates[G.map.id])) { (STATE.gates || (STATE.gates = {}))[G.map.id] = Date.now(); saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; banner('✦ ประตูวิเศษสลายแล้ว'); toast('ปราบบอสสำเร็จ! <b>ประตูวิเศษ</b>หน้าบันไดทางลงสลายไปแล้ว ลงชั้นต่อไปได้', 'good'); SFX.play('done'); if (G.map.descend) for (let k = 0; k < 30; k++) G.parts.push({ k: 'star', x: G.map.descend.x, y: G.map.descend.y - 12, z: 6, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90, vz: 40, life: 0.9, max: 0.9, col: '#d0a0ff', size: 1 }); }
+// บอสใหญ่ประจำชั้นเรียกลูกสมุน (ศัตรูธรรมดาของชั้นนั้น) ออกมาช่วยเป็นช่วง ๆ: ครั้งแรกหลังเริ่มสู้ 8 วิ จากนั้นทุก 20 วิ ครั้งละ 2 ตัว มีพร้อมกันได้ไม่เกิน 4 ตัว • บอสตาย ลูกสมุนสลายตาม
+const SUMMON_FIRST = 8, SUMMON_EVERY = 20, SUMMON_N = 2, SUMMON_MAX = 4;
+function bossSummon(m, e, dt) { if (e.sumT == null) e.sumT = SUMMON_FIRST; e.sumT -= dt; if (e.sumT > 0) return; e.sumT = SUMMON_EVERY;
+  const S = t2Mine(m); if (!S) return; const list = S.table.deep.filter(a => !MONS[a[0]].big && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) return;
+  let alive = 0; for (const o of G.mons) if (o.sumBy === e && !o.dead && o.hp > 0) alive++; let made = 0;
+  for (let k = 0; k < 14 && made < SUMMON_N && alive + made < SUMMON_MAX; k++) { const type = list[pickWeighted(list.map(a => a[1]))][0], a = Math.random() * 6.283, rr = 34 + Math.random() * 22, x = e.x + Math.cos(a) * rr, y = e.y + Math.sin(a) * rr * 0.8;
+    if (!monBoxFree(m, x, y, MONS[type].r) || Math.hypot(x - PL.x, y - PL.y) < 20) continue; const o = mkMon(m, type, x, y, 'deep'); o.sumBy = e; o.riseT = 0.65; o.state = 'chase'; made++;
+    for (let j = 0; j < 10; j++) G.parts.push({ k: 'star', x, y: y - 6, z: 4, vx: (Math.random() - 0.5) * 50, vy: (Math.random() - 0.5) * 50, vz: 30, life: 0.6, max: 0.6, col: '#c090ff', size: 1 }); }
+  if (made) { floatText(e.x, e.y - 50, 'เรียกลูกสมุน!', '#d0a0ff', 1.1); SFX.play('growl'); G.shake = Math.max(G.shake, 2); } }
+function groupKill(e) { if (MONS[e.type].boss2) for (const o of G.mons) if (o.sumBy === e && !o.dead) { o.dead = true; for (let j = 0; j < 8; j++) G.parts.push({ k: 'dust', x: o.x, y: o.y - 6, z: 2, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40, vz: 24, life: 0.5, max: 0.5, col: '#b090d0', size: 2 }); }
+   if (G.map && gateBoss(G.map) === e.type && !(STATE.gates && STATE.gates[G.map.id])) { (STATE.gates || (STATE.gates = {}))[G.map.id] = Date.now(); saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; banner('✦ ประตูวิเศษสลายแล้ว'); toast('ปราบบอสสำเร็จ! <b>ประตูวิเศษ</b>หน้าบันไดทางลงสลายไปแล้ว ลงชั้นต่อไปได้', 'good'); SFX.play('done'); if (G.map.descend) for (let k = 0; k < 30; k++) G.parts.push({ k: 'star', x: G.map.descend.x, y: G.map.descend.y - 12, z: 6, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90, vz: 40, life: 0.9, max: 0.9, col: '#d0a0ff', size: 1 }); }
   const g = e.grp; if (!g || e._gk) return; e._gk = true; if (e.champ) g.champDead = true; g.left = Math.max(0, g.left - 1); if (g.left <= 0) { g.deadAt = Date.now(); g.active = false; } }
 function spawnMonsters(dt) {
   const m = G.map; if (!m.vein || !CONFIG.monsters) return;
@@ -7496,6 +7506,7 @@ function updateMonsters(dt) {
     if (sees && !G.down) e.state = 'chase'; else if (d > def.aggro * 1.6) e.state = 'wander';
     e.moving = false;
     if (e._pl !== (STATE.lv || 1)) monScale(e);
+    if (def.boss2 && e.state === 'chase' && !G.down) bossSummon(m, e, dt);
     if (def.slam && updateKrakenSlam(m, e, def, dt, d)) continue;
     if (e.chgW > 0) { e.chgW -= dt; if (Math.random() < 0.6) G.parts.push({ k: 'dust', x: e.x + (Math.random() - 0.5) * 14, y: e.y, z: 0, vx: 0, vy: 0, vz: 14, life: 0.4, max: 0.4, col: '#b8a078', size: 2 }); if (e.chgW <= 0) { const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); e.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down'; e.chg = 0.42; e.chgHit = false; e.atkT = 0; SFX.play('swing', 0.7); } continue; } /* ซอมบี้ยักษ์ไพลิน: ทุบพื้นเสร็จ ตั้งหลักครู่หนึ่งแล้วพุ่งชนด้วยไหล่ไปทางผู้เล่น */
     if (e.chg > 0) { e.chg -= dt; const ok2 = monMove(m, e, e.ax * 175 * dt, e.ay * 175 * dt); e.moving = true; if (Math.random() < 0.7) G.parts.push({ k: 'dust', x: e.x - e.ax * 8, y: e.y, z: 0, vx: -e.ax * 20, vy: -e.ay * 20, vz: 16, life: 0.4, max: 0.4, col: '#b8a078', size: 2 });
@@ -9820,12 +9831,13 @@ const UI = (() => {
   function shop() {
     // หมวดหลัก: อุปกรณ์สวมใส่ • ของใช้ • กระเป๋า • ซ่อม • ขายของ (อุปกรณ์มีหมวดย่อยตามช่องสวมใส่)
     const GEAR = ['pick', 'weapon', 'armor', 'helmet', 'gloves', 'boots', 'shield', 'regen']; if (shopTab === 'climate') shopTab = 'armor';
+    if (shopTab === 'bag') shopTab = 'ammo';
     const sec = GEAR.includes(shopTab) || shopTab === 'ammo' || shopTab === 'bag' ? 'gear' : shopTab;
     const secIcon = { gear: itemIconURL('arm4'), use: itemIconURL('warp'), bag: itemIconURL('bag'), repair: itemIconURL('pick2'), sell: ART.coinURL };
-    const SECS = [['gear', 'ซื้อ', 'อาวุธ พลั่ว ชุด ของใช้ กระเป๋า'], ['sell', 'ขาย', 'ขายอุปกรณ์ที่ไม่ใช้'], ['repair', 'ซ่อม', 'ซ่อมพลั่วที่สึก']]; /* เรียง ซื้อ → ขาย → ซ่อม */
+    const SECS = [['gear', 'ซื้อ', 'อาวุธ พลั่ว ชุด ของใช้ (รวมกระเป๋า)'], ['sell', 'ขาย', 'ขายอุปกรณ์ที่ไม่ใช้'], ['repair', 'ซ่อม', 'ซ่อมพลั่วที่สึก']]; /* เรียง ซื้อ → ขาย → ซ่อม */
     const secBar = `<div class="shsecs">${SECS.map(([k, t, d]) => `<button class="shsec ${sec === k ? 'on' : ''}" data-a="sec" data-t="${k}"><img src="${secIcon[k]}" alt=""><span><b>${t}</b><small>${d}</small></span></button>`).join('')}</div>`;
     const subIcon = { pick: 'pick3', weapon: 'wpn2', armor: 'arm2', helmet: 'hat2', gloves: 'glv2', boots: 'bt2', shield: 'shd2', climate: 'arm7', regen: 'arm11', ammo: 'warp', bag: 'bag' };
-    const subBar = sec === 'gear' ? `<div class="shsubs">${[...GEAR, 'ammo', 'bag'].map(sl => `<button class="shsub ${shopTab === sl ? 'on' : ''}" data-a="tab" data-t="${sl}"><img src="${itemIconURL(subIcon[sl])}" alt="">${sl === 'climate' ? 'ชุดตามอากาศ' : sl === 'regen' ? 'ชุดฟื้นฟู' : sl === 'ammo' ? 'ของใช้' : sl === 'bag' ? 'กระเป๋า' : SLOT_NAMES[sl]}</button>`).join('')}</div>` : '';
+    const subBar = sec === 'gear' ? `<div class="shsubs">${[...GEAR, 'ammo'].map(sl => `<button class="shsub ${shopTab === sl ? 'on' : ''}" data-a="tab" data-t="${sl}"><img src="${itemIconURL(subIcon[sl])}" alt="">${sl === 'climate' ? 'ชุดตามอากาศ' : sl === 'regen' ? 'ชุดฟื้นฟู' : sl === 'ammo' ? 'ของใช้' : sl === 'bag' ? 'กระเป๋า' : SLOT_NAMES[sl]}</button>`).join('')}</div>` : '';
     const tabs = '';
     const _oldTabs = SLOTS.map(sl => `<button class="tab ${shopTab === sl ? 'on' : ''}" data-a="tab" data-t="${sl}">${SLOT_NAMES[sl]}</button>`).join('') + `<button class="tab ${shopTab === 'climate' ? 'on' : ''}" data-a="tab" data-t="climate">ชุดตามภูมิอากาศ</button><button class="tab ${shopTab === 'bag' ? 'on' : ''}" data-a="tab" data-t="bag">🎒 กระเป๋า</button><button class="tab ${shopTab === 'ammo' ? 'on' : ''}" data-a="tab" data-t="ammo">กระสุน</button><button class="tab ${shopTab === 'repair' ? 'on' : ''}" data-a="tab" data-t="repair">ซ่อมพลั่ว</button><button class="tab ${shopTab === 'sell' ? 'on' : ''}" data-a="tab" data-t="sell">ขายของ</button>`;
     let body;
@@ -9840,11 +9852,9 @@ const UI = (() => {
       const ps0 = pstats();
       body = `<div class="climbox ok"><b>♥⚡ ชุดฟื้นฟู — ใส่แล้วฟื้นเองโดยไม่ต้องกินของ</b><br>ตอนนี้ชุดของคุณ: เลือดฟื้นเอง <b>+${ps0.regenHp}/วินาที</b> (ทุกที่ แม้ในเหมือง) • สเตมินาฟื้นเร็วขึ้น <b>+${Math.round(ps0.regenSta * 100)}%</b> (ตอนยืนพัก)<br><span class="muted small">ค่าของแต่ละชิ้นบวกรวมกัน • สีเขียว = สายฟื้นเลือด • สีส้ม = สายฟื้นสเตมินา • ชุดเกราะผลึกชีวิตได้ทั้งสองอย่าง</span></div>`
         + cardGrid([...byPower(REGEN_ITEMS.filter(id => ITEMS[id].regen === 'hp')), ...byPower(REGEN_ITEMS.filter(id => ITEMS[id].regen === 'sta')), ...REGEN_ITEMS.filter(id => ITEMS[id].regen === 'both')], true);
-    } else if (shopTab === 'bag') {
+    } else if (shopTab === 'ammo') { /* หมวดของใช้: ประตูวาร์ป + กระเป๋า (ย้ายกระเป๋ามารวมไว้ที่นี่) */
       const lv = bagLevel();
-      body = `<p class="muted small">กระเป๋าใบปัจจุบัน: <b>${BAGS[lv].name}</b> ใส่พลอยได้ <b>${BAGS[lv].cap}</b> เม็ด (ตอนนี้มี ${STATE.inv.length} เม็ด) • ซื้อใบใหม่แล้วใช้แทนใบเดิมทันที</p>` + BAGS.map((B, i) => `<div class="item bagrow ${i === lv ? 'cur' : ''}"><div class="bagic" style="--bc:${B.col}">🎒<small>Lv${i + 1}</small></div><div class="gi"><b>${B.name}</b><small>ใส่พลอยได้ ${B.cap} เม็ด${i ? ` (+${B.cap - BAGS[i - 1].cap} จากระดับก่อน)` : ''}</small></div><div class="gp">${i === 0 ? '<span class="muted">ใบเริ่มต้น</span>' : money(B.price)}<br>${i === lv ? '<span class="tick">✓ ใช้อยู่</span>' : i < lv ? '<span class="muted">มีใบที่ดีกว่าแล้ว</span>' : `<button class="btn small ${STATE.coins >= B.price ? 'gold' : ''}" data-a="buybag" data-i="${i}" ${STATE.coins >= B.price ? '' : 'disabled'}>ซื้อ</button>`}</div></div>`).join('');
-    } else if (shopTab === 'ammo') {
-      body = ammoRows();
+      body = ammoRows() + `<h4 style="margin:10px 0 4px">🎒 กระเป๋า</h4><p class="muted small">กระเป๋าใบปัจจุบัน: <b>${BAGS[lv].name}</b> ใส่พลอยได้ <b>${BAGS[lv].cap}</b> เม็ด (ตอนนี้มี ${STATE.inv.length} เม็ด) • ซื้อใบใหม่แล้วใช้แทนใบเดิมทันที</p>` + BAGS.map((B, i) => `<div class="item bagrow ${i === lv ? 'cur' : ''}"><div class="bagic" style="--bc:${B.col}">🎒<small>Lv${i + 1}</small></div><div class="gi"><b>${B.name}</b><small>ใส่พลอยได้ ${B.cap} เม็ด${i ? ` (+${B.cap - BAGS[i - 1].cap} จากระดับก่อน)` : ''}</small></div><div class="gp">${i === 0 ? '<span class="muted">ใบเริ่มต้น</span>' : money(B.price)}<br>${i === lv ? '<span class="tick">✓ ใช้อยู่</span>' : i < lv ? '<span class="muted">มีใบที่ดีกว่าแล้ว</span>' : `<button class="btn small ${STATE.coins >= B.price ? 'gold' : ''}" data-a="buybag" data-i="${i}" ${STATE.coins >= B.price ? '' : 'disabled'}>ซื้อ</button>`}</div></div>`).join('');
     } else if (shopTab === 'repair') {
       body = repairBody();
     } else if (shopTab === 'sell') {
@@ -9862,7 +9872,7 @@ const UI = (() => {
         ${shown.length ? `<div class="shsellfoot"><span>${sellCat === 'all' ? 'ของสำรองทั้งหมด' : SLOT_NAMES[sellCat]} ${shown.length} ชิ้น • รวม <b>${money(tot)}</b></span><button class="btn gold" data-a="sellall">ขายทั้งหมดที่แสดง</button></div>` : ''}
         <p class="muted small" style="margin:4px 0 0">หน้านี้แสดงเฉพาะของสำรองในกระเป๋า — ของที่สวมใส่อยู่ไม่แสดงและขายไม่ได้ ถ้าจะขายให้ถอดออกก่อนที่หน้ากระเป๋า (I)</p></div></div>`;
     } else {
-      body = cardGrid(SHOP_ITEMS.filter(id => ITEMS[id].slot === shopTab)) + (shopTab === 'weapon' ? '<p class="muted small">🔫 กระสุนปืนอยู่ในแท็บ <b>ของใช้</b> ด้านบน</p>' : '');
+      body = cardGrid(SHOP_ITEMS.filter(id => ITEMS[id].slot === shopTab));
     }
     show('shop', dlgHead('smith', G.map && G.map.outpost ? 'ร้านค้าอุปกรณ์' : 'ลุงเหล็ก', G.map && G.map.outpost && shopTab === 'sell' ? 'รับซื้ออุปกรณ์คืน แต่ไม่รับซื้อพลอย — พลอยต้องไปขายที่ตลาดจันท์' : shopTab === 'pick' ? 'พลั่วดีขุดหินแตกไว เจอพลอยง่ายขึ้นเยอะ ของระดับตำนานแพงหน่อยนะ แต่คุ้ม' : shopTab === 'sell' ? 'ของที่ไม่ได้ใช้ ลุงรับซื้อคืนราคาหนึ่งในสาม' : 'ลงไปลึก ๆ ต้องมีเกราะดี ๆ ซอมบี้ข้างล่างกัดแรง') +
       `${secBar}${subBar}<div class="shmoney"><span class="shm-l">เงินของคุณ </span>${money(STATE.coins)}</div><div class="list shbody">${body}</div>`,
