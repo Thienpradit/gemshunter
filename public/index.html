@@ -7037,6 +7037,7 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
   const isOpen = t => t === TILE.FLOOR || t === TILE.WATER;
   const isRock = t => t === TILE.WALL || t === TILE.BEDROCK;
   const district = m.vein && MINE_DISTRICTS[m.tier - 1];
+  const R3 = !!(m.vein && (typeof window !== 'undefined' && window.ROCK3D != null ? window.ROCK3D : CONFIG.rock3d)); /* ต้นแบบหินแบบ 3 มิติ (ปิดไว้ก่อน) */
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const ti = MI(m, tx, ty), t = m.t[ti], zk = ZONE_KEYS[m.zone[ti]] || 'gravel';
     const below = tileAt(m, tx, ty + 1), above = tileAt(m, tx, ty - 1), left = tileAt(m, tx - 1, ty), right = tileAt(m, tx + 1, ty);
@@ -7116,6 +7117,9 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
       }
       if (isFloorT(t) || t === TILE.WATER) {
         if ((isRock(above) || above === TILE.CLIFF) && ly < 5 && t !== TILE.DARK) dark = [0.45, 0.33, 0.22, 0.12, 0.06][ly];
+        if (R3 && isRock(above) && ly < 8 && lx > 1) dark = Math.max(dark, [0.62, 0.52, 0.42, 0.32, 0.22, 0.14, 0.07, 0.03][ly] * (lx < 4 && !isRock(tileAt(m, tx - 1, ty - 1)) ? (lx - 1) / 3 : 1)); /* เงาตกกระทบ: ทอดลงขวาล่าง (แสงจากซ้ายบน) */
+        if (R3 && isRock(left) && lx < 5) dark = Math.max(dark, [0.5, 0.38, 0.26, 0.15, 0.06][lx] * (ly < 4 && !isRock(tileAt(m, tx - 1, ty - 1)) ? (ly + 1) / 5 : 1));
+        if (R3 && !isRock(above) && !isRock(left) && isRock(tileAt(m, tx - 1, ty - 1)) && lx < 5 && ly < 8) dark = Math.max(dark, 0.4 * (1 - lx / 5) * (1 - ly / 8));
         if (isRock(left) && lx < 2) dark = Math.max(dark, 0.25 - lx * 0.1);
         if (isRock(right) && lx > 13) dark = Math.max(dark, 0.25 - (15 - lx) * 0.1);
       }
@@ -7132,7 +7136,31 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
       } else if (district && t === TILE.WATER && m.tier === 5) {
         col = (ly + lx) % 7 === 0 ? '#24576d' : '#153c52';
       }
+      let L3 = 0;
+      if (R3 && isRock(t)) { /* หินแต่ละก้อนเป็นบล็อก 3 มิติ: ผิวบนสว่าง (แสงจากซ้ายบน) + ขอบหน้าแหลม + หน้าตัดด้านหน้ามืดลงตามความลึก + ร่องแบ่งก้อน + มุมมน */
+        const faceT = isOpen(below), TH = 7, top = !faceT || ly < TH, rL = isRock(left), rR = isRock(right), rA = isRock(above), rB = isRock(below);
+        const usesDist = district && !vein && (m.country === 'thai' || ty >= m.endRoute.entranceY) && t === TILE.WALL;
+        const MP = usesDist ? district.stone : m.style ? m.style.face : PAL.face[zk];
+        if (top) { const fv = hash2(Math.floor((lx + ly * 0.6) / 5) + tx * 7, Math.floor(ly / 3) + ty * 5, 91); col = MP[clamp(MP.length - 2 + (fv > 0.62 ? 1 : 0) - (fv < 0.2 ? 1 : 0), 0, MP.length - 1)]; if (t === TILE.BEDROCK) col = shade(col, -0.45); else if (vein && hash2(x >> 1, y >> 1, 34) > 0.78) col = (hash2(x, y, 35) > 0.5) ? ZONES[zk].tint : '#ffffff'; }
+        if (top) { /* ผิวบน: สว่าง มีเหลี่ยมหินเล็กน้อย • ขอบนอกเป็นเส้นมืด • ขอบด้านบน/ซ้ายรับแสง • ขอบหน้า (ชนหน้าตัด) สว่างที่สุด */
+          L3 = (hash2(Math.floor((lx + ly * 0.6) / 5) + tx * 7, Math.floor(ly / 3) + ty * 5, 92) - 0.5) * 0.16 + (faceT ? 0.1 : -0.06);
+          if (ly === 0) L3 = rA ? -0.5 : -0.62; else if (ly === 1) L3 = rA ? L3 + 0.08 : L3 + 0.3; else if (ly === 2 && !rA) L3 += 0.1;
+          if (lx === 0) L3 = rL ? -0.5 : -0.62; else if (lx === 1) L3 += rL ? 0.06 : 0.22;
+          if (lx === 15) L3 = rR ? -0.3 : -0.62; else if (lx === 14) L3 -= rR ? 0.06 : 0.22;
+          if (faceT && ly === TH - 1 && lx > 0 && lx < 15) L3 = Math.max(L3, 0) + 0.42; else if (faceT && ly === TH - 2 && lx > 0 && lx < 15) L3 += 0.14;
+          if (!faceT && ly === 15) L3 = rB ? -0.3 : L3;
+        } else { /* หน้าตัดด้านหน้า: มืดกว่าผิวบนมาก และมืดลงเรื่อย ๆ ไปทางโคน • ขอบซ้าย/ขวาและโคนเป็นเส้นมืด */
+          const dep = (ly - TH) / (15 - TH); L3 = -0.24 - dep * 0.3;
+          if (ly === TH) L3 = -0.1;
+          if (lx === 0) L3 = -0.66; else if (lx === 1) L3 -= rL ? 0.05 : 0.14;
+          if (lx === 15) L3 = rR ? -0.5 : -0.7; else if (lx === 14) L3 -= 0.18;
+          if (ly === 15) L3 = -0.72;
+        }
+        const cA = !rA, corner = (lx === 0 && !rL) || (lx === 15 && !rR), corner2 = ((lx <= 1 && !rL) || (lx >= 14 && !rR)) && ((ly === 0 && cA) || (faceT && ly === 15));
+        if (corner && ((ly <= 1 && cA) || (faceT && ly >= 14))) L3 = -0.85; else if (corner2) L3 = -0.75; /* มุมมน */
+      }
       let [r, gg, b] = rgb(col); const k = ((ty - ty0) * 16 + ly) * RW * 4 + ((tx - tx0) * 16 + lx) * 4;
+      if (L3) { if (L3 > 0) { r += (255 - r) * L3; gg += (255 - gg) * L3; b += (255 - b) * L3; } else { r *= 1 + L3; gg *= 1 + L3; b *= 1 + L3; } }
       if (m.tint && t !== TILE.WATER) { const lum = (r + gg + b) / 765, a = m.tintAmt; r = lerp(r, m.tint[0] * (0.35 + lum), a); gg = lerp(gg, m.tint[1] * (0.35 + lum), a); b = lerp(b, m.tint[2] * (0.35 + lum), a); }
       d[k] = r * (1 - dark); d[k + 1] = gg * (1 - dark); d[k + 2] = b * (1 - dark); d[k + 3] = 255;
     }
@@ -8145,7 +8173,7 @@ function rollGem(hx, hy, zk, vein, luck) {
   // พลั่วดี/หมวกโชค เพิ่มโอกาสพลอย (ชนิดหายากได้โบนัสมากกว่า) • สายแร่ประกาย ×1.8
   const w = keys.map(k => { let v = Math.max(0, Number(odds[k]) || 0); if (k === 'none') return v; v *= (1 + luck * (GEM_RARITY[k] >= 2 ? 1.5 : 1)) * (vein ? 1.8 : 1); return v; });
   const res = (window.NLPC && NLPC.forceRoll) || keys[pickWeighted(w)];
-  if (res === 'none') { floatText(hx, hy - 18, 'เจอแต่เศษหิน', '#e0d6c4', 1.5); setTimeout(() => SFX.play('rubble'), 60); }
+  if (res === 'none') { setTimeout(() => SFX.play('rubble'), 60); } /* ไม่ขึ้นข้อความ "เจอแต่เศษหิน" แล้ว (เหลือแค่เสียง) */
   else {
     if (bagFull()) { floatText(hx, hy - 18, 'กระเป๋าเต็ม! พลอยหล่นหาย', '#ff8a7a', 1.4); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ขายพลอย หรือซื้อกระเป๋าใหญ่ขึ้นที่ร้านอุปกรณ์ (แท็บ “กระเป๋า”)`, 'bad'); SFX.play('rubble'); return; }
     const gem = makeRawGem(res, zk, Math.random, c); gem.run = STATE.mineRun || 1; STATE.inv.push(gem); STATE.stats.found++; const TCH = document.body.classList.contains('touch'); /* จอสัมผัส: ตอนเจอพลอยแสดงแถบข้อความเดียว (ไม่มีตัวหนังสือลอยทับตัวผู้เล่น) */ const gx = gainXp(Math.round(GEM_XP[clamp(gemRarity(gem), 0, 4)] * MINE_TIERS[(G.map.tier || 1) - 1].xp * (1 + (pstats().pick.gxp || 0)))); if (gx && !TCH) floatText(PL.x, PL.y - 46, `+${gx} EXP`, '#b8a0ff', 2.4); /* ขุดเจอพลอยก็ได้ EXP */
