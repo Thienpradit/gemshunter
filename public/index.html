@@ -1822,7 +1822,7 @@ function heroDefault() {
 }
 function newState() {
   return {
-    hero: heroDefault(), cps: {}, pins: {},
+    hero: heroDefault(), cps: {}, pins: {}, gates: {},
     v: SAVE_VERSION, durV: 2, coins: CONFIG.startCoins, inv: [], questIdx: 0, questProg: 0,
     stats: { sold: 0, soldCut: 0, dug: 0, found: 0, earned: 0, kills: 0, deepest: 0 },
     queue: { jobs: [], startAt: 0 },
@@ -1898,7 +1898,7 @@ function migrateSave(s) {
     const facing = ['up', 'down', 'left', 'right'].includes(dir) ? dir : 'down';
     st.pos = { map: mapId, x: compatible ? x : -1, y: compatible ? y : -1, dir: facing };
   }
-  st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {};
+  st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
   st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
   st.savedAt = Number(s.savedAt) || 0;
@@ -7402,7 +7402,11 @@ function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now()
   for (let i = G.mons.length - 1; i >= 0; i--) { const o = G.mons[i]; if (!o.grp || o.dying || o.hp <= 0) continue; if (Math.hypot(o.x - PL.x, o.y - PL.y) > GROUP_FAR && o.state !== 'chase') G.mons.splice(i, 1); } /* เดินห่างแล้ว เก็บตัวกลับเข้ากลุ่ม (จำนวนที่เหลือของกลุ่มไม่เปลี่ยน) */ }
 /* แม่ทัพ: ตัวเดียวกับลูกน้องแต่ตัวใหญ่กว่า เลือด 3.2 เท่า ตีแรง 1.5 เท่า เลเวล +3 ให้ EXP/เงิน 3 เท่า ดรอปของเสมอและมีโอกาสได้ของดีสูงกว่า */
 function makeChamp(o) { const def = MONS[o.type]; o.champ = true; o.name = 'แม่ทัพ' + (o.name || def.name); monScale(o, true); /* แม่ทัพ: เลเวลผู้เล่น +4 เลือด ×3.2 ตีแรง ×1.5 */ o.xp = Math.round((o.xp || 1) * 3); o.coinMul = (o.coinMul || 1) * 3; return o; }
-function groupKill(e) { const g = e.grp; if (!g || e._gk) return; e._gk = true; if (e.champ) g.champDead = true; g.left = Math.max(0, g.left - 1); if (g.left <= 0) { g.deadAt = Date.now(); g.active = false; } }
+// ประตูวิเศษหน้าบันไดทางลง: ชั้นที่มีบอส ต้องฆ่าบอสของชั้นนั้นก่อน ประตูจึงสลาย (ฆ่าแล้วเปิดถาวรสำหรับเหมืองชั้นนั้น — เก็บใน STATE.gates)
+function gateBoss(m) { const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : null; }
+function gateLocked(m) { return !!(m && m.descend && gateBoss(m) && !(STATE.gates && STATE.gates[m.id])); }
+function groupKill(e) { if (MONS[e.type].boss2 && G.map && gateBoss(G.map) === e.type && !(STATE.gates && STATE.gates[G.map.id])) { (STATE.gates || (STATE.gates = {}))[G.map.id] = Date.now(); saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; banner('✦ ประตูวิเศษสลายแล้ว'); toast('ปราบบอสสำเร็จ! <b>ประตูวิเศษ</b>หน้าบันไดทางลงสลายไปแล้ว ลงชั้นต่อไปได้', 'good'); SFX.play('done'); if (G.map.descend) for (let k = 0; k < 30; k++) G.parts.push({ k: 'star', x: G.map.descend.x, y: G.map.descend.y - 12, z: 6, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90, vz: 40, life: 0.9, max: 0.9, col: '#d0a0ff', size: 1 }); }
+  const g = e.grp; if (!g || e._gk) return; e._gk = true; if (e.champ) g.champDead = true; g.left = Math.max(0, g.left - 1); if (g.left <= 0) { g.deadAt = Date.now(); g.active = false; } }
 function spawnMonsters(dt) {
   const m = G.map; if (!m.vein || !CONFIG.monsters) return;
   if (PL.y >= 13 * 16 || G.mons.length) groupTick(m); return; /* ระบบใหม่: ศัตรูอยู่เป็นกลุ่มประจำจุด ไม่สุ่มเกิดรอบตัวผู้เล่นแล้ว (โค้ดเดิมด้านล่างไม่ถูกใช้) */
@@ -7943,7 +7947,7 @@ function doInteract(it) {
     case 'travel': return UI.travel();
     case 'agentBack': return UI.agentBack();
     case 'enterMine': STATE.mineTier = 1; return goMap(mineIdTier(it.to || 'mine', 1)); /* เข้าเหมืองทางเดียว: เริ่มที่ชั้น 1 เสมอ ชั้นต่อไปลงทางบันไดก้นเหมือง */
-    case 'descend': { const nt = mineTierOf(it.to), NT = MINE_TIERS[nt - 1]; if (charState().lv < NT.req) { toast(`ยังลงไม่ได้ — ${NT.name} ต้องเลเวล ${NT.req} (ตอนนี้ Lv ${charState().lv})`, 'bad'); SFX.play('deny'); return; } STATE.mineTier = nt; return goMap(it.to); }
+    case 'descend': { const nt = mineTierOf(it.to), NT = MINE_TIERS[nt - 1]; if (gateLocked(G.map)) { toast(`ประตูวิเศษกั้นทางลงอยู่ — ต้องปราบบอส <b>${MONS[gateBoss(G.map)].name}</b> ของชั้นนี้ก่อน`, 'bad'); SFX.play('deny'); return; } if (charState().lv < NT.req) { toast(`ยังลงไม่ได้ — ${NT.name} ต้องเลเวล ${NT.req} (ตอนนี้ Lv ${charState().lv})`, 'bad'); SFX.play('deny'); return; } STATE.mineTier = nt; return goMap(it.to); }
     case 'exitMine': return goMap(it.to || 'village');
     case 'deathBag': return takeDeathBag(it.bag);
     case 'warpIn': return STATE.warp ? goMap(STATE.warp.town, 'warpIn') : null;
@@ -8166,7 +8170,10 @@ function togglePin() { if (!G.map || G.down || G.trans) return; if (!STATE.pins)
   if (near >= 0) { L.splice(near, 1); toast('ถอนหมุดแล้ว', 'good'); SFX.play('click'); }
   else { if (L.length >= PIN_MAX) L.shift(); L.push({ x: Math.round(PL.x), y: Math.round(PL.y) }); toast(`📍 ปักหมุดแล้ว (${L.length}/${PIN_MAX}) • ดูได้บนแผนที่ย่อ • ยืนทับหมุดแล้วกด P อีกครั้งเพื่อถอน`, 'good'); SFX.play('done'); }
   if (!L.length) delete STATE.pins[id]; saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; }
-function drawPins(g, S, T) { const L = STATE.pins && G.map && STATE.pins[G.map.id]; if (!L) return; for (const p of L) { const x = S(p.x), y = T(p.y), b = Math.sin(G.time * 3 + p.x) * 1;
+function drawPins(g, S, T) { if (G.map && gateLocked(G.map)) { /* ประตูวิเศษ: ม่านพลังสีม่วงครอบปากบันได */ const d = G.map.descend, x = S(d.x), y = T(d.y), t = G.time, w = 44, h = 40; g.save();
+    const gr = g.createLinearGradient(0, y - h, 0, y + 6); gr.addColorStop(0, 'rgba(200,140,255,0.05)'); gr.addColorStop(0.5, `rgba(170,90,255,${0.42 + Math.sin(t * 3) * 0.08})`); gr.addColorStop(1, 'rgba(120,60,220,0.6)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - w / 2, y + 6); g.lineTo(x - w / 2, y - h + 14); g.quadraticCurveTo(x, y - h - 10, x + w / 2, y - h + 14); g.lineTo(x + w / 2, y + 6); g.closePath(); g.fill();
+    g.strokeStyle = `rgba(235,200,255,${0.75 + Math.sin(t * 4) * 0.2})`; g.lineWidth = 1.4; g.stroke(); g.strokeStyle = 'rgba(255,240,255,0.55)'; g.lineWidth = 0.8; for (let k = 0; k < 5; k++) { const yy = y + 4 - ((t * 14 + k * 9) % (h - 2)); g.beginPath(); g.moveTo(x - w / 2 + 3, yy); g.lineTo(x + w / 2 - 3, yy); g.stroke(); }
+    g.fillStyle = '#fff'; g.font = 'bold 9px Tahoma, sans-serif'; g.textAlign = 'center'; g.strokeStyle = '#2a0a50'; g.lineWidth = 2.5; g.strokeText('🔒 ประตูวิเศษ', x, y - h - 12); g.fillText('🔒 ประตูวิเศษ', x, y - h - 12); g.restore(); } const L = STATE.pins && G.map && STATE.pins[G.map.id]; if (!L) return; for (const p of L) { const x = S(p.x), y = T(p.y), b = Math.sin(G.time * 3 + p.x) * 1;
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(x, y, 4, 1.6, 0, 0, 7); g.fill(); g.strokeStyle = '#3a1410'; g.lineWidth = 1; g.fillStyle = '#e0392e'; g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x - 4, y - 10 + b); g.arc(x, y - 11 + b, 4.2, Math.PI, 0); g.lineTo(x, y - 1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y - 11.5 + b, 1.5, 0, 7); g.fill(); } }
 function warpBackLeft() { const w = STATE && STATE.warp; return w && w.used ? Math.max(0, WARP_BACK_SEC - (Date.now() - (w.usedAt || 0)) / 1000) : null; }
 function warpBackTick() {
