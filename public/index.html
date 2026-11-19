@@ -1037,13 +1037,13 @@ const ITEMS = {
   pick10: { slot: 'pick', name: 'พลั่วเหล็กหนา', tier: 1, power: 2, sta: 4.2, luck: 0.08, dur: 1200, col: '#4a5058', price: 520 },
   pick5: { slot: 'pick', name: 'พลั่วมังกรนิล', tier: 4, power: 6, sta: 2, luck: 0.5, dur: 8000, col: '#3a4ad8', price: 25000 },
   wpn1: { slot: 'weapon', name: 'มีดพร้า', tier: 0, dmg: 7, range: 22, col: '#b8c0c8' },
-  wpn2: { slot: 'weapon', name: 'ดาบเหล็ก', tier: 1, dmg: 11, range: 24, col: '#dfe6ec', price: 250 },
-  wpn3: { slot: 'weapon', name: 'ขวานศึกคนงาน', tier: 2, dmg: 17, range: 24, col: '#a8a090', price: 900 },
-  wpn4: { slot: 'weapon', name: 'ดาบผลึกน้ำเงิน', tier: 3, dmg: 24, range: 27, col: '#6ab8ff', price: 3500 },
-  wpn5: { slot: 'weapon', name: 'ดาบทับทิมเลือดนก', tier: 4, dmg: 34, range: 28, col: '#ff3a50', price: 12000 },
+  wpn2: { slot: 'weapon', dur: 500, name: 'ดาบเหล็ก', tier: 1, dmg: 11, range: 24, col: '#dfe6ec', price: 250 },
+  wpn3: { slot: 'weapon', dur: 800, name: 'ขวานศึกคนงาน', tier: 2, dmg: 17, range: 24, col: '#a8a090', price: 900 },
+  wpn4: { slot: 'weapon', dur: 1500, name: 'ดาบผลึกน้ำเงิน', tier: 3, dmg: 24, range: 27, col: '#6ab8ff', price: 3500 },
+  wpn5: { slot: 'weapon', dur: 3000, name: 'ดาบทับทิมเลือดนก', tier: 4, dmg: 34, range: 28, col: '#ff3a50', price: 12000 },
   // ปืน: ยิงเป็นนัด ต้องมีกระสุน — ปืนสั้นยิงทีละนัด (กดหนึ่งครั้ง = หนึ่งนัด) / ปืนยาวอาก้ายิงออโต้ (กดค้าง)
-  gun1: { slot: 'weapon', name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 14, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 15000 },
-  gun2: { slot: 'weapon', name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 10, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 45000 },
+  gun1: { slot: 'weapon', dur: 600, name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 14, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 15000 },
+  gun2: { slot: 'weapon', dur: 2500, name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 10, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 45000 },
   arm1: { slot: 'armor', warm: -1, name: 'เสื้อม่อฮ่อม', tier: 0, def: 0, hp: 0, sta: 0, col: '#3f6fa8' },
   arm2: { slot: 'armor', warm: 1, name: 'เสื้อหนังงู', tier: 1, def: 2, hp: 10, sta: 10, col: '#6a7a3a', price: 200 },
   arm3: { slot: 'armor', warm: 2, name: 'เสื้อเกราะหนังแมงป่อง', tier: 2, def: 4, hp: 20, sta: 10, col: '#9a4a2a', price: 700 },
@@ -1177,8 +1177,8 @@ function itemStatText(id) {
   const it = id && typeof id === 'object' ? effItem(id) : ITEMS[id];
   if (it.slot === 'pick' && !it.dur) return `แรงขุด ${it.power} • สเตมินา ${it.sta}/ครั้ง • ไม่มีวันพัง ไม่ต้องซ่อม`;
   if (it.slot === 'pick') return `แรงขุด ${it.power} • สเตมินา ${it.sta}/ครั้ง${it.stac ? ` (ประหยัด ${Math.round(it.stac * 100)}%)` : ''} • ขุดได้ ${fmtNum(it.dur)} ครั้งก่อนต้องซ่อม${it.luck ? ` • เจอพลอยง่ายขึ้น +${Math.round(it.luck * 100)}%` : ''}`;
-  if (it.gun) return `ปืน${it.auto ? 'ออโต้ (กดค้างยิงรัว)' : 'ยิงทีละนัด'} • แรง ${it.dmg}/นัด • ${Math.round(1 / it.rate)} นัด/วินาที • ระยะไกล • ใช้${CONSUMABLES[it.ammo].name}`;
-  if (it.slot === 'weapon') return `พลังโจมตี ${it.dmg} • ระยะ ${it.range}${it.mdmg ? ` • ตีมอนสเตอร์แรงขึ้น ${Math.round(it.mdmg * 100)}%` : ''}${it.leech ? ` • ตีแล้วดูดเลือด ${it.leech} HP` : ''}${it.crit ? ` • คริติคอล +${Math.round(it.crit * 100)}%` : ''}`;
+  if (it.gun) return `ปืน${it.auto ? 'ออโต้ (กดค้างยิงรัว)' : 'ยิงทีละนัด'} • แรง ${it.dmg}/นัด • ${Math.round(1 / it.rate)} นัด/วินาที • ระยะไกล • ใช้${CONSUMABLES[it.ammo].name}${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} นัด` : ''}`;
+  if (it.slot === 'weapon') return `พลังโจมตี ${it.dmg} • ระยะ ${it.range}${it.mdmg ? ` • ตีมอนสเตอร์แรงขึ้น ${Math.round(it.mdmg * 100)}%` : ''}${it.leech ? ` • ตีแล้วดูดเลือด ${it.leech} HP` : ''}${it.crit ? ` • คริติคอล +${Math.round(it.crit * 100)}%` : ''}${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} ครั้ง` : ' • ไม่มีวันพัง ไม่ต้องซ่อม'}`;
   if (it.slot === 'shield') return `ป้องกัน ${it.def} • บล็อก ${Math.round(it.block * 100)}%`;
   return [CLIMATE_ON && it.warm ? (it.warm > 0 ? `🧥 อบอุ่น +${it.warm}` : `🌬 ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.rhp ? `♥ เลือดฟื้นเอง +${it.rhp}/วิ` : '', it.rsta ? `⚡ สเตมินาฟื้นเร็วขึ้น +${Math.round(it.rsta * 100)}%` : '', it.light ? `แสงสว่าง +${it.light}` : '', it.speed ? `เดินเร็ว +${Math.round(it.speed * 100)}%` : '', it.luck ? `โชค +${Math.round(it.luck * 100)}%` : ''].filter(Boolean).join(' • ');
 }
@@ -1964,11 +1964,20 @@ const SFX = (() => {
     return ac;
   }
   /* เสียงหายหลังสลับแอปบนโทรศัพท์: ถ้าแตะจอแล้วสั่ง resume ไปแล้วแต่ยังไม่กลับมา running → ทิ้งตัวเดิมแล้วสร้างใหม่ */
-  let stuckAt = 0;
+  /* โทรศัพท์ (โดยเฉพาะ iPhone): พอสลับแอปแล้วกลับมา ตัวเสียงเดิมมักเงียบถาวร ทั้งที่บางครั้งยังรายงานสถานะ running
+     → ไม่พยายามปลุกตัวเดิม: จำไว้ว่าเพิ่งกลับจากพื้นหลัง (away) แล้วตอนผู้เล่นแตะจอครั้งแรก ทิ้งตัวเดิมและสร้างตัวเสียงใหม่ในจังหวะแตะนั้นเลย */
+  let stuckAt = 0, away = false;
+  function fresh() {
+    try { if (ac) ac.close(); } catch (e) {} ac = null; master = null; mGain = null; mMode = null; stuckAt = 0; mNext = 0; away = false;
+    const c = ensure(); if (!c) return c;
+    try { const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); } catch (e) {} /* เสียงเงียบ 1 ตัวอย่าง: ปลดล็อกเสียงบน iOS */
+    return c;
+  }
   function revive() {
     if (!ac) return ensure();
+    if (away) return fresh();
     if (ac.state === 'running') { stuckAt = 0; return ac; }
-    if (ac.state === 'closed' || (stuckAt && performance.now() - stuckAt > 700)) { try { ac.close(); } catch (e) {} ac = null; master = null; mGain = null; mMode = null; stuckAt = 0; mNext = 0; return ensure(); }
+    if (ac.state === 'closed' || (stuckAt && performance.now() - stuckAt > 700)) return fresh();
     if (!stuckAt) stuckAt = performance.now();
     return ensure();
   }
@@ -2015,9 +2024,10 @@ const SFX = (() => {
     while (mNext < now + 1.2) { mNext += mMode === 'mine' ? mineBar(mNext) : townBar(mNext, mStep++ % 8); }
   }
   setInterval(() => { try { musicTick(); } catch (e) {} }, 300);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { revive(); } catch (e) {} } });
-  addEventListener('pageshow', () => { try { if (ac) revive(); } catch (e) {} });
-  for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, () => { try { revive(); } catch (e) {} }, { capture: true, passive: true });
+  const wentAway = () => { if (ac) { away = true; try { ac.suspend(); } catch (e) {} } };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) wentAway(); });
+  addEventListener('pagehide', wentAway); addEventListener('blur', () => { if (document.body && document.body.classList.contains('touch')) wentAway(); });
+  for (const ev of ['touchend', 'pointerup', 'click', 'keydown']) addEventListener(ev, () => { try { revive(); } catch (e) {} }, { capture: true, passive: true }); /* เฉพาะเหตุการณ์ที่เบราว์เซอร์นับเป็น "ผู้ใช้แตะจริง" (touchend/click) ถึงเปิดเสียงได้บน iOS */
   function tone(f, dur, type = 'sine', vol = 0.25, t0 = 0, f2 = 0) {
     const t = ac.currentTime + t0, o = ac.createOscillator(), g = ac.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
@@ -6738,8 +6748,9 @@ function pstats() {
   const e = eqIds(), a = E('armor') || ITEMS.arm1, h = E('helmet'), s = E('shield'), gl = E('gloves'), bt = E('boots'), p = E('pick') || ITEMS.pick1, w = E('weapon') || ITEMS.wpn1;
   const wear = [a, h, gl, bt].filter(Boolean), sum = k => wear.reduce((t, it) => t + (it[k] || 0), 0);
   const pickItem = STATE.items.find(x => x.uid === STATE.equip.pick);
+  const weaponItem = STATE.items.find(x => x.uid === STATE.equip.weapon), wBroken = !!(weaponItem && weaponItem.dur != null && weaponItem.dur <= 0); /* ดาบ/ปืนพัง: ยังใช้ได้แต่พลังเหลือ 25% จนกว่าจะซ่อม */
   const CS = charState(), AT = CS.attr, lvB = CS.lv - 1, mT = G.map && G.map.tier ? MINE_TIERS[G.map.tier - 1] : null;
-  return { e, pick: p, pickItem, weapon: w, lv: CS.lv, dmgMul: 1 + AT.str * 0.015, wMul: 1 + (w.mdmg || 0), crit: AT.dex * 0.002 + (STATE.hand === 'weapon' ? w.crit || 0 : 0), maxHp: CONFIG.hpMax + lvB * 2 + AT.vit * 3 + sum('hp') + (w.mods && w.mods.hp || 0) + (p.mods && p.mods.hp || 0) + (s && s.mods && s.mods.hp || 0), maxSta: CONFIG.staminaMax + lvB + AT.ene * 2 + sum('sta'), def: sum('def') + (s ? s.def : 0),
+  return { e, pick: p, pickItem, weaponItem, wBroken, weapon: w, lv: CS.lv, dmgMul: 1 + AT.str * 0.015, wMul: (1 + (w.mdmg || 0)) * (wBroken ? 0.25 : 1), crit: AT.dex * 0.002 + (STATE.hand === 'weapon' ? w.crit || 0 : 0), maxHp: CONFIG.hpMax + lvB * 2 + AT.vit * 3 + sum('hp') + (w.mods && w.mods.hp || 0) + (p.mods && p.mods.hp || 0) + (s && s.mods && s.mods.hp || 0), maxSta: CONFIG.staminaMax + lvB + AT.ene * 2 + sum('sta'), def: sum('def') + (s ? s.def : 0),
     block: s ? s.block : 0, light: sum('light') + (p.mods && p.mods.light || 0), luck: Math.round(((p.luck || 0) + (w.mods && w.mods.luck || 0) + sum('luck') + (s && s.mods && s.mods.luck || 0) + (mT ? mT.luck : 0)) * 100) / 100, speed: 1 + sum('speed') + (p.mods && p.mods.speed || 0) + Math.min(0.3, AT.dex * 0.002), warm: sum('warm'), regenHp: Math.round((sum('rhp') + (s && s.mods && s.mods.rhp || 0) + (p.mods && p.mods.rhp || 0)) * 100) / 100, regenSta: Math.round((sum('rsta') + (p.mods && p.mods.rsta || 0)) * 100) / 100, coinFind: Math.min(3, Math.round((sum('coin') + (w.mods && w.mods.coin || 0) + (s && s.mods && s.mods.coin || 0)) * 100) / 100) }; /* coinFind: เหรียญจากศัตรู +% รวมจากอุปกรณ์ทุกชิ้น (เพดาน +300%) */
 }
 
@@ -6885,11 +6896,20 @@ function gunAim(range) {
   for (const e of G.mons) { const dx = e.x - PL.x, dy = (e.y - 8) - (PL.y - 10), d = Math.hypot(dx, dy); if (d > range || d < 1) continue; const dot = (dx * fx + dy * fy) / d; if (!shotFree(G.map, PL.x, PL.y - 8, e.x, e.y - 6)) continue; const sc = d * (1.6 - dot) + (dot < 0.35 ? 400 : 0); if (sc < bd) { bd = sc; best = e; } } /* เล็งอัตโนมัติ: เอาตัวที่อยู่ทางที่หันก่อน ถ้าไม่มีก็หันไปยิงตัวที่ใกล้สุด • กระสุนข้ามน้ำได้ จึงเล็งข้ามแม่น้ำได้ด้วย */
   return best ? Math.atan2((best.y - 8) - (PL.y - 10), best.x - PL.x) : Math.atan2(fy, fx);
 }
+/* ความทนทานของดาบ/ปืน: ลดทีละ 1 ต่อการฟันที่โดนศัตรู หรือการยิง 1 นัด (อาวุธเริ่มต้นไม่มีวันพัง) */
+function wearWeapon() {
+  const ps = pstats(), x = ps.weaponItem; if (!x || x.dur == null || x.dur <= 0) return;
+  x.dur--; const mx = ITEMS[x.id].dur;
+  if (x.dur === 0) { toast(`${ps.weapon.name}พังแล้ว! พลังโจมตีเหลือ 25% จนกว่าจะซ่อมที่ร้านอุปกรณ์`, 'bad'); SFX.play('deny'); UI.hud(); }
+  else if (x.dur === Math.floor(mx * 0.2)) { toast(`${ps.weapon.name}ใกล้พังแล้ว (เหลือ ${x.dur} ครั้ง)`, 'bad'); UI.hud(); }
+  else if (x.dur % 5 === 0) UI.hud();
+}
 function fireGun() {
   const w = pstats().weapon; G.holdAct = G.holdAct && w.auto; // ปืนสั้น: กดหนึ่งครั้งยิงหนึ่งนัด
   if (G.time - (G.lastShot || -9) < w.rate) { if (w.auto) G.holdAct = true; return; }
   if ((STATE.cons[w.ammo] || 0) <= 0) { if (!G.noAmmoT || G.time - G.noAmmoT > 1.5) { toast(`กระสุนหมด! ซื้อ${CONSUMABLES[w.ammo].name}ที่ร้านอุปกรณ์ หรือกด Q สลับไปใช้พลั่ว`, 'bad'); G.noAmmoT = G.time; } SFX.play('empty'); G.holdAct = false; return; }
   STATE.cons[w.ammo]--; G.lastShot = G.time;
+  wearWeapon();
   const a = (G.mouseAct && PL.aim != null ? PL.aim : gunAim(w.range)) + (Math.random() - 0.5) * w.spread * 2;
   const ca = Math.cos(a), sa = Math.sin(a);
   if (Math.abs(ca) > Math.abs(sa)) PL.dir = ca < 0 ? 'left' : 'right'; else PL.dir = sa < 0 ? 'up' : 'down';
@@ -6983,6 +7003,7 @@ function resolveImpact() {
       if (d > 8 && (ex * fx + ey * fy) / d < 0.25) continue;
       hitMonster(e, dmg, PL.x, PL.y); hits++;
     }
+    if (hits && STATE.hand === 'weapon') wearWeapon();
     G.slashes.push({ x: cx + fx * 10, y: cy + fy * 8, dir: PL.dir, t: 0, col: STATE.hand === 'weapon' ? ps.weapon.col : '#d8d0c0' });
     // ฟันโดนหินก็ทำให้หินบิ่นนิดหน่อย
     if (!hits && STATE.hand === 'weapon') { const r = frontRock(); if (r) { chips(r.tx * 16 + 8, r.ty * 16 + 12, ZONE_KEYS[m.zone[r.i]], 4); SFX.play('dig'); } }
@@ -8206,7 +8227,8 @@ const UI = (() => {
       const db = $('#durbar'), dn = $('#durN'), slot = STATE.hand === 'pick' ? 'pick' : 'weapon', inst = STATE.items.find(x => x.uid === STATE.equip[slot]), base = inst && ITEMS[inst.id];
       db.style.display = 'block';
       if (base && base.dur) { const d = inst.dur ?? base.dur, f = clamp(d / base.dur, 0, 1); db.firstChild.style.width = (f * 100).toFixed(1) + '%'; db.firstChild.style.background = f <= 0 ? '#555' : f < 0.2 ? '#e05a4a' : f < 0.5 ? '#e8c44a' : '#8fe070';
-        db.title = `ความทนทาน ${d}/${base.dur} — ใช้ได้อีก ${d} ครั้งก่อนต้องซ่อม`; dn.textContent = d <= 0 ? 'พัง!' : ''; dn.className = f <= 0 ? 'bad' : ''; } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
+        db.title = `ความทนทาน ${d}/${base.dur} — ใช้ได้อีก ${d} ครั้งก่อนต้องซ่อม`; dn.textContent = d <= 0 ? 'พัง!' : ''; dn.className = f <= 0 ? 'bad' : '';
+        if (base.gun) { const am = STATE.cons[base.ammo] || 0; dn.textContent = d <= 0 ? 'พัง!' : am <= 0 ? 'หมด!' : '⁍' + fmtNum(am); dn.className = d <= 0 || am <= 0 ? 'bad' : ''; db.title += ` • กระสุนเหลือ ${am} นัด`; } /* ปืน: หลอด/วงแหวน = ความทนทาน • ตัวเลข = กระสุน */ } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
       else if (base && base.gun) { const am = STATE.cons[base.ammo] || 0, pk = (CONSUMABLES[base.ammo].pack || 15) * 3, f = clamp(am / pk, 0, 1); /* ถือปืน: ตัวเลข = กระสุนที่เหลือ • หลอด = ปริมาณกระสุนเทียบ 3 กล่อง */
         db.firstChild.style.width = (f * 100).toFixed(1) + '%'; db.firstChild.style.background = am <= 0 ? '#555' : am <= 5 ? '#e05a4a' : '#f0c040'; db.title = `กระสุนเหลือ ${am} นัด (${CONSUMABLES[base.ammo].name})`; dn.textContent = am <= 0 ? 'หมด!' : '⁍' + fmtNum(am); dn.className = am <= 0 ? 'bad' : am <= 5 ? 'low' : 'ammo'; }
       else { db.firstChild.style.width = '100%'; db.firstChild.style.background = '#6ab8ff'; db.title = 'ไม่มีวันพัง ไม่ต้องซ่อม'; dn.textContent = ''; dn.className = 'inf'; }
@@ -8614,7 +8636,7 @@ const UI = (() => {
   const shopSel = {};
   const statChips = id => { const it = ITEMS[id]; let a;
     if (it.gun) a = [`แรง ${it.dmg}/นัด`, `${Math.round(1 / it.rate)} นัด/วิ`, it.auto ? 'ยิงออโต้' : 'ทีละนัด'];
-    else if (it.slot === 'weapon') a = [`โจมตี ${it.dmg}`, `ระยะ ${it.range}`];
+    else if (it.slot === 'weapon') a = [`โจมตี ${it.dmg}`, `ระยะ ${it.range}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง'];
     else if (it.slot === 'pick') a = [`แรงขุด ${it.power}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง', it.luck ? `โชค +${Math.round(it.luck * 100)}%` : ''];
     else if (it.slot === 'shield') a = [`ป้องกัน ${it.def}`, `กัน ${Math.round(it.block * 100)}%`];
     else a = [CLIMATE_ON && it.warm ? (it.warm > 0 ? `อบอุ่น +${it.warm}` : `ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.speed ? `เร็ว +${Math.round(it.speed * 100)}%` : '', it.coin ? `เหรียญจากศัตรู +${Math.round(it.coin * 100)}%` : '', it.rhp ? `เลือดฟื้น +${it.rhp}/วิ` : '', it.rsta ? `สเตมินาฟื้น +${Math.round(it.rsta * 100)}%` : ''];
@@ -8623,7 +8645,7 @@ const UI = (() => {
   function cmpStats(id, X) {
     const it = X ? effItem(X) : ITEMS[id], e = eqIds(), curX = STATE.items.find(i => i.uid === STATE.equip[it.slot]), cur = curX ? effItem(curX) : e[it.slot] ? ITEMS[e[it.slot]] : null, v = (x, k) => (x && x[k]) || 0, R = [];
     const add = (label, a, b, unit = '', always) => { const d = Math.round((b - a) * 100) / 100; if (b || d || always) R.push([label, b, d, unit]); };
-    if (it.slot === 'weapon') { const dps = x => x ? (x.gun ? x.dmg / x.rate : x.dmg / 0.36) : 0; add('พลัง/วินาที', Math.round(dps(cur)), Math.round(dps(it)), '', 1); add('ระยะ', v(cur, 'range'), it.range, '', 1); }
+    if (it.slot === 'weapon') { const dps = x => x ? (x.gun ? x.dmg / x.rate : x.dmg / 0.36) : 0; add('พลัง/วินาที', Math.round(dps(cur)), Math.round(dps(it)), '', 1); add('ระยะ', v(cur, 'range'), it.range, '', 1); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } }
     else if (it.slot === 'pick') { add('แรงขุด', v(cur, 'power'), it.power, '', 1); R.push(['ใช้สเตมินา/ครั้ง', it.sta, null, '']); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } add('โชค', Math.round(v(cur, 'luck') * 100), Math.round((it.luck || 0) * 100), '%'); add('ประหยัดสเตมินา', Math.round(v(cur, 'stac') * 100), Math.round((it.stac || 0) * 100), '%'); }
     else if (it.slot === 'shield') { add('ป้องกัน', v(cur, 'def'), it.def, '', 1); add('บล็อก', Math.round(v(cur, 'block') * 100), Math.round(it.block * 100), '%', 1); }
     else { add('ป้องกัน', v(cur, 'def'), v(it, 'def'), '', 1); add('HP', v(cur, 'hp'), v(it, 'hp')); add('สเตมินา', v(cur, 'sta'), v(it, 'sta')); add('แสง', v(cur, 'light'), v(it, 'light')); add('เร็ว', Math.round(v(cur, 'speed') * 100), Math.round(v(it, 'speed') * 100), '%'); if (CLIMATE_ON) add('อบอุ่น', v(cur, 'warm'), v(it, 'warm')); add('เลือดฟื้น/วิ', v(cur, 'rhp'), v(it, 'rhp')); add('สเตมินาฟื้น', Math.round(v(cur, 'rsta') * 100), Math.round(v(it, 'rsta') * 100), '%'); }
@@ -8795,7 +8817,7 @@ const UI = (() => {
   // ---------- ซ่อมพลั่ว (ร้านช่าง / ร้านลุงเหล็ก) ----------
   function repairBody() {
     /* ของที่สวมใส่อยู่ขึ้นก่อน มีป้าย "กำลังใช้" ชัด ๆ แล้วตามด้วยของในกระเป๋า */
-    const eqU = Object.values(STATE.equip), worn = STATE.items.filter(x => eqU.includes(x.uid) && (ITEMS[x.id].dur || ITEMS[x.id].slot === 'pick')), spare = STATE.items.filter(x => !eqU.includes(x.uid) && ITEMS[x.id].dur);
+    const eqU = Object.values(STATE.equip), worn = STATE.items.filter(x => eqU.includes(x.uid) && (ITEMS[x.id].dur || ITEMS[x.id].slot === 'pick' || ITEMS[x.id].slot === 'weapon')), spare = STATE.items.filter(x => !eqU.includes(x.uid) && ITEMS[x.id].dur);
     const total = STATE.items.reduce((t, x) => t + (ITEMS[x.id].dur ? repairCost(x) : 0), 0);
     const row = (x, on) => { const c = ITEMS[x.id].dur ? repairCost(x) : 0; return itemRow(x, c ? `${money(c)}<br><button class="btn small ${STATE.coins >= c ? 'gold' : ''}" data-a="fix" data-u="${x.uid}" ${STATE.coins >= c ? '' : 'disabled'}>ซ่อม</button>` : `<span class="muted">${ITEMS[x.id].dur ? 'ใหม่เอี่ยม' : 'ไม่มีวันพัง<br>ไม่ต้องซ่อม'}</span>`, on ? ' <span class="fixon">กำลังใช้</span>' : '', ITEMS[x.id].dur ? x : null).replace('class="item ', `class="item ${on ? 'fixworn ' : ''}`); };
     return `<div class="srev-h">กำลังสวมใส่อยู่ <span>${worn.length}</span></div>` + (worn.length ? worn.map(x => row(x, 1)).join('') : '<div class="empty">ไม่มีของสวมใส่ที่ต้องซ่อม</div>') +
