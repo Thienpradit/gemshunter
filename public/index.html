@@ -615,6 +615,7 @@ body.touch .toast img{width:18px;height:18px}
 .scgrid .schd{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 4px 3px;border-bottom:1px solid #6b3a16}.scgrid .schd:first-child{padding-top:0}.scgrid .schd b{color:#ffd77a;font-size:14px}.scgrid .schd em{font-style:normal;font-weight:normal;font-size:11px;opacity:.6;color:#e9d3a8}.scgrid .schd span{font-size:12px;opacity:.85;white-space:nowrap}
 .sccrumb{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px}.sccrumb .sw,.scbox .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.6)}.sch4{margin:10px 0 4px;font-size:13px;color:#e9d3a8}
 .scnote{margin-right:auto}
+.plink{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}.plink:hover{color:#ffd77a}
 body.touch .scgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));max-height:calc(100vh - 215px);min-height:120px}body.touch .scgrid.scall{grid-template-columns:repeat(5,minmax(0,1fr))}body.touch .scbox{min-height:112px;padding:6px 4px}body.touch .scbox .scimg{width:42px;height:42px}body.touch .scbox .scimg img{max-width:34px;max-height:34px}body.touch .sctot b{font-size:17px}body.touch .schead{padding:6px 10px}
 @media (orientation:portrait){body.touch #toasts{left:8px!important;right:8px;top:calc(150px + env(safe-area-inset-top))!important}}
 @media (orientation:portrait){
@@ -9206,6 +9207,7 @@ const NET = (() => {
   };
   // ---------- บอร์ดอันดับจริง ----------
   N.boardStale = () => N.online && Date.now() - N.boardAt > 20000;
+  N.showcaseOf = async function (name) { const r = await api('/api/showcase?name=' + encodeURIComponent(name), null, { timeout: 10000 }); return r.status === 200 && r.data && r.data.showcase ? r.data : { err: (r.data && r.data.err) || 'โหลดตู้โชว์ไม่สำเร็จ' }; };
   N.loadBoard = async function () { N.boardAt = Date.now(); const r = await api('/api/board'); if (r.status !== 200) return false; const ch = JSON.stringify(r.data) !== JSON.stringify(N.board); N.board = r.data; return ch; };
 
   // ---------- บัญชี ----------
@@ -9561,7 +9563,7 @@ const UI = (() => {
     const botName = id => (WORLD_BOTS.find(b => b.id === id) || {}).name || '?';
     const st = { wait: ['รอคำตอบ…', 'muted'], won: ['ซื้อสำเร็จ ✔ พลอยเข้ากระเป๋าแล้ว', 'good'], rejected: ['ถูกปฏิเสธ', 'bad'], gone: ['พลอยเม็ดนั้นไม่อยู่แล้ว', 'muted'], nofunds: ['เจ้าของตกลง แต่เงินคุณไม่พอ', 'bad'] };
     const row = r => { const hi = r.me ? (offers[0] && offers[0].price) : null, myo = !r.me && B.my.find(o => o.bot === r.bot.id && o.gemId === r.gem.id);
-      return `<div class="wrow wclick ${r.me ? 'me' : ''} ${r.rank === 1 ? 'top' : ''}" data-a="wview" data-k="${r.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้"><div class="wrk">${r.rank === 1 ? '👑' : '#' + r.rank}</div>${wGem(r.gem)}<div class="winfo"><b>${gemName(r.gem)}</b><small>${wLine(r.gem)}</small><small class="wown">เจ้าของ: <b>${esc(r.owner)}</b>${r.me ? ' (คุณ)' : ''}${r.fromMe ? ' • ซื้อไปจากคุณ' : ''}</small></div>
+      return `<div class="wrow wclick ${r.me ? 'me' : ''} ${r.rank === 1 ? 'top' : ''}" data-a="wview" data-k="${r.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้"><div class="wrk">${r.rank === 1 ? '👑' : '#' + r.rank}</div>${wGem(r.gem)}<div class="winfo"><b>${gemName(r.gem)}</b><small>${wLine(r.gem)}</small><small class="wown">เจ้าของ: <b class="plink" data-a="viewsc" data-n="${esc(r.owner)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(r.owner)} 💎</b>${r.me ? ' (คุณ)' : ''}${r.fromMe ? ' • ซื้อไปจากคุณ' : ''}</small></div>
         <div class="wval"><small>มูลค่าประเมิน</small><b>${money(r.value)}</b>${BOARD_OFFERS && r.open ? '<span class="wtag open">รับข้อเสนอราคา</span>' : '<span class="wtag">โชว์อย่างเดียว</span>'}${hi ? `<small>ข้อเสนอสูงสุด ${money(hi)}</small>` : ''}${myo ? `<small class="${st[myo.status][1]}">คุณเสนอ ${money(myo.price)} — ${st[myo.status][0]}</small>` : ''}
         ${BOARD_OFFERS && !r.me && r.open && me ? `<button class="btn small gold" data-a="bid" data-k="${r.key}">เสนอราคา</button>` : ''}</div></div>`; };
     show('board', `<h3>🏆 บอร์ดโชว์พลอยทั้งเกม</h3>
@@ -9573,13 +9575,14 @@ const UI = (() => {
             ${B.open && offers.length ? `<small class="good">🔔 มีข้อเสนอเข้ามา ${offers.length} รายการ — กดกระดิ่งเหนือรูปโปรไฟล์เพื่อดูและตอบรับ</small>` : ''}`
             : '<small class="muted">ยังไม่มีพลอยในกระเป๋าหรือตู้เซฟ ขุดหรือเจียพลอยมาก่อน แล้วเม็ดที่ดีที่สุดจะขึ้นบอร์ดเอง</small>'}</div>`}
       <h4>อันดับพลอยทั้งเกม${NET.online ? ` <small class="muted">ผู้เล่นทั้งหมด ${NET.board ? fmtNum(NET.board.n) + ' คน' : '…'}${NET.onlineN ? ' • ออนไลน์ตอนนี้ ' + fmtNum(NET.onlineN) + ' คน' : ''}</small>` : ''}</h4><div class="wlist">${rows.slice(0, NET.online ? 30 : 15).map(row).join('') || '<div class="empty">ยังไม่มีพลอยบนบอร์ด</div>'}</div>
-      ${NET.online ? `<h4>อันดับเลเวลผู้เล่น</h4><div class="wlv">${((NET.board && NET.board.levels) || []).slice(0, 20).map((u, i) => `<div class="wlvr ${me && u.name === me.name ? 'me' : ''}"><span>${i === 0 ? '👑' : '#' + (i + 1)}</span><b>${esc(u.name)}</b><em>Lv ${u.lv | 0}</em></div>`).join('') || '<div class="empty">กำลังโหลด…</div>'}</div>` : ''}
+      ${NET.online ? `<h4>อันดับเลเวลผู้เล่น</h4><div class="wlv">${((NET.board && NET.board.levels) || []).slice(0, 20).map((u, i) => `<div class="wlvr ${me && u.name === me.name ? 'me' : ''}"><span>${i === 0 ? '👑' : '#' + (i + 1)}</span><b class="plink" data-a="viewsc" data-n="${esc(u.name)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(u.name)} 💎</b><em>Lv ${u.lv | 0}</em></div>`).join('') || '<div class="empty">กำลังโหลด…</div>'}</div>` : ''}
       <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
       (a, b) => {
         if (a === 'player') return player();
         if ((a === 'open' || a === 'bid') && !BOARD_OFFERS) return;
         if (a === 'open') { B.open = !B.open; B.openAt = Date.now(); B.offers = []; SFX.play('click'); saveGame(); toast(B.open ? 'เปิดรับข้อเสนอราคาแล้ว ผู้เล่นอื่นจะทยอยเสนอราคาเข้ามา' : 'ปิดรับข้อเสนอแล้ว พลอยยังโชว์อยู่บนบอร์ด', B.open ? 'good' : 'muted'); bellSync(); return board(); }
         if (a === 'bid') { const r = rows.find(x => x.key === b.dataset.k); if (r) bid(r); }
+        if (a === 'viewsc') return viewShowcase(b.dataset.n);
         if (a === 'wview') { const r = rows.find(x => x.key === b.dataset.k); if (!r) return; SFX.play('click'); const el = panel.querySelector('.wlist'), st = el ? el.scrollTop : 0;
           gemDetail(r.gem, () => { board(); const e2 = panel.querySelector('.wlist'); if (e2) e2.scrollTop = st; }, `<div class="labown"><span>${r.rank === 1 ? '👑 อันดับ 1 ของเกม' : 'อันดับ #' + r.rank + ' ของเกม'}</span><span>เจ้าของ: <b>${esc(r.owner)}</b>${r.me ? ' (คุณ)' : ''}</span><span>มูลค่าประเมิน <b>${money(r.value)}</b></span><span class="wtag ${r.open ? 'open' : ''}">${r.open ? 'รับข้อเสนอราคา' : 'โชว์อย่างเดียว'}</span></div>`); }
       });
@@ -9716,27 +9719,36 @@ const UI = (() => {
   // ---------- ตู้เซฟในบ้าน: ย้ายพลอย กระเป๋า ⇄ ตู้ (เมนูแบบเดียวกับหน้าขาย) ----------
   let safeTab = 'in', safeSel = new Set();
   // ---------- ตู้โชว์คอลเลกชันพลอย (ในบ้าน): กล่องละชนิด ใส่พลอยของเราได้ชนิดละ 1 เม็ด แสดงราคาประเมินรายเม็ดและรวมทั้งคอลเลกชัน ----------
+  let scView = null; /* ดูตู้โชว์ของผู้เล่นคนอื่น (อ่านอย่างเดียว): { name, lv, sc } • null = ตู้ของเราเอง */
+  async function viewShowcase(name) { const me = curPlayer(); scPage = 1; scSlot = null; scSel = ''; scCty = ''; scFilter = 'all';
+    if (me && me.name === name) { scView = { name, lv: STATE.lv || 1, sc: showcaseState(), me: true }; SFX.play('click'); return showcase(); }
+    if (!NET.online) { toast('ดูตู้โชว์ของผู้เล่นอื่นได้เมื่อเล่นออนไลน์เท่านั้น', 'bad'); SFX.play('deny'); return; }
+    SFX.play('click'); toast(`กำลังเปิดตู้โชว์ของ <b>${esc(name)}</b>…`); const r = await NET.showcaseOf(name); if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); return; }
+    const sc = {}, st = { nextId: 2e9 }; for (const k in r.showcase) { const g = normGem(r.showcase[k], st); if (g && k.split(':')[0] === g.type) sc[g.type + ':' + (g.color | 0)] = g; }
+    scView = { name: r.name, lv: r.lv | 0, sc }; showcase(); }
   let scPage = 1, scFilter = 'all', scSel = '', scSlot = null, scCty = ''; /* scPage 1 = หน้าชนิดพลอย • 2 = หน้ารวมทุกสี (scSel = ชนิดที่เลือกดู, '' = ทั้งหมด) • scSlot = ช่องที่กำลังเลือกพลอยใส่ • scCty = ประเทศที่เลือกดู */
   function showcase() {
-    const SC = showcaseState(), allTypes = Object.keys(GEMS), S = safeState(), total = showcaseValue(), NC = 5; if (!COUNTRIES[scCty]) scCty = '';
+    const V = scView, RO = !!V, SC = V ? V.sc : showcaseState(), allTypes = Object.keys(GEMS), S = safeState(), total = Object.values(SC).reduce((v, g) => v + estValue(g), 0), NC = 5; if (!COUNTRIES[scCty]) scCty = '';
     const types = scCty ? allTypes.filter(t => originKeys(t).includes(scCty)) : allTypes; if (scSel && !types.includes(scSel)) scSel = '';
     const slotsOf = t => GEMS[t].colors.map((_, c) => SC[t + ':' + c]).filter(Boolean), sumOf = t => slotsOf(t).reduce((v, g) => v + estValue(g), 0), haveT = allTypes.filter(t => slotsOf(t).length).length, haveC = Object.keys(SC).length;
-    const mine = (t, c) => [...STATE.inv.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'bag' })), ...S.gems.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'safe' }))].sort((a, b) => estValue(b.g) - estValue(a.g));
+    const mine = (t, c) => RO ? [] : [...STATE.inv.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'bag' })), ...S.gems.filter(g => g.type === t && (c == null || (g.color | 0) === c)).map(g => ({ g, src: 'safe' }))].sort((a, b) => estValue(b.g) - estValue(a.g));
     const canT = t => GEMS[t].colors.some((_, c) => !SC[t + ':' + c] && mine(t, c).length), nm = x => { const i = x.indexOf(' ('); return i > 0 ? [x.slice(0, i), x.slice(i + 2).replace(/\)$/, '')] : [x, '']; };
     const dots = t => `<div class="scdots">${GEMS[t].colors.map((C, c) => `<i class="${SC[t + ':' + c] ? 'on' : ''}" style="--dc:${C[1]}"></i>`).join('')}</div>`;
-    const head = `<h3>💎 ตู้โชว์คอลเลกชันพลอย</h3><div class="schead"><div class="scprog"><div class="scprog-t"><span>ชนิดพลอย <b>${haveT}</b>/${allTypes.length}</span><span>สี <b>${haveC}</b>/${allTypes.length * NC}</span></div><div class="scbar"><i style="width:${(haveC / (allTypes.length * NC) * 100).toFixed(1)}%"></i></div></div><div class="sctot"><small>ราคาประเมินรวมทั้งคอลเลกชัน</small><b>${money(total)}</b></div></div>`;
+    const head = `<h3>💎 ${V ? `ตู้โชว์ของ ${esc(V.name)}${V.me ? ' (คุณ)' : ''} • Lv ${V.lv}` : 'ตู้โชว์คอลเลกชันพลอย'}</h3><div class="schead"><div class="scprog"><div class="scprog-t"><span>ชนิดพลอย <b>${haveT}</b>/${allTypes.length}</span><span>สี <b>${haveC}</b>/${allTypes.length * NC}</span></div><div class="scbar"><i style="width:${(haveC / (allTypes.length * NC) * 100).toFixed(1)}%"></i></div></div><div class="sctot"><small>ราคาประเมินรวมทั้งคอลเลกชัน</small><b>${money(total)}</b></div></div>`;
     const tool = extra => `<div class="sctool"><div class="scseg">${[[1, '💎 ชนิดพลอย'], [2, '🎨 ทุกสี']].map(([k, t]) => `<button class="${scPage === k ? 'on' : ''}" data-a="scpage" data-p="${k}">${t}</button>`).join('')}</div><label>ประเทศ <select class="sel" id="sccty"><option value="">ทุกประเทศ</option>${COUNTRY_KEYS.map(k => `<option value="${k}" ${scCty === k ? 'selected' : ''}>${COUNTRIES[k].short} (${allTypes.filter(t => originKeys(t).includes(k)).length})</option>`).join('')}</select></label>${extra}</div>`;
     const bindSel = () => { for (const [id, fn] of [['#sccty', v => { scCty = v; }], ['#scsel', v => { scSel = v; }], ['#scflt', v => { scFilter = v; }]]) { const el = $(id); if (el) el.addEventListener('change', e => { fn(e.target.value); SFX.play('click'); showcase(); }); } };
-    const common = (a, b) => { if (a === 'scpage') { scPage = +b.dataset.p; scSlot = null; SFX.play('click'); showcase(); return true; } return false; };
+    const backB = V ? '<button class="btn" data-a="scboard">◀ กลับไปบอร์ด</button>' : '';
+    const common = (a, b) => { if (a === 'scboard') { scView = null; scSlot = null; SFX.play('click'); board(); return true; } if (a === 'scpage') { scPage = +b.dataset.p; scSlot = null; SFX.play('click'); showcase(); return true; } return false; };
     if (scSlot) { const [t, cs] = scSlot.split(':'), c = +cs, key = scSlot, cur = SC[key], cand = mine(t, c), CN = GEMS[t].colors[c];
       show('showcase', `${head}<div class="sccrumb"><button class="btn small" data-a="scback">◀ กลับ</button><span><b>${nm(GEMS[t].name)[0]}</b> › <i class="sw" style="background:${CN[1]}"></i> ${CN[0]}</span></div>
         <h4 class="sch4">ในกล่องตอนนี้</h4>
-        ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}<br><button class="btn small" data-a="scout">เอาออก</button>`, true, 'none')}</div>` : '<div class="empty">กล่องนี้ยังว่าง</div>'}
-        <h4 class="sch4">พลอยของคุณที่ใส่กล่องนี้ได้ ${cand.length ? `(${cand.length} เม็ด)` : ''}</h4>
-        <div class="list">${cand.length ? cand.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>${money(estValue(g))}<br><button class="btn small gold" data-a="scput" data-id="${g.id}" data-s="${src}">${cur ? 'สลับ' : 'ใส่'}</button>`, false, 'none')).join('') : '<div class="empty">ยังไม่มีพลอยชนิดนี้ในสีนี้ ต้องไปขุดหามาก่อน</div>'}</div>
+        ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}${RO ? '' : '<br><button class="btn small" data-a="scout">เอาออก</button>'}`, true, 'none')}</div>` : '<div class="empty">กล่องนี้ยังว่าง</div>'}
+        ${RO ? '' : `<h4 class="sch4">พลอยของคุณที่ใส่กล่องนี้ได้ ${cand.length ? `(${cand.length} เม็ด)` : ''}</h4>`}
+        <div class="list" ${RO ? 'style="display:none"' : ''}>${cand.length ? cand.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>${money(estValue(g))}<br><button class="btn small gold" data-a="scput" data-id="${g.id}" data-s="${src}">${cur ? 'สลับ' : 'ใส่'}</button>`, false, 'none')).join('') : '<div class="empty">ยังไม่มีพลอยชนิดนี้ในสีนี้ ต้องไปขุดหามาก่อน</div>'}</div>
         <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
         (a, b) => { if (common(a, b)) return;
           if (a === 'scback') { scSlot = null; SFX.play('click'); return showcase(); }
+          if (RO) return;
           if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t && (g.color | 0) === c); if (i < 0) return; const g = arr[i]; if (SC[key]) arr[i] = SC[key]; else arr.splice(i, 1); SC[key] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> สี${CN[0]} ลงตู้โชว์แล้ว • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
           if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากตู้โชว์ไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
       api.onE = null; return; }
@@ -9744,14 +9756,14 @@ const UI = (() => {
     if (scPage === 2) { const pick = scSel && GEMS[scSel] ? [scSel] : types;
       show('showcase', `${head}${tool(`<label>ชนิด <select class="sel" id="scsel"><option value="">ทั้งหมด (${types.length})</option>${types.map(t => `<option value="${t}" ${scSel === t ? 'selected' : ''}>${nm(GEMS[t].name)[0]} ${slotsOf(t).length}/${NC}</option>`).join('')}</select></label>`)}
         <div class="scgrid scall">${pick.map(t => { const sl = slotsOf(t), [th, en] = nm(GEMS[t].name); return `<div class="schd"><b>${th} <em>${en}</em></b><span>${sl.length}/${NC} สี${sl.length ? ' • ' + money(sumOf(t)) : ''}</span></div>${GEMS[t].colors.map((_, c) => colBox(t, c)).join('')}`; }).join('')}</div>
-        <div class="row end"><span class="muted small scnote">แตะกล่องเพื่อใส่หรือเปลี่ยนพลอย • สีละ 1 เม็ด</span><button class="btn" data-a="close">ปิด</button></div>`,
-        (a, b) => { if (common(a, b)) return; if (a === 'scslot') { scSlot = b.dataset.k; SFX.play('click'); return showcase(); } }, { xwide: true });
+        <div class="row end"><span class="muted small scnote">${RO ? 'แตะกล่องที่มีพลอยเพื่อดูรายละเอียด' : 'แตะกล่องเพื่อใส่หรือเปลี่ยนพลอย • สีละ 1 เม็ด'}</span>${backB}<button class="btn" data-a="close">ปิด</button></div>`,
+        (a, b) => { if (common(a, b)) return; if (a === 'scslot') { if (RO && !SC[b.dataset.k]) return; scSlot = b.dataset.k; SFX.play('click'); return showcase(); } }, { xwide: true });
       bindSel(); api.onE = null; return; }
     const cnt = k => types.filter(t => { const n = slotsOf(t).length; return k === 'have' ? n : k === 'miss' ? !n : k === 'full' ? n === NC : k === 'can' ? canT(t) : true; });
     const list = cnt(scFilter);
     show('showcase', `${head}${tool(`<label>แสดง <select class="sel" id="scflt">${[['all', 'ทั้งหมด'], ['have', 'มีแล้ว'], ['miss', 'ยังไม่มี'], ['full', `ครบ ${NC} สี`], ['can', 'มีพลอยพร้อมใส่']].map(([k, n]) => `<option value="${k}" ${scFilter === k ? 'selected' : ''}>${n} (${cnt(k).length})</option>`).join('')}</select></label>`)}
       <div class="scgrid">${list.length ? list.map(t => { const sl = slotsOf(t), g = sl.slice().sort((a, b) => estValue(b) - estValue(a))[0], can = canT(t), col = g ? gemHex(g) : GEMS[t].colors[4][1], [th, en] = nm(GEMS[t].name); return `<div class="scbox ${g ? 'on' : can ? 'can' : 'off'}" data-a="sctype" data-t="${t}" style="--gc:${col}">${can ? '<span class="scbadge">ใส่ได้</span>' : ''}<div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : ''}</div><b>${th}</b><em>${en || '&nbsp;'}</em>${dots(t)}<span class="scp ${g ? '' : 'muted'}">${g ? money(sumOf(t)) : 'ว่าง'}</span></div>`; }).join('') : '<div class="empty">ไม่มีชนิดพลอยในหมวดนี้</div>'}</div>
-      <div class="row end"><span class="muted small scnote">แตะชนิดพลอยเพื่อดูทั้ง ${NC} สี • จุดสีที่สว่างคือสีที่ใส่แล้ว</span><button class="btn" data-a="close">ปิด</button></div>`,
+      <div class="row end"><span class="muted small scnote">แตะชนิดพลอยเพื่อดูทั้ง ${NC} สี • จุดสีที่สว่างคือสีที่ใส่แล้ว</span>${backB}<button class="btn" data-a="close">ปิด</button></div>`,
       (a, b) => { if (common(a, b)) return; if (a === 'sctype') { scSel = b.dataset.t; scPage = 2; SFX.play('click'); return showcase(); } }, { xwide: true });
     bindSel(); api.onE = null;
   }
@@ -10657,7 +10669,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: () => { scView = null; scSlot = null; showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();

@@ -142,6 +142,15 @@ async function handleApi(req, res, p) {
   try {
     if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { gem: true, accounts: !accountsDown(), online: onlineCount(), store: store.kind, dbError: store.dbError || undefined }); }
     if (p === '/api/board' && req.method === 'GET') return out(200, { ...(await board()), online: onlineCount() });
+    if (p === '/api/showcase' && req.method === 'GET') {   // ตู้โชว์คอลเลกชันของผู้เล่น (ดูได้ทุกคน อ่านอย่างเดียว): ส่งเฉพาะชื่อ เลเวล และพลอยในตู้โชว์
+      if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดชั่วคราว' });
+      if (limited(req, p, 240)) return out(429, { err: 'ดูถี่เกินไป รอสักครู่แล้วลองใหม่' });
+      let name = ''; try { name = cleanName(new URL(req.url, 'http://x').searchParams.get('name')); } catch (e) {}
+      const t = name ? await store.get(lower(name)) : null; if (!t || t.ban) return out(404, { err: 'ไม่พบผู้เล่นนี้' });
+      const src = t.save && typeof t.save.showcase === 'object' && t.save.showcase ? t.save.showcase : {}, sc = {}; let n = 0;
+      for (const k in src) { if (n >= 500) break; const g = src[k]; if (!/^[a-z]{2,24}(:[0-4])?$/.test(k) || !g || typeof g !== 'object') continue; const js = JSON.stringify(g); if (js.length > 800) continue; sc[k] = JSON.parse(js); n++; }
+      return out(200, { name: t.name, lv: t.lv | 0, showcase: sc });
+    }
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดชั่วคราว (เซิร์ฟเวอร์ต่อฐานข้อมูลไม่ได้) ลองใหม่อีกครั้งภายหลัง' });
 
     if (p === '/api/register' || p === '/api/login') {
