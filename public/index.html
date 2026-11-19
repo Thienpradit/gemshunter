@@ -5299,16 +5299,17 @@ const PIXB = (() => {
     for (let x = 0; x < w; x++) for (let y = 1; y < c.height - 1; y++) { const i = (y * w + x) * 4; if (a[i + 3] > 200 && a[i - w * 4 + 3] < 60) { const n = 3 + (hsh(x >> 1, 0, 9) > 0.5 ? 1 : 0); for (let k = 1; k <= n && y + k < c.height; k++) { const j = ((y + k) * w + x) * 4; if (a[j + 3] < 200) break; const v = k === n ? 205 : 246; a[j] = v - 10; a[j + 1] = v - 2; a[j + 2] = 255; } break; } }
     g.putImageData(d, 0, 0); return c; };
   const themeCache = {};
+  let WS_SPEC = null; /* สเปกบ้านช่างเจียระไน (ใช้ทำบ้านช่างเจียประจำแต่ละประเทศด้วยวัสดุ/สีของประเทศนั้น) */
   function themed(country) {
-    if (themeCache[country]) return themeCache[country]; const th = THEMES[country]; if (!th) return themeCache[country] = { smith: ART.smith, stallRaw: ART.stallRaw, stallCut: ART.stallCut, tent: ART.tent, foodCart: ART.foodCart };
+    if (themeCache[country]) return themeCache[country]; const th = THEMES[country]; if (!th) return themeCache[country] = { smith: ART.smith, stallRaw: ART.stallRaw, stallCut: ART.stallCut, tent: ART.tent, foodCart: ART.foodCart, workshop: ART.workshop };
     const fin = c => th.snow ? snowCap(c) : c;
-    return themeCache[country] = { smith: fin(mirror3d({ ...SMITH, wall: th.wall, wallCol: th.wallCol, trimCol: th.trimCol, roofCol: th.roofCol, roofType: th.roof || (th.wall === 'stone' ? 'metal' : 'tile') })), stallRaw: fin(stall('raw', th)), stallCut: fin(stall('cut', th)), tent: fin(tent(th)), foodCart: fin(foodCart(th)) };
+    return themeCache[country] = { smith: fin(mirror3d({ ...SMITH, wall: th.wall, wallCol: th.wallCol, trimCol: th.trimCol, roofCol: th.roofCol, roofType: th.roof || (th.wall === 'stone' ? 'metal' : 'tile') })), stallRaw: fin(stall('raw', th)), stallCut: fin(stall('cut', th)), tent: fin(tent(th)), foodCart: fin(foodCart(th)), workshop: WS_SPEC ? fin(mirror3d({ ...WS_SPEC, W: 104, windows: [[10, 15, 12]], wall: th.wall, wallCol: th.wallCol, trimCol: th.trimCol, roofCol: th.roofCol, roofType: th.roof || (th.wall === 'stone' ? 'metal' : 'tile') })) : ART.workshop };
   }
   function apply() {
     ART.jewel = jewelShop();
     ART.deathBag = (() => { const ic = PIXUI.icon('bag', 1), o = cv(ic.width, ic.height + 2); o.g.fillStyle = 'rgba(10,22,6,0.3)'; o.g.fillRect(3, ic.height - 2, ic.width - 6, 3); o.g.drawImage(ic, 0, 0); return done(o.c); })();
     ART.warpAnim = warpDoorAnim(); ART.warpDoor = ART.warpAnim.idle[0];
-    ART.workshop = mirror3d({ W: 132, sd: 24, rH: 30, wallH: 36, wall: 'plaster', wallCol: '#c8b89a', trimCol: '#6a4428', roofCol: '#4e5a68', windows: [[9, 15, 12], [38, 15, 12]], door: 'double', doorW: 18, doorOff: 0, emblem: gemEmblem('#7ab0ff', '#3a6ad0', '#1a3a90'), chimney: true, chimAt: 0.2, lantern: true, shutters: false });
+    ART.workshop = mirror3d(WS_SPEC = { W: 132, sd: 24, rH: 30, wallH: 36, wall: 'plaster', wallCol: '#c8b89a', trimCol: '#6a4428', roofCol: '#4e5a68', windows: [[9, 15, 12], [38, 15, 12]], door: 'double', doorW: 18, doorOff: 0, emblem: gemEmblem('#7ab0ff', '#3a6ad0', '#1a3a90'), chimney: true, chimAt: 0.2, lantern: true, shutters: false });
     ART.house = mirror3d({ W: 136, sd: 42, rH: 28, wallH: 36, wall: 'wood', wallCol: '#a8783e', trimCol: '#7a4a24', roofCol: '#9a4a30', windows: [[12, 16, 13], [50, 16, 13]], door: false, sideDoor: true, shutters: true, shutCol: '#4a6a3e', chimney: true, chimAt: 0.3, curtain: '#c8504a', flowers: true,
       extra: (P, b) => { const WDr = rampOf('#8a5a30', 8), y0 = b.wb; // กองฟืน + ม้านั่ง หน้าผนัง
         for (let r = 0; r < 3; r++) for (let k = 0; k < 4 - r; k++) { const x = b.fx0 + 32 + k * 5 + r * 2, y = y0 - 5 - r * 4; P(x, y, WDr[1], 5, 5); P(x + 1, y + 1, '#d8b078', 3, 3); P(x + 2, y + 2, '#a8783e'); P(x + 1, y + 1, '#f0d4a0'); } } });
@@ -6633,13 +6634,19 @@ function buildOutpost(country) {
   // ---- ตำแหน่งอาคาร ----
   const RWX = fx(L.raw[0]) * 16, RWY = L.raw[1] * 16 + 4, CTX = fx(L.cut[0]) * 16, CTY = L.cut[1] * 16 + 4;
   const SMX = fx(L.smith[0]) * 16, SMY = L.smith[1] * 16 + 4, TNX = fx(L.tent[0]) * 16, TNY = L.tent[1] * 16 + 2, FDX = fx(L.food[0]) * 16, FDY = L.food[1] * 16 + 12;
-  const resv = [[RWX, RWY, 56, 120], [CTX, CTY, 60, 120], [SMX, SMY, 66, 130], [TNX, TNY, 40, 80], [FDX, FDY, 40, 90]].map(([x, y, hw, up]) => [x - hw, y - up, x + hw, y + 44]);
+  const resv = [[RWX, RWY, 56, 120], [CTX, CTY, 60, 120], [SMX, SMY, 66, 130], [TNX, TNY, 62, 110], [FDX, FDY, 40, 90]].map(([x, y, hw, up]) => [x - hw, y - up, x + hw, y + 44]);
   resv.push([APX - 150, (H0 - 9) * 16, APX + 150, H * 16]);
   // ---- แหล่งน้ำประจำถิ่น: เลือกมุมที่ว่างจริง (ไม่ทับทาง/ร้าน) ต่างกันไปตามผัง ----
   const T = (tx, ty) => (tx < 0 || ty < 0 || tx >= W || ty >= H) ? 0 : m.t[MI(m, tx, ty)];
   const SEED = country.length * 7 + country.charCodeAt(0);
   const spotOK = (cx, cy, rx, ry) => { for (let y = Math.floor(cy - ry - 1); y <= Math.ceil(cy + ry + 1); y++) for (let x = Math.floor(cx - rx - 1); x <= Math.ceil(cx + rx + 1); x++) if (T(x, y) !== TILE.GRASS || y > H0 - 3 || x < 2 || x > W - 3) return false; const a = [(cx - rx - 1) * 16, (cy - ry - 1) * 16, (cx + rx + 2) * 16, (cy + ry + 2) * 16]; return !resv.some(r => a[0] < r[2] && a[2] > r[0] && a[1] < r[3] && a[3] > r[1]); };
   const pond = (cx, cy, rx, ry) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 + (hash2(x, y, 77) - 0.5) * 0.3; if (d <= 1) m.t[MI(m, x, y)] = TILE.WATER; } };
+  // ---- เต็นท์ของผู้เล่นประจำประเทศ (มีกล่องสะสมพลอย = ตู้โชว์คอลเลกชันเดียวกับที่บ้าน): หาที่ว่างบนหญ้าใกล้บ้านช่างเจียที่สุด ----
+  let PTX = 0, PTY = 0; { const tx0 = Math.round(TNX / 16), ty0 = Math.round(TNY / 16), cs = [];
+    for (let ty = 9; ty <= H0 - 5; ty++) for (let tx = 6; tx <= W - 7; tx++) cs.push([tx, ty, Math.hypot(tx - tx0, (ty - ty0) * 1.3)]);
+    cs.sort((a, b) => a[2] - b[2]);
+    for (const [tx, ty, d] of cs) { if (d < 6) continue; let ok = true; for (let y = ty - 5; y <= ty + 2 && ok; y++) for (let x = tx - 4; x <= tx + 5; x++) if (T(x, y) !== TILE.GRASS) { ok = false; break; }
+      const a = [(tx - 4) * 16, (ty - 5) * 16, (tx + 6) * 16, (ty + 3) * 16]; if (ok && !resv.some(r => a[0] < r[2] && a[2] > r[0] && a[1] < r[3] && a[3] > r[1])) { PTX = tx * 16; PTY = ty * 16 + 2; resv.push(a); break; } } }
   if (EV.water) {
     const corners = [[48.5, 28.5], [11.5, 28.5], [11.5, 12], [48.5, 11.5], [48.5, 21], [11.5, 20], [20, 30], [40, 30], [20, 10.5], [42, 10.5], [38, 31], [22, 31]].map((c, i) => [c, hash2(i, SEED, 5)]).sort((a, b) => a[1] - b[1]).map(c => c[0]);
     const paddy = EV.water === 'paddy', want = (paddy || EV.water === 'pond2') ? 2 : 1, rx = paddy ? 6.5 : 5.5, ry = paddy ? 4.5 : 3.3; let n = 0;
@@ -6660,7 +6667,11 @@ function buildOutpost(country) {
   const N = LOCAL_NAMES[country] || LOCAL_NAMES.thai;
   for (const [spr, x, y, w, row] of [[TS.stallRaw, RWX, RWY, 76, 37], [TS.stallCut, CTX, CTY, 84, 36]]) { const [top, bot] = splitSprite(spr, row); addObj(m, top, x, y, { sortY: y - 34, kind: 'building' }); addObj(m, bot, x, y, { solid: [w, 22], kind: 'building' }); }
   addObj(m, TS.smith, SMX, SMY, { solid: [TS.smith.width - 8, 30], kind: 'building' });
-  addObj(m, TS.tent, TNX, TNY, { solid: [40, 12], kind: 'building' });
+  addObj(m, TS.workshop, TNX, TNY, { solid: [TS.workshop.width - 8, 30], kind: 'building' }); /* ช่างเจียระไนประจำประเทศ: เป็นบ้าน (เดิมเป็นเต็นท์) */
+  if (PTX) { addObj(m, TS.tent, PTX, PTY, { solid: [40, 12], kind: 'building' }); addObj(m, sprShowcase(), PTX + 34, PTY + 6, { solid: [26, 8], kind: 'showcase' });
+    addSign(m, 'house', 'เต็นท์ของคุณ', '', PTX, PTY - 36);
+    m.interact.push({ kind: 'showcase', x: PTX + 34, y: PTY + 14, r: 26, label: 'กล่องสะสมพลอย (ตู้โชว์คอลเลกชัน)', verb: 'เปิดดู', hit: { x: PTX + 34 - 15, y: PTY - 30, w: 30, h: 44 } });
+    m.interact.push({ kind: 'showcase', x: PTX, y: PTY + 12, r: 24, label: 'เต็นท์ของคุณ • กล่องสะสมพลอย', verb: 'เปิดดู', hit: { x: PTX - 22, y: PTY - 36, w: 44, h: 44 } }); }
   addObj(m, TS.foodCart, FDX, FDY, { solid: [36, 10], kind: 'building' });
   addObj(m, ART.sign, (MX - 3) * 16 + 8, 5 * 16 + 4, { solid: [6, 4] });
   const npcO = (key, name, x, y) => { const n = { key, name, x, y, dir: 'down', baseDir: 'down', t: Math.random() * 3 }; m.npcs.push(n); m.solids.push({ x: x - 5, y: y - 5, w: 10, h: 6, ref: n }); return n; };
@@ -6669,7 +6680,7 @@ function buildOutpost(country) {
   addSign(m, 'raw', 'รับซื้อพลอยก้อน', '', RWX, RWY - 70);
   addSign(m, 'cut', 'รับซื้อพลอยเจียระไน', '', CTX, CTY - 70);
   addSign(m, 'smith', 'ร้านอุปกรณ์', '', SMX, SMY - 48);
-  addSign(m, 'craft', 'ช่างเจียระไน', '', TNX, TNY - 36);
+  addSign(m, 'craft', 'บ้านช่างเจียระไน', '', TNX, TNY - TS.workshop.height + 14);
   addSign(m, 'food', 'ร้านอาหาร', '', FDX, FDY - 58);
   addSign(m, 'mine', 'ทางเข้าเหมือง', '', MX * 16, 4 * 16 - 30);
   m.interact.push({ kind: 'rawdealer', x: RWX, y: RWY + 10, r: 28, label: `ขายพลอยก้อน (${N.raw})`, verb: 'คุย', npc: rawN });
@@ -8006,7 +8017,7 @@ function doInteract(it) {
     case 'repair': return UI.repair();
     case 'home': return UI.home();
     case 'safe': return UI.safe();
-    case 'showcase': return UI.showcase();
+    case 'showcase': return UI.showcase(G.map && G.map.outpost ? G.map.country : '');
     case 'mint': return UI.mint();
     case 'jeweler': return UI.jeweler();
     case 'enterHouse': return goMap('house');
@@ -10669,7 +10680,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: () => { scView = null; scSlot = null; showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: (cty) => { scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
