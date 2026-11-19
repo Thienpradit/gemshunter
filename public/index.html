@@ -7975,7 +7975,13 @@ function isAdjRock(tx, ty) { const m = G.map, [px, py] = plTile(), dx = tx - px,
 function rockObj(tx, ty) { const m = G.map, t = tileAt(m, tx, ty); return t === TILE.WALL ? { tx, ty, i: MI(m, tx, ty) } : t === TILE.BEDROCK ? { tx, ty, i: MI(m, tx, ty), bedrock: true } : null; }
 function adjOnly(r) { return r && isAdjRock(r.tx, r.ty) ? r : null; }
 // หินใต้เมาส์: undefined = เมาส์ไม่ได้ชี้หิน • null = ชี้หินที่อยู่ไกล (ขุดไม่ได้) • {..} = ก้อนที่ติดตัว ขุดได้
-function mouseRock() { if (!G.mouseIn || G.touch || !G.mouse || !isMine(G.map)) return undefined; const tx = Math.floor(G.mouse.x / 16), ty = Math.floor(G.mouse.y / 16), r = rockObj(tx, ty); if (!r) return undefined; return isAdjRock(tx, ty) ? r : null; }
+function mouseRock() { if (!G.mouseIn || G.touch || !G.mouse || !isMine(G.map)) return undefined; const tx = Math.floor(G.mouse.x / 16), ty = Math.floor(G.mouse.y / 16), r = rockObj(tx, ty); if (!r) return undefined; if (isAdjRock(tx, ty)) return r;
+  /* ชี้ก้อนที่ไกลกว่า: ขุดก้อนที่ติดตัวซึ่งอยู่ใกล้ก้อนที่ชี้ที่สุด (ทางที่จะขุดเข้าไปหา) */
+  const [px, py] = plTile(), ang = Math.atan2(G.mouse.y - (PL.y - 6), G.mouse.x - PL.x); let best = null, bs = 1e9;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const ax = px + dx, ay = py + dy, q = rockObj(ax, ay); if (!q || !isAdjRock(ax, ay)) continue;
+    let da = Math.abs(Math.atan2(ay * 16 + 8 - (PL.y - 6), ax * 16 + 8 - PL.x) - ang); if (da > Math.PI) da = Math.PI * 2 - da;
+    const sc = Math.hypot(ax - tx, ay - ty) + da * 0.6 + (dx && dy ? 0.05 : 0); if (sc < bs) { bs = sc; best = q; } }
+  return best; }
 function digTarget() { const mr = mouseRock(); if (mr !== undefined) return mr; return adjOnly(frontRock()); } /* ก้อนที่จะขุด: ตามเมาส์ก่อน ถ้าเมาส์ไม่ได้ชี้หินใช้ก้อนตรงหน้า */
 // หินที่อยู่ในแนวเมาส์ (ไกลสุด ~1.5 ช่อง)
 function rockToward(a) {
