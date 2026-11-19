@@ -36,19 +36,25 @@ function fileStore(note) {
 if (DB_URL) {
   const { Pool } = require('pg');
   const url = DB_URL.trim().replace(/[?&]channel_binding=[^&]*/, '').replace(/\?&/, '?');
-  const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: 5 });
-  pool.on('error', e => console.error('accounts: pool error', e.message));
-  let dbStore = null;
-  const ready = pool.query(`CREATE TABLE IF NOT EXISTS gem_players (
+  const rawPool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: 5, connectionTimeoutMillis: 25000, idleTimeoutMillis: 30000, keepAlive: true });
+  rawPool.on('error', e => console.error('accounts: pool error', e.message));
+  // ฐานข้อมูลแบบ serverless (Neon) หลับเมื่อไม่มีคนใช้ ครั้งแรกที่ปลุกอาจต่อไม่ติด/หมดเวลา → ทุกคำสั่งลองซ้ำอีก 2 ครั้งก่อนยอมแพ้
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const pool = { async query(q, a) { let err; for (let i = 0; i < 3; i++) { try { return await rawPool.query(q, a); } catch (e) { if (e.code && /^(23|22|42)/.test(e.code)) throw e; err = e; console.error('accounts: query failed (try ' + (i + 1) + ') ' + e.message); await sleep(1500 * (i + 1)); } } throw err; } };
+  let dbStore = null, fallback = null;
+  const initDb = () => pool.query(`CREATE TABLE IF NOT EXISTS gem_players (
       lname TEXT PRIMARY KEY, name TEXT NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, rhash TEXT, ban TEXT,
       save JSONB, pub JSONB NOT NULL DEFAULT '{}', lv INTEGER NOT NULL DEFAULT 1, gval DOUBLE PRECISION NOT NULL DEFAULT 0, rev INTEGER NOT NULL DEFAULT 0,
       created TIMESTAMPTZ NOT NULL DEFAULT now(), updated TIMESTAMPTZ NOT NULL DEFAULT now())`)
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_gval ON gem_players (gval DESC)'))
-    .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_lv ON gem_players (lv DESC)'))
+    .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_lv ON gem_players (lv DESC)'));
+  // ต่อไม่ติดตอนเริ่ม → ปิดระบบบัญชีชั่วคราว (ไม่ให้เซิร์ฟเวอร์ล่ม) แล้ว "ลองต่อใหม่เองทุก 10 วินาที" จนติด — เดิมพลาดครั้งเดียวแล้วปิดยาวจนกว่าจะรีสตาร์ต
+  const retryLater = () => setTimeout(() => initDb().then(() => { store = dbStore; console.log('accounts: database reconnected → using Postgres'); }).catch(e => { if (fallback) fallback.dbError = e.message; console.error('accounts: still no database: ' + e.message); retryLater(); }), 10000);
+  const ready = initDb()
     .then(() => { console.log('accounts: using Postgres'); })
-    .catch(e => {   // ต่อฐานข้อมูลไม่ได้ → ไม่ให้เซิร์ฟเวอร์ล่ม ใช้ไฟล์ชั่วคราวแทน (และปิดการสมัคร/ล็อกอินบน Render — ดู accountsDown)
+    .catch(e => {
       console.error('accounts: database error ' + e.message);
-      store = fileStore('DATABASE FAILED → temporary file store (fix DATABASE_URL)'); store.dbError = e.message;
+      fallback = store = fileStore('DATABASE FAILED → accounts paused, retrying every 10s'); store.dbError = e.message; retryLater();
     });
   dbStore = {
     kind: 'db', ready,
