@@ -21,7 +21,7 @@ function fileStore(note) {
   return {
     kind: 'file', ready: Promise.resolve(),
     async get(l) { return db[l] || null; },
-    async create(u) { if (db[u.lname]) return false; db[u.lname] = { ...u, rev: 0, lv: 1, gval: 0, pub: {}, save: null, created: Date.now(), updated: Date.now() }; flush(); return true; },
+    async create(u) { if (db[u.lname]) return false; db[u.lname] = { ...u, rev: 0, lv: 1, gval: 0, pub: u.pub || {}, save: null, created: Date.now(), updated: Date.now() }; flush(); return true; },
     async save(l, save, pub, lv, gval) { const u = db[l]; if (!u) return 0; u.save = save; u.pub = pub; u.lv = lv; u.gval = gval; u.rev = (u.rev || 0) + 1; u.updated = Date.now(); flush(); return u.rev; },
     async setAuth(l, salt, hash) { const u = db[l]; if (u) { u.salt = salt; u.hash = hash; flush(); } },
     async setRecovery(l, rhash) { const u = db[l]; if (u) { u.rhash = rhash; flush(); } },
@@ -59,7 +59,7 @@ if (DB_URL) {
   dbStore = {
     kind: 'db', ready,
     async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT lname,name,salt,hash,rhash,ban,save,pub,lv,gval,rev FROM gem_players WHERE lname=$1', [l]); return r.rows[0] || null; },
-    async create(u) { await ready; if (store !== dbStore) return store.create(u); const r = await pool.query('INSERT INTO gem_players (lname,name,salt,hash,rhash) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING RETURNING lname', [u.lname, u.name, u.salt, u.hash, u.rhash]); return r.rowCount === 1; },
+    async create(u) { await ready; if (store !== dbStore) return store.create(u); const r = await pool.query('INSERT INTO gem_players (lname,name,salt,hash,rhash,pub) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING lname', [u.lname, u.name, u.salt, u.hash, u.rhash, JSON.stringify(u.pub || {})]); return r.rowCount === 1; },
     async save(l, save, pub, lv, gval) { await ready; if (store !== dbStore) return store.save(l, save, pub, lv, gval); const r = await pool.query('UPDATE gem_players SET save=$2, pub=$3, lv=$4, gval=$5, rev=rev+1, updated=now() WHERE lname=$1 RETURNING rev', [l, JSON.stringify(save), JSON.stringify(pub), lv, gval]); return r.rows[0] ? r.rows[0].rev : 0; },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE gem_players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE gem_players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
@@ -89,6 +89,7 @@ const makeToken = u => b64u(u.lname) + '.' + sign(u.lname, u.salt);
 const hashPass = (pass, salt) => new Promise((ok, no) => crypto.scrypt(pass, salt, 32, (e, k) => e ? no(e) : ok(k.toString('hex'))));
 const lower = n => n.normalize('NFC').toLowerCase();
 function cleanName(n) { return String(n || '').normalize('NFC').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16); }
+const heroId = id => id === 'female' || id === 'male' ? id : undefined;
 const passOk = p => typeof p === 'string' && p.length >= 4 && p.length <= 64;
 // รหัสกู้คืน (ใช้ตอนลืมรหัสผ่าน): 12 ตัว อ่านง่าย ไม่มีตัวที่สับสน (0/O, 1/I) — เก็บแค่ค่า hash
 const RC_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -151,17 +152,19 @@ async function handleApi(req, res, p) {
         if ([...name].length < 2) return out(400, { err: 'ชื่อต้องยาว 2–16 ตัวอักษร' });
         if (!passOk(pass)) return out(400, { err: 'รหัสผ่านต้องยาว 4–64 ตัวอักษร' });
         const salt = crypto.randomBytes(16).toString('hex'), hash = await hashPass(pass, salt), rc = makeRecovery();
-        const u = { lname: lower(name), name, salt, hash, rhash: rc.rhash };
+        const hero = heroId(b.hero);
+        if (b.hero != null && !hero) return out(400, { err: 'รูปแบบตัวละครไม่ถูกต้อง' });
+        const u = { lname: lower(name), name, salt, hash, rhash: rc.rhash, pub: hero ? { hero } : {} };
         if (!await store.create(u)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
         boardCache = null;
-        return out(200, { token: makeToken(u), name, recovery: rc.code, save: null, rev: 0 });
+        return out(200, { token: makeToken(u), name, recovery: rc.code, hero, save: null, rev: 0 });
       }
       const u = await store.get(lower(name));
       if (!u || !passOk(pass)) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
       const h = Buffer.from(await hashPass(pass, u.salt)), w = Buffer.from(u.hash);
       if (h.length !== w.length || !crypto.timingSafeEqual(h, w)) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
       if (u.ban) return out(403, { err: 'บัญชีนี้ถูกระงับ: ' + u.ban });
-      return out(200, { token: makeToken(u), name: u.name, save: u.save || null, rev: u.rev || 0 });
+      return out(200, { token: makeToken(u), name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     }
     if (p === '/api/reset') {   // ลืมรหัสผ่าน: ชื่อ + รหัสกู้คืน → ตั้งรหัสผ่านใหม่ (ได้รหัสกู้คืนชุดใหม่ด้วย)
       if (req.method !== 'POST') return out(405, { err: 'POST only' });
@@ -171,14 +174,14 @@ async function handleApi(req, res, p) {
       if (!u || !checkRecovery(u.rhash, b.code)) return out(401, { err: 'ชื่อหรือรหัสกู้คืนไม่ถูกต้อง' });
       const salt = crypto.randomBytes(16).toString('hex'), hash = await hashPass(pass, salt), rc = makeRecovery();
       await store.setAuth(u.lname, salt, hash); await store.setRecovery(u.lname, rc.rhash);
-      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, recovery: rc.code, save: u.save || null, rev: u.rev || 0 });
+      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, recovery: rc.code, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     }
 
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
     touch(u.lname);
     if (p === '/api/ping') return out(200, { online: onlineCount() });
-    if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, save: u.save || null, rev: u.rev || 0 });
+    if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     if (p === '/api/save' && req.method === 'POST') {
       const b = await readBody(req); if (b.__tooBig) return out(413, { err: 'เซฟใหญ่เกินไป' });
       const save = cleanSave(b.save); if (!save) return out(400, { err: 'เซฟไม่ถูกต้อง' });
