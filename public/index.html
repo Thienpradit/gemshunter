@@ -4326,7 +4326,7 @@ const PIX = (() => {
     const FAR = 0.6, NEAR = 0.96, SH = 0.12;
     const RB = 12, bc = cx + sgn * (1 + RB * (NEAR - FAR) / 2); /* bc = แกนหมุนของลำตัวบนภาพใหม่ เลื่อนไปทางที่หัน ให้กึ่งกลางลำตัว (หลังบีบฝั่งไกล) ยังอยู่ใต้หัวพอดี */
     const _RB0 = 0; /* รัศมีลำตัว+แขน: บีบเฉพาะในระยะนี้ ของที่ยื่นออกนอกตัว (ใบมีด/หัวพลั่ว) คงขนาดเดิม แค่เลื่อนตามเข้ามา */
-    const body = (x, y, amp, shk) => { const d = x - bc, k = d * sgn > 0 ? FAR : NEAR, ad = Math.abs(d); let sx = ad <= RB * k ? cx + d / k : cx + Math.sign(d) * (RB + ad - RB * k); const u = (sx - cx) / (9 * res); if (u > -1 && u < 1) sx -= amp * res * sgn * (1 - u * u); return [sx, y + sgn * Math.max(-RB, Math.min(RB, d)) * SH * shk]; };
+    const body = (x, y, amp, shk) => { const d = x - bc, far = d * sgn > 0, k = far ? FAR : NEAR, ad = Math.abs(d), sg = Math.sign(d), TQ = 8, ARM = 0.7, e1 = TQ * NEAR, e2 = e1 + (RB - TQ) * ARM; /* ฝั่งใกล้: ลำตัวเกือบเต็ม แต่แขนบีบเหลือ 70% ไม่ให้แขนดูโต */ let sx = far ? (ad <= RB * k ? cx + d / k : cx + sg * (RB + ad - RB * k)) : (ad <= e1 ? cx + d / NEAR : ad <= e2 ? cx + sg * (TQ + (ad - e1) / ARM) : cx + sg * (RB + ad - e2)); const u = (sx - cx) / 7; if (u > -1 && u < 1) sx -= amp * res * sgn * (1 - u * u); return [sx, y + sgn * Math.max(-RB, Math.min(RB, d)) * SH * shk]; };
     for (let y = 0; y < H; y++) {
       const fromFeet = y1 - y, head = fromFeet > 37.5;
       for (let x = 0; x < W; x++) {
