@@ -1152,7 +1152,7 @@ function effItem(x) { if (!x) return null; const base = ITEMS[x.id]; if (!base) 
   if (gb) for (const k in gb) e[k] = r2((base[k] || 0) + gb[k]); if (x.mods) for (const k in x.mods) e[k] = r2((e[k] || 0) + x.mods[k]); if (base.dur) e.dur = maxDur(x); effCache.set(x, e); return e; }
 function modText(x) { if (!x || !x.mods) return ''; return Object.entries(x.mods).map(([k, v]) => { const L = MOD_LABEL[k] || [k, '']; return `${L[0]} +${L[1] === '%' ? Math.round(v * 100) + '%' : v + L[1]}`; }).join(' • '); }
 function lootTag(x) { const q = (x && x.q) || 0; return q ? `<span class="lootq q${q}">${LOOT_Q[q].name}</span> ` : ''; }
-function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.35) : 5) * (obj && x.mods ? LOOT_Q[q].sell * DROP_SELL_MUL : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
+function itemSellPrice(x) { const id = typeof x === 'string' ? x : x.id, it = ITEMS[id], obj = typeof x === 'object', q = (obj && x.q) || 0; return Math.round((it.price ? Math.round(it.price * 0.175) : 2.5) * /* ขายอุปกรณ์คืนร้านได้ 17.5% ของราคาซื้อ (เดิม 35% ลดลงครึ่งหนึ่ง) */ (obj && x.mods ? LOOT_Q[q].sell * DROP_SELL_MUL : 1) * gradePriceMul(obj ? x.g : 0, it.gun)); }
 const DROP_SELL_MUL = 0.3; /* ของที่ดรอปจากศัตรู (มีออปชันสุ่ม) ขายได้ 30% ของสูตรเดิม — ของที่ซื้อจากร้านขายคืนได้เท่าเดิม */
 const CONSUMABLES = {
   water: { name: 'น้ำดื่ม', stamina: 25, price: 40 / 33 }, /* 40 บาท */
