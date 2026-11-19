@@ -123,7 +123,7 @@ function pubOf(save, pub) {
   const lv = Math.max(1, Math.min(MAX_LV, Math.floor(+save.lv || 1))), out = { xp: Math.max(0, +save.xp || 0) };
   let gval = 0;
   if (pub && typeof pub === 'object' && pub.gem && typeof pub.gem === 'object') {
-    const all = [...(Array.isArray(save.inv) ? save.inv : []), ...((save.safe && Array.isArray(save.safe.gems)) ? save.safe.gems : [])];   // กระเป๋า + ตู้เซฟ
+    const all = [...(Array.isArray(save.inv) ? save.inv : []), ...((save.safe && Array.isArray(save.safe.gems)) ? save.safe.gems : []), ...((save.showcase && typeof save.showcase === 'object' && !Array.isArray(save.showcase)) ? Object.values(save.showcase) : [])];   // กระเป๋า + ตู้เซฟ + ตู้โชว์คอลเลกชัน
     const own = all.find(g => g && g.id === pub.gem.id && g.type === pub.gem.type);
     if (own) { const gs = JSON.stringify(own); if (gs.length <= MAX_PUB) { out.gem = JSON.parse(gs); gval = Math.max(0, Math.min(1e13, Math.floor(+pub.value || 0))); } }
   }

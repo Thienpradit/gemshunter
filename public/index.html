@@ -2029,7 +2029,7 @@ function botGemAt(bot, idx) {
 function originKeys(type) { return COUNTRY_KEYS.filter(k => (k === 'thai' ? Object.values(CONFIG.zoneOdds) : (COUNTRIES[k].odds || [])).some(o => o && o[type] > 0)); }
 // พลอยที่ผู้เล่นจำลองโชว์ตอนนี้ (null = เพิ่งขายไป รอรอบถัดไป)
 function botShow(bot, t = Date.now()) { const B = worldBoardState(), idx = botIdx(bot, t), gv = B.given[bot.id]; if (gv && gv.idx === idx && gv.gem) return { gem: gv.gem, open: false, fromMe: true }; if (B.taken[bot.id] === idx) return null; const g = botGemAt(bot, idx); return { gem: g, open: g.open, reserve: Math.round(estValue(g) * g.reserveF) }; }
-function myBestGem() { let best = null, bv = -1; for (const g of [...STATE.inv, ...((STATE.safe && Array.isArray(STATE.safe.gems)) ? STATE.safe.gems : [])]) { /* พลอยในกระเป๋า + พลอยที่เก็บในตู้เซฟ ขึ้นบอร์ดได้เหมือนกัน */ const v = estValue(g); if (v > bv) { bv = v; best = g; } } return best; }
+function myBestGem() { let best = null, bv = -1; for (const g of [...STATE.inv, ...((STATE.safe && Array.isArray(STATE.safe.gems)) ? STATE.safe.gems : []), ...Object.values(STATE.showcase || {})]) { /* รวมพลอยในตู้โชว์/กระเป๋าสะสมด้วย: เม็ดที่โชว์อยู่ขึ้นบอร์ดได้ */ /* พลอยในกระเป๋า + พลอยที่เก็บในตู้เซฟ ขึ้นบอร์ดได้เหมือนกัน */ const v = estValue(g); if (v > bv) { bv = v; best = g; } } return best; }
 // รายการบนบอร์ด เรียงตามมูลค่า (สูงสุด = พลอยที่ดีที่สุดในเกม)
 function worldBoard(t = Date.now()) {
   const rows = [], me = curPlayer();
