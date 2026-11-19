@@ -4256,7 +4256,7 @@ const PIX = (() => {
   function sheet(L, tool) { // โมเดลนักขุด 64x64: {ทิศ} × {idle[4], walk[4], swing[4]} สร้างเมื่อใช้ทิศนั้นครั้งแรก
     const k = JSON.stringify(L) + '|' + (tool || ''); let s = sheetCache.get(k); if (s) return s;
     s = {}; for (const d of ['down', 'up', 'right', 'left']) { let v = null; Object.defineProperty(s, d, { get() { return v || (v = { idle: lazyFrames(16, f => MINER.frame(L, tool, d, 'idle', f)), walk: lazyFrames(8, f => MINER.frame(L, tool, d, 'walk', f)), swing: lazyFrames(MINER.SWING_N, f => MINER.frame(L, tool, d, 'dig', f)), fire: lazyFrames(4, f => MINER.frame(L, tool, d, 'fire', f)) }); } }); }
-    for (const [d, base, sg] of [['dr', 'down', 1], ['dl', 'down', -1], ['ur', 'up', 1], ['ul', 'up', -1]]) { let v = null; const tf = (arr, n) => lazyFrames(n, f => turnFrame(arr[f], sg)); Object.defineProperty(s, d, { get() { return v || (v = { idle: tf(s[base].idle, 16), walk: tf(s[base].walk, 8), swing: tf(s[base].swing, MINER.SWING_N) }); } }); }
+    for (const [d, base, sg] of [['dr', 'down', 1], ['dl', 'down', -1], ['ur', 'up', -1], ['ul', 'up', 1]] /* มองจากด้านหลัง: แผ่นหลังเลื่อนไปทางตรงข้ามกับทิศที่หัน */) { let v = null; const tf = (arr, n) => lazyFrames(n, f => turnFrame(arr[f], sg)); Object.defineProperty(s, d, { get() { return v || (v = { idle: tf(s[base].idle, 16), walk: tf(s[base].walk, 8), swing: tf(s[base].swing, MINER.SWING_N) }); } }); }
     sheetCache.set(k, s); return s;
   }
   // หน้าตาผู้เล่นตามอุปกรณ์
@@ -4313,25 +4313,34 @@ const PIX = (() => {
      จุดภาพกลางลำตัวเลื่อนไปทางที่หัน มากสุดที่กลางตัว และเป็นศูนย์ที่ขอบตัว (เหมือนผิวทรงกระบอกที่หมุน) หัวหมุนมากกว่าลำตัว ขาหมุนน้อยสุด
      ใช้ได้กับทุกชุด ทุกหมวก ทุกของในมือ ทุกท่า (ยืน เดิน ขุด ฟัน ยิง) โดยไม่ต้องวาดแยกทีละชิ้น */
   function turnFrame(fr, sgn) {
-    const W = fr.width, H = fr.height, res = fr.res || 1, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const W = fr.width, H = fr.height, resOut = fr.res || 1, res = 1 /* พิกัดทั้งหมดในฟังก์ชันนี้เป็นจุดของเฟรม 64×64 โดยตรง (ตัวละคร: หัวแถว 5–22 • ลำตัว+แขน 23–40 กว้างครึ่งละ 12 • ขา 41–60) */, c = document.createElement('canvas'); c.width = W; c.height = H;
     const src = fr.getContext('2d').getImageData(0, 0, W, H), out = new ImageData(W, H), S = src.data, D = out.data;
     /* หาขอบเขตตัวละคร (ไม่รวมของที่ยื่นออกไปไกล): ใช้ครึ่งล่างของเฟรมซึ่งเป็นลำตัว/ขา หาแกนกลาง */
     let x0 = W, x1 = 0, y0 = H, y1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (S[(y * W + x) * 4 + 3] > 40) { if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    for (let y = Math.round(y1 - 6 * res); y <= y1; y++) for (let x = 0; x < W; x++) if (S[(y * W + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    for (let y = y1 - 10; y <= y1; y++) for (let x = 0; x < W; x++) if (S[(y * W + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
     const cx = (x0 + x1) / 2, Rb = 9.5 * res, hTop = y1 - 30 * res; /* ตัวสูง ~30 จุดจากเท้า: หัว = ส่วนบน 13 จุด */
-    /* หัว (สูงจากเท้า > 18 จุด): หน้าตา/ผม/หมวกเลื่อนไปทางที่หัน แบบผิวทรงกลมหมุน (ขอบหัวอยู่ที่เดิม)
-       ลำตัว แขน ขา: บีบแคบลง 14% รอบแกนกลาง (ไหล่เฉียงเข้าหากล้อง) + เลื่อนลายกลางตัวไปทางที่หันเล็กน้อย */
-    const SQ = 0.86;
+    /* หมุนทั้งตัว ~40° รอบแกนตั้ง (ไม่ใช่แค่หันหน้า):
+       • ไหล่/สะโพก/เท้าเอียงตามความลึก — ฝั่งที่หันไป (ไกลกล้อง) ยกสูงขึ้น ฝั่งตรงข้าม (ใกล้กล้อง) ต่ำลง → เท้าข้างหนึ่งนำหน้าอีกข้าง
+       • ฝั่งไกลถูกบีบแคบมาก (แขนฝั่งนั้นหลบหลังลำตัว) ฝั่งใกล้เกือบเต็ม → เห็นด้านข้างลำตัว
+       • ลายกลางอก/เข็มขัด/กระดุม เลื่อนไปทางที่หัน • หัวหมุนและขยับตามไปอีก 1 จุด */
+    const FAR = 0.6, NEAR = 0.96, SH = 0.12;
+    const RB = 12, bc = cx + sgn * (1 + RB * (NEAR - FAR) / 2); /* bc = แกนหมุนของลำตัวบนภาพใหม่ เลื่อนไปทางที่หัน ให้กึ่งกลางลำตัว (หลังบีบฝั่งไกล) ยังอยู่ใต้หัวพอดี */
+    const _RB0 = 0; /* รัศมีลำตัว+แขน: บีบเฉพาะในระยะนี้ ของที่ยื่นออกนอกตัว (ใบมีด/หัวพลั่ว) คงขนาดเดิม แค่เลื่อนตามเข้ามา */
+    const body = (x, y, amp, shk) => { const d = x - bc, k = d * sgn > 0 ? FAR : NEAR, ad = Math.abs(d); let sx = ad <= RB * k ? cx + d / k : cx + Math.sign(d) * (RB + ad - RB * k); const u = (sx - cx) / (9 * res); if (u > -1 && u < 1) sx -= amp * res * sgn * (1 - u * u); return [sx, y + sgn * Math.max(-RB, Math.min(RB, d)) * SH * shk]; };
     for (let y = 0; y < H; y++) {
-      const fromFeet = (y1 - y) / res, head = fromFeet > 18.5;
+      const fromFeet = y1 - y, head = fromFeet > 37.5;
       for (let x = 0; x < W; x++) {
-        let sx;
-        if (head) { const R = 8 * res, u = (x - cx - 0.6 * res * sgn) / R; if (u > -1 && u < 1) sx = x - 0.6 * res * sgn - 2.6 * res * sgn * (1 - u * u); else sx = cx + (x - cx) / SQ; /* นอกหัว (ของที่ถือยื่นขึ้นมา): บีบเท่าลำตัว ให้ด้าม/ใบมีดต่อเนื่องกับช่วงล่าง */ }
-        else { sx = cx + (x - cx) / SQ; const R = 8 * res, u = (sx - cx) / R; if (u > -1 && u < 1) sx -= (fromFeet > 8 ? 1.4 : 0.6) * res * sgn * (1 - u * u); }
-        sx = Math.round(sx); if (sx < 0 || sx >= W) continue; const i = (y * W + x) * 4, j = (y * W + sx) * 4; D[i] = S[j]; D[i + 1] = S[j + 1]; D[i + 2] = S[j + 2]; D[i + 3] = S[j + 3];
+        let sx, sy = y;
+        if (head) { const off = 1 * sgn, R = 9, u = (x - cx - off) / R; if (u > -1 && u < 1) { sx = x - off - 3 * sgn * (1 - u * u); sy = y + sgn * (x - cx - off) * 0.06; } else [sx, sy] = body(x, y, 0, 0); }
+        else [sx, sy] = body(x, y, fromFeet > 19 ? 3 : 1.2, Math.min(1, (37.5 - fromFeet) / 5)); /* ช่วงคอ: ลดการเอียงลงเป็นศูนย์ ให้ต่อกับหัวพอดี */
+        sx = Math.round(sx); sy = Math.round(sy); if (sx < 0 || sx >= W || sy < 0 || sy >= H) continue; const i = (y * W + x) * 4, j = (sy * W + sx) * 4; D[i] = S[j]; D[i + 1] = S[j + 1]; D[i + 2] = S[j + 2]; D[i + 3] = S[j + 3];
       }
     }
-    c.getContext('2d').putImageData(out, 0, 0); c.res = res; c.noHD = fr.noHD; return c;
+    /* เก็บกวาด: จุดลอยแถวคอ/ไหล่ (เศษขอบไหล่ที่ไม่ต่อกับอะไรหลังหมุน) — ลบจุดที่ไม่มีจุดทึบติดอยู่ทั้งด้านบนและด้านล่าง */
+    { const op = (x, y) => x >= 0 && x < W && y >= 0 && y < H && D[(y * W + x) * 4 + 3] > 40, kill = [];
+      for (let y = y1 - 42; y <= y1 - 33; y++) for (let x = 0; x < W; x++) if (op(x, y)) { let up = false, dn = false; for (let k = 1; k <= 2; k++) { if (op(x, y - k) || op(x - 1, y - k) || op(x + 1, y - k)) up = true; if (op(x, y + k) || op(x - 1, y + k) || op(x + 1, y + k)) dn = true; } if (!up && !dn) kill.push((y * W + x) * 4 + 3); }
+      for (const i of kill) D[i] = 0; }
+    c.getContext('2d').putImageData(out, 0, 0); c.res = resOut; c.noHD = fr.noHD; return c;
   }
   function fallSpr(L, k, grey) { const fr = sheet(L, null).down.idle[0]; let m = fallCache.get(fr); if (!m) fallCache.set(fr, m = {}); const key = k + (grey ? 'g' : ''); if (m[key]) return m[key];
     const D = Math.ceil(fr.height * 1.5), c = document.createElement('canvas'); c.width = c.height = D; /* จุดหมุน (เท้า) อยู่ค่อนไปทางซ้าย ให้ตัวที่ล้มนอนไปทางขวาไม่ถูกตัดขอบ */ const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
