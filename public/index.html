@@ -1205,7 +1205,7 @@ const CONSUMABLES = {
   medkit: { name: 'ชุดปฐมพยาบาล', hp: 200, price: 38 },
   a9: { name: 'กระสุนปืนสั้น 9 มม.', ammo: true, pack: 15, price: 60 },
   a762: { name: 'กระสุนอาก้า 7.62 มม.', ammo: true, pack: 30, price: 180 },
-  warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 100 / 33 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
+  warp: { name: 'ประตูวาร์ป', warp: true, pack: 1, price: 1000 / 33 }, // ใช้ครั้งเดียว: เปิดประตูจากในเหมืองกลับเมือง แล้วเดินกลับมาที่เดิมได้ 1 รอบ
 };
 for (const k in CONSUMABLES) if (k !== 'warp' && CONSUMABLES[k].price) CONSUMABLES[k].price *= SHOP_PRICE_MUL;
 // หมวดของใช้ตามปุ่มลัด: 1 = ฟื้นเลือด • 2 = เครื่องดื่ม • 3 = อาหาร (เรียงจากฟื้นน้อย → มาก)
