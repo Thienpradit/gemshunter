@@ -851,6 +851,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
     <div id="zonechip" class="chip frame"></div>
     <div id="climchip" class="chip frame clim ok" style="display:none!important"></div>
     <div id="onchip" class="chip frame" style="display:none" title="ผู้เล่นที่ออนไลน์อยู่ตอนนี้"></div>
+    <button id="btnCps" class="hbtn frame" title="คัมภีร์จุดเซฟ — วาร์ปไปจุดเซฟในเหมือง (M)">📜</button>
     <button id="btnBoard" class="hbtn frame" title="บอร์ดโชว์พลอยทั้งเกม">🏆</button>
     <button id="btnMenu" class="hbtn frame" title="เมนู (Esc)">☰</button>
   </div>
@@ -1770,7 +1771,7 @@ let saveDirty = false;
 function heroDefault() { try { const v = localStorage.getItem('nlpc_heroPick'); return v === 'female' ? 'female' : 'male'; } catch (e) { return 'male'; } } /* ตัวละครที่เลือกตอนสมัคร (ชาย/หญิง) */
 function newState() {
   return {
-    hero: heroDefault(),
+    hero: heroDefault(), cps: {},
     v: SAVE_VERSION, durV: 2, coins: CONFIG.startCoins, inv: [], questIdx: 0, questProg: 0,
     stats: { sold: 0, soldCut: 0, dug: 0, found: 0, earned: 0, kills: 0, deepest: 0 },
     queue: { jobs: [], startAt: 0 },
@@ -1838,6 +1839,7 @@ function migrateSave(s) {
     st.pos = { ...st.pos, ...s.pos };
     if (/^mine/.test(s.pos.map) && !mineOk) st.pos = /^mine(~\d)?$/.test(s.pos.map) ? { map: 'mine', x: -1, y: -1, dir: 'down' } : { ...st.pos, map: 'village', x: -1, y: -1 }; // เหมืองแบบเก่า → เริ่มที่ปากเหมือง
   }
+  st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
   st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
   st.savedAt = Number(s.savedAt) || 0;
@@ -3131,6 +3133,9 @@ function buildArt() {
   { /* ทางลงชั้นถัดไปของเหมือง: ปากบันไดหินลงไปในความมืด */ const { c, g } = mk(34, 26); const R2 = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
     R2(2, 4, 30, 20, '#2a2622'); R2(3, 3, 28, 1, '#2a2622'); R2(4, 6, 26, 17, '#0c0a09'); for (let k = 0; k < 4; k++) { R2(6 + k * 2, 8 + k * 4, 22 - k * 4, 3, ['#6a6258', '#544c44', '#3e3832', '#2a2622'][k]); R2(6 + k * 2, 8 + k * 4, 22 - k * 4, 1, ['#8a8276', '#6e665c', '#524a42', '#3a342e'][k]); }
     for (let x = 2; x < 32; x += 5) { R2(x, 2, 4, 3, '#7a7268'); R2(x, 2, 4, 1, '#9a9288'); } R2(1, 4, 3, 20, '#6a6258'); R2(30, 4, 3, 20, '#5a524a'); R2(1, 4, 1, 20, '#8a8276'); R2(1, 23, 32, 2, '#4a443c'); c.noHD = true; ART.descend = c; }
+  { /* จุดเซฟในเหมือง: แท่นหินมีผลึกฟ้าเรืองแสง */ const { c, g } = mk(18, 26); const R2 = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    R2(2, 20, 14, 5, '#3a342e'); R2(3, 19, 12, 2, '#6a6258'); R2(3, 19, 12, 1, '#8a8276'); R2(5, 16, 8, 3, '#544c44'); R2(5, 16, 8, 1, '#7a7268');
+    for (const [x, y, w, h, col] of [[8, 2, 2, 14, '#bff4ff'], [7, 4, 1, 12, '#5ad0f0'], [10, 4, 1, 12, '#2a90c8'], [6, 7, 1, 9, '#2a90c8'], [11, 7, 1, 8, '#1a6aa0'], [8, 1, 2, 1, '#ffffff'], [5, 10, 1, 6, '#1a6aa0'], [12, 11, 1, 5, '#144a78']]) R2(x, y, w, h, col); R2(8, 5, 1, 4, '#ffffff'); c.noHD = true; ART.cp = c; }
   ART.stallRawImg = sprStallImg('raw'); ART.stallCutImg = sprStallImg('cut');
   ART.bi = {}; for (const k of ['workshop', 'house', 'smith', 'jewel', 'foodCart']) ART.bi[k] = sprStallImg(k); /* อาคารในหมู่บ้าน + รถเข็นขายอาหาร: ภาพวาดสำเร็จ */
   ART.mon.spider = sprImg4('spider');
@@ -6268,7 +6273,12 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
     for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) { const i = MI(m, dx + xx, dy + yy); if (dy + yy >= H - 1 || m.t[i] === TILE.BEDROCK) continue; m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; m.protect[i] = 1; }
     const X = dx * 16 + 8, Y = dy * 16 + 12; addObj(m, ART.descend, X, Y, { solid: [26, 8], kind: 'building', sortY: Y - 10 });
     m.interact.push({ kind: 'descend', to: mineIdTier(mapIdOf(country), tier + 1), x: X, y: Y + 8, r: 20, label: `ลงสู่${NT.name} (ชั้น ${tier + 1}) • ศัตรู Lv ${monLevel('snake', tier + 1)}–${monLevel('brute', tier + 1)} • ต้อง Lv ${NT.req}`, verb: 'ลง', hit: { x: X - 17, y: Y - 26, w: 34, h: 30 } });
-    m.labels.push({ x: X, y: Y - 34, text: `ทางลง ↓ ${NT.name}`, col: NT.col }); m.lights.push({ x: X, y: Y - 8, r: 64, col: NT.col, flick: 0 }); m.descend = { x: X, y: Y }; }
+    m.labels.push({ x: X, y: Y - 34, text: `ทางลง ↓ ${NT.name}`, col: NT.col }); m.lights.push({ x: X, y: Y - 8, r: 64, col: NT.col, flick: 0 }); m.descend = { x: X, y: Y };
+    /* จุดเซฟ: อยู่ก่อนถึงทางลง 4 ช่อง — เดินมาถึงแล้วบันทึกลงคัมภีร์ (STATE.cps) วาร์ปกลับมาได้จากคัมภีร์ */
+    { let cy = dy - 4, cx = clamp(m.pathX[cy] != null ? m.pathX[cy] : dx, 3, W - 4); for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 2; xx++) { const i = MI(m, cx + xx, cy + yy); if (m.t[i] === TILE.BEDROCK) continue; m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; m.protect[i] = 1; }
+      for (let yy = cy + 2; yy < dy - 2; yy++) { const i = MI(m, cx, yy); if (m.t[i] !== TILE.BEDROCK) { m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; } } /* ทางเชื่อมจุดเซฟ → ทางลง ไม่ให้ตัน */
+      const CX2 = (cx + 1) * 16 + 8, CY2 = cy * 16 + 12; addObj(m, ART.cp, CX2, CY2, { solid: [12, 6], kind: 'building' }); m.cp = { x: CX2 - 16, y: CY2 + 2, key: m.id };
+      m.labels.push({ x: CX2, y: CY2 - 34, text: '✦ จุดเซฟ', col: '#9fe8ff', small: true }); m.lights.push({ x: CX2, y: CY2 - 10, r: 58, col: '#6ad8ff', flick: 0 }); } }
   m.spawn = { x: 24 * 16 + 8, y: 6 * 16 + 10, dir: 'down' };
   m.bg = paintMapBG(m);
   buildWalkGrid(m);
@@ -7426,6 +7436,7 @@ function goMap(id, spawnKey) {
     if (STATE.warp) { const w = STATE.warp;
       if (spawnKey === 'warpIn' && w.town === id) { w.used = true; w.usedAt = Date.now(); let dx = PL.x + 26, dy = PL.y + 2; for (const [ox, oy] of [[26, 2], [-26, 2], [26, 20], [-26, 20], [0, 22]]) if (boxFree(G.map, PL.x + ox, PL.y + oy)) { dx = PL.x + ox; dy = PL.y + oy; break; } w.tx = dx; w.ty = dy; }
       else if (spawnKey === 'warpBack' && w.map === id) { PL.x = w.x; PL.y = w.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; STATE.warp = null; G.warpGone = { x: w.dx ?? w.x, y: w.dy ?? w.y }; } }
+    if (spawnKey === 'cp' && G.map.cp) { PL.x = G.map.cp.x; PL.y = G.map.cp.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.mons = []; }
     syncWarpDoor(); // ประตูขากลับที่เมืองตั้งอยู่เลย ไม่ต้องมีแอนิเมชันโผล่
     if (G.warpGone) { const o = addObj(G.map, ART.warpDoor, G.warpGone.x, G.warpGone.y - 3, { kind: 'warpdoor' }); o.fade = true; o.t0 = G.time + 0.9; G.warpGone = null; } // กลับถึงจุดเดิมแล้ว ประตูค่อย ๆ จางหาย
     STATE.pos = { map: id, x: PL.x, y: PL.y, dir: PL.dir }; saveGame();
@@ -7639,6 +7650,7 @@ function update(dt) {
   if (PL._ld !== PL.dir) { if (PL._ld) PL.turnT = 1; PL._ld = PL.dir; } PL.turnT = Math.max(0, (PL.turnT || 0) - dt * 7);
   if (!PL.moving && PL.mvb > 0.02) PL.anim += dt * 4 * PL.mvb; // ค่อยๆ หยุดก้าว
   if (PL.moving) { PL.anim += Math.max(moved / 9, dt * 4); PL.stepT += dt; if (PL.stepT > 0.3) { PL.stepT = 0; SFX.play('step'); } if (Math.random() < dt * 6 && isMine(m)) G.parts.push({ k: 'dust', x: PL.x + (Math.random() - 0.5) * 6, y: PL.y, z: 0, vx: 0, vy: -3, vz: 0, life: 0.5, max: 0.5, col: '#a89880', size: 1.5 }); }
+  if (m.cp && !G.down && !G.trans) { if (!STATE.cps) STATE.cps = {}; if (!STATE.cps[m.cp.key] && Math.hypot(PL.x - m.cp.x, PL.y - m.cp.y) < 30) { STATE.cps[m.cp.key] = Date.now(); saveGame(); SFX.play('done'); banner('✦ บันทึกจุดเซฟแล้ว'); toast('บันทึกจุดเซฟลง<b>คัมภีร์</b>แล้ว • กดปุ่ม 📜 (หรือ M) เพื่อวาร์ปกลับมาที่นี่ได้ทุกเมื่อ', 'good'); for (let k = 0; k < 18; k++) G.parts.push({ k: 'star', x: m.cp.x + 16, y: m.cp.y - 12, z: 4, vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70, vz: 30, life: 0.7, max: 0.7, col: '#9fe8ff', size: 1 }); } }
   if (!G.trans && G.transCool <= 0 && !blocked) for (const t of m.triggers) if (PL.x > t.x && PL.x < t.x + t.w && PL.y > t.y && PL.y < t.y + t.h) { if (t.kind === 'enterMine') { PL.path = null; PL.act = null; STATE.mineTier = 1; goMap(mineIdTier(t.to || 'mine', 1)); } else goMap(t.to || 'village', t.spawn); break; }
   const z = zoneAt(m, PL.x, PL.y);
   if (isMine(m) && z && z !== G.zone) { const first = !G.zone; G.zone = z; const tr = m.tier || 1, T = MINE_TIERS[tr - 1]; banner(`⛏ ${T.name} (ระดับ ${tr}/${MINE_TIERS.length}) • ${zoneName(m, z)}`); if (first) toast(`ลงมาถึง <b style="color:${T.col}">${T.name} — ระดับ ${tr}</b> • ศัตรู Lv ${monLevel('snake', tr)}–${monLevel('brute', tr)}`, 'good'); UI.hud(); } /* บอกระดับเหมืองทุกครั้งที่ลงมา/เปลี่ยนโซน */
@@ -8079,6 +8091,7 @@ function setupInput() {
     let dx = PL.x, dy = PL.y; for (const [ox, oy] of [[20, 0], [-20, 0], [0, -14], [0, 16]]) if (boxFree(m, PL.x + ox, PL.y + oy)) { dx = PL.x + ox; dy = PL.y + oy; break; } // ประตูโผล่ข้างตัว ไม่ถูกตัวละครบัง
     STATE.cons.warp--; STATE.warp = { map: m.id, town: (ex && ex.to) || 'village', x: PL.x, y: PL.y, dx, dy, tx: 0, ty: 0, used: false };
     SFX.play('door'); syncWarpDoor(G.time); saveGame(); UI.hud(); toast(`ประตูวาร์ปเปิดแล้ว! กด T อีกครั้งหรือคลิกที่ประตู ตัวละครจะเดินไปเข้าเอง (เหลือ ${STATE.cons.warp} บาน)`, 'good'); };
+  $('#btnCps').addEventListener('click', () => UI.cps()); addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) UI.cps(); });
   $('#btnWarp').addEventListener('click', warpStart); addEventListener('keydown', e => { if (e.code === 'KeyT' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) warpStart(); });
   $('#btnBag').addEventListener('click', () => { if (UI.current() === 'equip') UI.close(); else if (STATE.items.some(x => x.nw)) UI.equipment('gear'); else UI.bag(); }); /* มีของใหม่ → เปิดที่แถบอุปกรณ์ให้เห็นป้าย NEW */
   $('#btnEq').addEventListener('click', () => { if (UI.current() === 'equip') UI.close(); else UI.equipment('gear'); });
@@ -8750,6 +8763,17 @@ const UI = (() => {
     api.onE = () => panel.querySelector('[data-a=sleep]').click();
   }
   // ---------- เลือกระดับเหมืองก่อนลง (5 ระดับ ปลดล็อกตามเลเวล) ----------
+  // ---------- คัมภีร์จุดเซฟ: แผนที่ชั้นเหมืองที่เคยไปถึงจุดเซฟ — คลิกแล้ววาร์ปไปจุดนั้น ----------
+  function cps() {
+    const S = charState(), here = G.map ? countryOfMap(G.map.id) : 'thai', saved = STATE.cps || {}, cs = ['thai', ...Object.keys(COUNTRIES).filter(c => c !== 'thai')].filter(c => c === here || Object.keys(saved).some(k => countryOfMap(k) === c));
+    const sec = c => { const base = mapIdOf(c), cname = c === 'thai' ? 'เหมืองจันทบุรี' : 'เหมือง' + ((COUNTRIES[c] && (COUNTRIES[c].short || COUNTRIES[c].name)) || c), can = c === here;
+      return `<div class="cp-c"><h4>⛏ ${cname}${can ? '' : ' <small class="muted">(ต้องเดินทางไปประเทศนี้ก่อนจึงวาร์ปได้)</small>'}</h4><div class="cp-shaft">` + MINE_TIERS.map((T, i) => { const t = i + 1; if (t >= MINE_TIERS.length) return `<div class="cp-n end" style="--tc:${T.col}"><span class="cp-dot"></span><div><b>ชั้น ${t} — ${T.name}</b><small>ชั้นลึกสุด (ไม่มีทางลงต่อ)</small></div></div>`;
+        const id = mineIdTier(base, t), ok = !!saved[id], N = MINE_TIERS[t]; return `<div class="cp-n ${ok ? 'ok' : 'no'}" style="--tc:${T.col}"><span class="cp-dot">${ok ? '✦' : ''}</span><div><b>ชั้น ${t} — ${T.name}</b><small>${ok ? `จุดเซฟก้นเหมือง • หน้าทางลงสู่${N.name} (ต้อง Lv ${N.req})` : 'ยังไปไม่ถึงจุดเซฟของชั้นนี้'}</small></div>${ok ? `<button class="btn gold" data-a="go" data-id="${id}" ${can ? '' : 'disabled'}>วาร์ป</button>` : ''}</div>`; }).join('') + '</div></div>'; };
+    show('cps', `<h3>📜 คัมภีร์จุดเซฟ</h3><p class="muted small">เดินไปถึง <b style="color:#9fe8ff">✦ จุดเซฟ</b> (แท่นผลึกฟ้าก่อนถึงทางลงของแต่ละชั้น) แล้วจุดนั้นจะถูกบันทึกไว้ที่นี่ • คลิก "วาร์ป" เพื่อไปโผล่ที่จุดเซฟนั้นได้ทันที ไม่เสียค่าใช้จ่าย</p>
+      <style>.cp-c h4{margin:10px 0 6px;color:#ffd77a}.cp-shaft{border-left:3px solid #5a4a30;margin-left:12px;padding-left:0}.cp-n{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 0;margin-left:-11px}.cp-n>div{flex:1;display:flex;flex-direction:column}.cp-n small{color:#c8bca0}.cp-dot{width:18px;height:18px;border-radius:50%;border:3px solid var(--tc);background:#1d1712;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9fe8ff;flex:none}.cp-n.ok .cp-dot{background:#0e3a50;box-shadow:0 0 8px #6ad8ff}.cp-n.no{opacity:.55}.cp-n b{color:var(--tc)}</style>
+      <div class="list">${cs.map(sec).join('')}</div><div class="row end"><button class="btn" data-a="cancel">ปิด</button></div>`,
+      (a, b) => { if (a === 'cancel') return dismiss(); if (a === 'go') { if (G.down) return toast('ตอนนี้วาร์ปไม่ได้', 'bad'); const id = b.dataset.id; STATE.mineTier = mineTierOf(id); close(); goMap(id, 'cp'); } });
+  }
   function mineSelect(to, onCancel) {
     const S = charState(), base = to.split('~')[0], c = countryOfMap(base), cname = c === 'thai' ? 'เหมืองจันทบุรี' : 'เหมือง' + (COUNTRIES[c].short || COUNTRIES[c].name);
     const open = MINE_TIERS.filter(T => S.lv >= T.req).length, def = clamp(Math.min(STATE.mineTier || 1, open), 1, open);
@@ -9675,7 +9699,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { mineSelect, character, safe, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, safe, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
