@@ -7280,6 +7280,7 @@ const MONS = {
   kraken:   { name: 'อสูรหมึกมงกุฎเพชร', sheet: true, lvR: [92, 92], hp: 900, dmg: 34, spd: 18, aggro: 200, r: 16, reach: 34, big: true, boss2: true, slam: { radius: 42, offset: 25, wind: 1.2, fastWind: 0.95, impact: 0.26, recovery: 1.8, fastRecovery: 1.45 }, weakRec: 1.6, coins: [700, 1400], chance: 1, drops: [['wpn5', 20], ['arm6', 16], ['shd4', 14], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['pick5', 16]] }, // บอส: ยกหนวดคู่หน้า → ฟาดพร้อมกัน แล้วเปิดมงกุฎ (ช่วงฟื้นตัวโดนแรงขึ้น 60%)
   spider:   { name: 'นางพญาแมงมุมมรณะ', hp: 85, dmg: 19, spd: 38, aggro: 170, r: 7, reach: 17, big: true, coins: [50, 150], chance: 1, drops: [['arm5', 16], ['wpn4', 14], ['shd3', 14], ['hat3', 12], ['glv3', 12], ['bt3', 12], ['pick4', 10], ['arm6', 6], ['herb', 14]] }, // แมงมุมยักษ์ผลึกม่วงบนหลัง: ตัวใหญ่ วิ่งเร็ว กัดแรง อยู่ตัวเดียวในอุโมงค์ลึก
 };
+for (const k in MONS) { const d = MONS[k]; if (d.mini || d.boss2) { d.sc = (d.sc || 1) * 1.5; d.r = Math.round(d.r * 1.3); d.reach = Math.round(d.reach * 1.2); if (d.aoe) d.aoe = Math.round(d.aoe * 1.2); } } /* มินิบอส/บอสของทุกชั้น: ตัวใหญ่ขึ้น 1.5 เท่า (ระยะชน/ระยะตีขยายตามตัว) */
 const SPAWN_TABLE = {
   gravel: { list: [['snake', 45], ['scorpion', 25], ['bat', 12], ['mud', 18]], cap: 4, every: 4.0 },
   tunnel: { list: [['snake', 16], ['bat', 24], ['scorpion', 20], ['zombie', 20], ['mud', 16], ['ghost', 14], ['spider', 7]], cap: 6, every: 2.8 },
