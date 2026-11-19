@@ -6211,6 +6211,13 @@ function buildOutpost(country) {
 
 // ---------------- เหมือง (หินทุกช่องขุดได้) ----------------
 const MINE_W = 72, MINE_H = 210, MINE_Z1 = 70, MINE_Z2 = 145; /* เหมืองใหญ่ขึ้น 1.5 เท่าทั้งกว้างและลึก (เดิม 48×140 • โซนเปลี่ยนที่แถว 46/96) */
+const MINE_DISTRICTS = [
+  { names: ['ค่ายคนงาน', 'สถานีรถราง', 'ด่านคนขุด'], floor: ['#34291e', '#554331', '#6d5840', '#8d704c'], stone: ['#191813', '#372e24', '#5c4937'], trim: '#c89b61', glow: '#ffbf6e' },
+  { names: ['สถานีผลึกคราม', 'สะพานไพลิน', 'ประตูสายแร่ลึก'], floor: ['#1c3042', '#2c485d', '#3c6078', '#527c91'], stone: ['#101b28', '#23394e', '#3d6380'], trim: '#729ec4', glow: '#7cdaff' },
+  { names: ['ป้อมโคมวิญญาณ', 'ลานตราฝันร้าย', 'ซุ้มประตูเงา'], floor: ['#261d35', '#3a2a49', '#50345e', '#6c4879'], stone: ['#150f21', '#301e40', '#553462'], trim: '#ae79c5', glow: '#db8dff' },
+  { names: ['ค่ายเตาหลอม', 'ทางเดินตะกรัน', 'ประตูลาวา'], floor: ['#301c1b', '#48302a', '#684134', '#8a543c'], stone: ['#190f13', '#382022', '#683732'], trim: '#d38757', glow: '#ff7240' },
+  { names: ['นครจมใต้บาดาล', 'ระเบียงศิลาเปลือกมุก', 'วิหารมงกุฎเพชร'], floor: ['#142d35', '#21414c', '#305763', '#497982'], stone: ['#0b2028', '#1b3e48', '#35636c'], trim: '#79beb4', glow: '#66ffe1' },
+];
 function mineZoneIdx(y) { return y < MINE_Z1 ? 1 : y < MINE_Z2 ? 2 : 3; }
 function buildMine(dugB64, country = 'thai', tier = 1) {
   const W = MINE_W, H = MINE_H, m = newMap(mineIdTier(mapIdOf(country), tier), W, H); m.country = country; m.tier = tier; const C = COUNTRIES[country];
@@ -6237,6 +6244,7 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
     if (y % 15 === 7) { const dir = rnd() < 0.5 ? -1 : 1, len = 10 + Math.floor(rnd() * 22); let gy = y; for (let k = 0; k < len; k++) { const gx = x + dir * k; if (gx < 3 || gx > W - 4) break; if (k % 4 === 3) gy += rnd() < 0.5 ? -1 : 1; disc(gx + 0.5, gy + 0.5, 1.2, false); } }
   }
   for (let y = 0; y < 8; y++) m.pathX[y] = 24;
+  buildMineEndRoute(m, setF, disc);
   // แอ่งน้ำในอุโมงค์แร่
   for (let y = MINE_Z1; y < MINE_Z2; y++) for (let xx = 2; xx < W - 2; xx++) { const i = MI(m, xx, y); if (m.t[i] === TILE.FLOOR && !m.protect[i] && vnoise(xx * 0.33, y * 0.33, 11 + SEED) > 0.74) { m.t[i] = TILE.WATER; m.water.push(i); } }
   // ขอบหินแข็ง (ขุดไม่ได้)
@@ -6252,7 +6260,7 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
   // คบไฟตามทางหลัก + คริสตัลในโพรงลึก
   const face = (xx, y) => tileAt(m, xx, y) === TILE.WALL && tileAt(m, xx, y + 1) === TILE.FLOOR;
   for (let y = 10; y < H - 4; y += 9) { const px = m.pathX[y]; for (const dx of [-2, 2, -3, 3, -1, 1, -4, 4]) { let done = false; for (let dy = -2; dy <= 2 && !done; dy++) if (face(px + dx, y + dy)) { addTorch(m, px + dx, y + dy); done = true; } if (done) break; } }
-  const cryCols = ['#6ef0ff', '#b98cff', '#7dffb0', '#ff8ce0']; let ci = 0;
+  const cryCols = [MINE_DISTRICTS[tier - 1].glow, '#b98cff', '#7dffb0', '#ff8ce0']; let ci = 0;
   for (let y = MINE_Z2; y < H - 1; y++) for (let xx = 1; xx < W - 1; xx++) {
     const i = MI(m, xx, y);
     if (face(xx, y) && hash2(xx, y, 77) < 0.16 && !m.attach[i]) addCrystal(m, xx, y, cryCols[ci++ % 4], true);
@@ -6270,23 +6278,97 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
   m.interact.push({ kind: 'exitMine', to: outTo, x: 24 * 16 + 8, y: 3 * 16 + 4, r: 16, label: 'ขึ้นสู่ผิวดิน', verb: 'ขึ้น' });
   addObj(m, ART.cart, 20 * 16 + 8, 8 * 16 + 13, { solid: [24, 8] }); addObj(m, ART.crate, 29 * 16 + 8, 7 * 16 + 13, { solid: [12, 6] }); addObj(m, ART.barrel, 28 * 16 + 8, 9 * 16 + 13, { solid: [10, 5] });
   m.lights.push({ x: 24 * 16 + 8, y: 2 * 16, r: 76, col: '#fff4d0', flick: 0, sun: true });
-  /* ทางลงชั้นถัดไป: อยู่สุดทางหลักที่ก้นเหมือง (ไม่มีเมนูเลือกชั้นแล้ว — เข้าเหมืองทางเดียว เดินลึกลงไปจนเจอบันไดจึงลงชั้นต่อไป) */
-  if (tier < MINE_TIERS.length) { let dy = H - 8; while (dy > MINE_Z2 + 2 && !(m.pathX[dy] != null && m.t[MI(m, m.pathX[dy], dy)] === TILE.FLOOR)) dy--; const dx = clamp(m.pathX[dy] != null ? m.pathX[dy] : 24, 3, W - 4), NT = MINE_TIERS[tier];
-    for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) { const i = MI(m, dx + xx, dy + yy); if (dy + yy >= H - 1 || m.t[i] === TILE.BEDROCK) continue; m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; m.protect[i] = 1; }
-    const X = dx * 16 + 8, Y = dy * 16 + 12; addObj(m, ART.descend, X, Y, { solid: [26, 8], kind: 'building', sortY: Y - 10 });
-    m.interact.push({ kind: 'descend', to: mineIdTier(mapIdOf(country), tier + 1), x: X, y: Y + 8, r: 20, label: `ลงสู่${NT.name} (ชั้น ${tier + 1}) • ต้อง Lv ${NT.req}`, verb: 'ลง', hit: { x: X - 17, y: Y - 26, w: 34, h: 30 } });
-    m.labels.push({ x: X, y: Y - 34, text: `ทางลง ↓ ${NT.name}`, col: NT.col }); m.lights.push({ x: X, y: Y - 8, r: 64, col: NT.col, flick: 0 }); m.descend = { x: X, y: Y };
-    /* จุดเซฟ: อยู่ก่อนถึงทางลง 4 ช่อง — เดินมาถึงแล้วบันทึกลงคัมภีร์ (STATE.cps) วาร์ปกลับมาได้จากคัมภีร์ */
-    { let cy = dy - 4, cx = clamp(m.pathX[cy] != null ? m.pathX[cy] : dx, 3, W - 4); for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 2; xx++) { const i = MI(m, cx + xx, cy + yy); if (m.t[i] === TILE.BEDROCK) continue; m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; m.protect[i] = 1; }
-      for (let yy = cy + 2; yy < dy - 2; yy++) { const i = MI(m, cx, yy); if (m.t[i] !== TILE.BEDROCK) { m.t[i] = TILE.FLOOR; m.solidT[i] = 0; m.vein[i] = 0; } } /* ทางเชื่อมจุดเซฟ → ทางลง ไม่ให้ตัน */
-      const CX2 = (cx + 1) * 16 + 8, CY2 = cy * 16 + 12; addObj(m, ART.cp, CX2, CY2, { solid: [12, 6], kind: 'building' }); m.cp = { x: CX2 - 16, y: CY2 + 2, key: m.id };
-      m.labels.push({ x: CX2, y: CY2 - 34, text: '✦ จุดเซฟ', col: '#9fe8ff', small: true }); m.lights.push({ x: CX2, y: CY2 - 10, r: 58, col: '#6ad8ff', flick: 0 }); } }
+  const district = MINE_DISTRICTS[tier - 1];
+  const { checkpoint, end, guard } = m.endRoute;
+  const spot = ([tx, ty]) => [tx * 16 + 8, ty * 16 + 12];
+  const [cx, cy] = spot(checkpoint), [ex, ey] = spot(end);
+  const marker = (position, name, gate) => {
+    const [x, y] = spot(position);
+    addObj(m, mineLandmark(tier, gate), x, y, { sortY: y - 32 });
+    m.lights.push({ x, y: y - 12, r: 76, col: district.glow, flick: tier === 4 ? 1 : 0 });
+    if (name) m.labels.push({ x, y: y - 44, text: name, col: district.glow, small: true });
+  };
+  marker([24, 7], district.names[0], false);
+  marker([m.pathX[MINE_Z1 + 8], MINE_Z1 + 8], district.names[1], false);
+  marker(guard, 'ด่านเฝ้าทางสู่จุดเซฟ', false);
+  marker([checkpoint[0] + 1, checkpoint[1]], '✦ จุดเซฟ', false);
+  marker(end, district.names[2], true);
+  addObj(m, ART.cp, cx + 16, cy, { solid: [12, 6], kind: 'building' });
+  m.cp = { x: cx, y: cy, key: m.id };
+  if (tier < MINE_TIERS.length) {
+    const next = MINE_TIERS[tier];
+    addObj(m, ART.descend, ex, ey, { solid: [26, 8], kind: 'building', sortY: ey - 10 });
+    m.interact.push({ kind: 'descend', to: mineIdTier(mapIdOf(country), tier + 1), x: ex, y: ey + 12, r: 20,
+      label: `ลงสู่${next.name} (ชั้น ${tier + 1}) • ต้อง Lv ${next.req}`, verb: 'ลง', hit: { x: ex - 17, y: ey - 26, w: 34, h: 30 } });
+    m.descend = { x: ex, y: ey };
+  }
   m.spawn = { x: 24 * 16 + 8, y: 6 * 16 + 10, dir: 'down' };
   m.bg = paintMapBG(m);
   buildWalkGrid(m);
   return m;
 }
-function addTorch(m, tx, ty) { const i = MI(m, tx, ty); const L = { x: tx * 16 + 8, y: ty * 16 + 10, r: 70, col: '#ffa040', flick: 1, torch: true }; const T = { tx, ty, x: tx * 16 + 8, y: ty * 16 + 8, light: L }; m.torches.push(T); m.lights.push(L); m.attach[i] = (m.attach[i] || []).concat([{ kind: 'torch', ref: T }]); }
+function buildMineEndRoute(m, setF, disc) {
+  const entranceY = MINE_H - 38, startX = m.pathX[entranceY];
+  const goRight = startX < m.w / 2;
+  const outer = goRight ? m.w - 11 : 10, inner = goRight ? 10 : m.w - 11;
+  const bendY = entranceY + 18, checkpoint = [outer, bendY - 5];
+  const end = [goRight ? 26 : m.w - 27, entranceY + 30];
+  const points = [[startX, entranceY], [startX, entranceY + 8], [outer, entranceY + 8], [outer, bendY],
+    [inner, bendY], [inner, end[1]], end];
+  // Keep the original paths above this junction. Below it, separate parallel corridors with mineable rock.
+  for (let y = entranceY + 1; y < m.h - 1; y++) {
+    for (let x = 1; x < m.w - 1; x++) {
+      const i = MI(m, x, y);
+      m.t[i] = TILE.WALL;
+      m.protect[i] = 0;
+    }
+  }
+  for (let i = 1; i < points.length; i++) {
+    const [x, y] = points[i - 1], [toX, toY] = points[i];
+    for (let yy = y; yy <= toY; yy++) {
+      for (let xx = Math.min(x, toX); xx <= Math.max(x, toX); xx++) disc(xx + 0.5, yy + 0.5, 1.7, true);
+      m.pathX[yy] = toX;
+    }
+  }
+  const direction = goRight ? 1 : -1;
+  const guard = [outer - direction * 9, entranceY + 8];
+  const lowerGuard = [inner + direction * 5, bendY];
+  const boss = m.tier === MINE_TIERS.length ? end : [inner, end[1] - 3];
+  for (const [position, radius] of [[guard, 3.5], [checkpoint, 2.5], [lowerGuard, 3.5], [boss, 4.5], [end, 4]]) {
+    disc(position[0] + 0.5, position[1] + 0.5, radius, true);
+  }
+  m.endRoute = { entranceY, checkpoint, end, guard, lowerGuard, boss };
+}
+
+function mineLandmark(tier, gate) {
+  const { stone, trim, glow } = MINE_DISTRICTS[tier - 1];
+  const { c, g } = mk(64, 38);
+  const baseY = 36;
+  for (const x of [4, 52]) {
+    R(g, x - 2, baseY - 4, 12, 5, stone[0]);
+    R(g, x, 7, 8, 28, stone[1]);
+    R(g, x, 8, 2, 26, stone[2]);
+    for (let y = 12; y < 32; y += 6) R(g, x, y, 8, 1, stone[0]);
+    R(g, x - 1, 7, 10, 2, trim);
+    R(g, x + 2, 16, 4, 6, glow);
+    R(g, x + 3, 16, 1, 3, '#fff4d8');
+  }
+  // Different silhouettes: timber lintel, crystal ribs, pointed gothic arch, furnace beam, stepped temple.
+  const profiles = [[7, 7, 7, 7], [7, 4, 3, 2], [8, 6, 4, 1], [8, 7, 5, 5], [8, 5, 2, 2]];
+  for (let x = 8; x < 56; x++) {
+    const y = profiles[tier - 1][Math.min(3, Math.floor(Math.min(x - 8, 55 - x) / 6))];
+    R(g, x, y, 1, gate ? 8 : 5, stone[0]);
+    R(g, x, y + 1, 1, gate ? 5 : 3, stone[2]);
+    R(g, x, y + 1, 1, 1, trim);
+  }
+  for (let y = 0; y < 8; y++) {
+    const hw = 4 - Math.abs(3 - y);
+    if (hw > 0) R(g, 32 - hw, 7 + y, hw * 2, 1, y < 4 ? glow : trim);
+  }
+  return c;
+}
+
+function addTorch(m, tx, ty) { const i = MI(m, tx, ty); const L = { x: tx * 16 + 8, y: ty * 16 + 10, r: 70, col: MINE_DISTRICTS[m.tier - 1].glow, flick: 1, torch: true }; const T = { tx, ty, x: tx * 16 + 8, y: ty * 16 + 8, light: L }; m.torches.push(T); m.lights.push(L); m.attach[i] = (m.attach[i] || []).concat([{ kind: 'torch', ref: T }]); }
 function addCrystal(m, tx, ty, col, onFace) { const i = MI(m, tx, ty); const C = { x: tx * 16 + 8, y: ty * 16 + (onFace ? 15 : 13), col, spr: sprCrystal(col, tx * 7 + ty * 3, onFace), face: onFace, tile: i }; const L = { x: C.x, y: C.y - 6, r: onFace ? 40 : 28, col, flick: 0, crystal: true }; C.light = L; m.crystals.push(C); m.lights.push(L); m.attach[i] = (m.attach[i] || []).concat([{ kind: 'crystal', ref: C }]); }
 // ขุดหินแตก → กลายเป็นพื้น
 function breakTile(m, tx, ty) {
@@ -6383,6 +6465,7 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
   const q = (pal, v) => pal[clamp(Math.floor(v * pal.length), 0, pal.length - 1)];
   const isOpen = t => t === TILE.FLOOR || t === TILE.WATER;
   const isRock = t => t === TILE.WALL || t === TILE.BEDROCK;
+  const district = m.vein && MINE_DISTRICTS[m.tier - 1];
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const ti = MI(m, tx, ty), t = m.t[ti], zk = ZONE_KEYS[m.zone[ti]] || 'gravel';
     const below = tileAt(m, tx, ty + 1), above = tileAt(m, tx, ty - 1), left = tileAt(m, tx - 1, ty), right = tileAt(m, tx + 1, ty);
@@ -6465,6 +6548,19 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
         if (isRock(left) && lx < 2) dark = Math.max(dark, 0.25 - lx * 0.1);
         if (isRock(right) && lx > 13) dark = Math.max(dark, 0.25 - (15 - lx) * 0.1);
       }
+      if (district && t === TILE.FLOOR && (m.country === 'thai' || m.protect[ti])) {
+        const walkway = m.protect[ti];
+        const mortar = walkway && (ly === 0 || (lx + (ty % 2) * 8) % 16 === 0);
+        col = mortar ? district.floor[0] : q(district.floor, lo * 0.43 + n * 0.37 + (walkway ? 0.2 : 0.04));
+      } else if (district && isRock(t) && !vein && (m.country === 'thai' || ty >= m.endRoute.entranceY)) {
+        if (t === TILE.WALL) {
+          const band = isOpen(below) ? (ly < 2 ? 2 : ly < 13 ? 1 : 0) : lo + n * 0.2 > 0.68 ? 1 : 0;
+          const fissure = m.tier === 4 && isOpen(below) && ly > 2 && ly < 13 && Math.abs(Math.sin(x * 0.51 + y * 0.8) + Math.sin(y * 0.43)) < 0.14;
+          col = fissure ? district.trim : district.stone[band];
+        }
+      } else if (district && t === TILE.WATER && m.tier === 5) {
+        col = (ly + lx) % 7 === 0 ? '#24576d' : '#153c52';
+      }
       let [r, gg, b] = rgb(col); const k = ((ty - ty0) * 16 + ly) * RW * 4 + ((tx - tx0) * 16 + lx) * 4;
       if (m.tint && t !== TILE.WATER) { const lum = (r + gg + b) / 765, a = m.tintAmt; r = lerp(r, m.tint[0] * (0.35 + lum), a); gg = lerp(gg, m.tint[1] * (0.35 + lum), a); b = lerp(b, m.tint[2] * (0.35 + lum), a); }
       d[k] = r * (1 - dark); d[k + 1] = gg * (1 - dark); d[k + 2] = b * (1 - dark); d[k + 3] = 255;
@@ -6475,6 +6571,32 @@ function paintRegion(m, tx0, ty0, tx1, ty1) {
   // ลายละเอียดในเหมือง
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const i = MI(m, tx, ty), z = m.zone[i], x = tx * 16, y = ty * 16, t = m.t[i];
+    if (t === TILE.FLOOR && m.protect[i]) {
+      const straight = m.pathX[ty - 1] === tx && m.pathX[ty] === tx && m.pathX[ty + 1] === tx;
+      if (m.tier === 1 && straight && ty >= 12) {
+        R(g, x + 2, y + 6, 12, 3, '#614328');
+        for (const rail of [4, 11]) R(g, x + rail, y, 1, 16, '#b59a75');
+      } else if (ty % 3 === 0 && tx % 2 === 0) {
+        const col = district.trim;
+        switch (m.tier) {
+          case 2: // Sapphire inlays in the deep mine’s stone causeway.
+            R(g, x + 6, y + 7, 5, 2, col); R(g, x + 8, y + 5, 1, 6, col);
+            break;
+          case 3: // Worn sigils on the nightmare outpost's pavement.
+            R(g, x + 5, y + 5, 7, 1, col); R(g, x + 8, y + 5, 1, 6, col);
+            P(g, x + 5, y + 9, col); P(g, x + 11, y + 9, col);
+            break;
+          case 4: // Iron grates over orange light.
+            R(g, x + 3, y + 6, 10, 4, '#27191b');
+            for (let grate = 4; grate <= 12; grate += 2) R(g, x + grate, y + 6, 1, 4, col);
+            break;
+          case 5: // A scalloped pattern in the submerged colonnade.
+            R(g, x + 5, y + 7, 7, 1, col); R(g, x + 6, y + 8, 5, 1, col);
+            P(g, x + 8, y + 9, '#bce7de');
+            break;
+        }
+      }
+    }
     if (t === TILE.WALL && tileAt(m, tx, ty + 1) === TILE.FLOOR && z <= 2 && hash2(tx, ty, 51) < 0.08 && !m.attach[i] && !m.vein[i]) {
       R(g, x + 2, y, 3, 16, '#6a4428'); R(g, x + 11, y, 3, 16, '#6a4428'); R(g, x, y + 1, 16, 3, '#7a5030'); R(g, x, y + 1, 16, 1, '#9a6a40'); P(g, x + 2, y + 5, '#8a6038'); P(g, x + 11, y + 5, '#8a6038');
     }
@@ -6662,7 +6784,7 @@ const MONS = {
   shrimp:   { name: 'กุ้งก้ามปืนเพทาย', sheet: true, lvR: [85, 86], hp: 20, dmg: 13, spd: 26, aggro: 190, r: 7, reach: 130, ranged: true, orb: '#70f0d0', windT: 0.65, recover: 0.8, coins: [32, 80], chance: 0.45, drops: [['wpn5', 4], ['shd4', 12], ['hat4', 12], ['herb', 18]] }, // ยกก้ามอ้าออก → ดีดก้ามปล่อยคลื่นแรงดัน
   pearl:    { name: 'ผู้พิทักษ์เกราะไข่มุก', sheet: true, lvR: [87, 89], hp: 64, dmg: 22, spd: 24, aggro: 130, r: 8, reach: 26, frontGuard: 0.3, windT: 0.6, recover: 1.4, coins: [36, 90], chance: 0.5, drops: [['shd4', 18], ['arm6', 16], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['wpn5', 6], ['pick5', 6]] }, // ยกโล่ตั้งรับ (ตีจากหน้าเข้า 30%) → พุ่งกระแทก แล้วลดโล่ให้สวน
   serpent:  { name: 'อสรพิษเกล็ดมูนสโตน', sheet: true, lvR: [90, 91], hp: 380, dmg: 28, spd: 44, aggro: 190, r: 11, reach: 40, big: true, mini: true, windT: 0.65, recover: 1.5, coins: [280, 560], chance: 1, drops: [['wpn5', 12], ['arm6', 16], ['shd4', 14], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['pick5', 10]] }, // มินิบอส: ชูคอกางแผงครีบ → เหยียดตัวพุ่งฉก แล้วถอยกลับไปขด
-  kraken:   { name: 'อสูรหมึกมงกุฎเพชร', sheet: true, lvR: [92, 92], hp: 900, dmg: 34, spd: 18, aggro: 200, r: 16, reach: 34, big: true, boss2: true, aoe: 54, windT: 0.85, recover: 2.0, weakRec: 1.6, coins: [700, 1400], chance: 1, drops: [['wpn5', 20], ['arm6', 16], ['shd4', 14], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['pick5', 16]] }, // บอส: ยกหนวดคู่หน้า → ฟาดพร้อมกัน แล้วเปิดมงกุฎ (ช่วงฟื้นตัวโดนแรงขึ้น 60%)
+  kraken:   { name: 'อสูรหมึกมงกุฎเพชร', sheet: true, lvR: [92, 92], hp: 900, dmg: 34, spd: 18, aggro: 200, r: 16, reach: 34, big: true, boss2: true, slam: { radius: 42, offset: 25, wind: 1.2, fastWind: 0.95, impact: 0.26, recovery: 1.8, fastRecovery: 1.45 }, weakRec: 1.6, coins: [700, 1400], chance: 1, drops: [['wpn5', 20], ['arm6', 16], ['shd4', 14], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['pick5', 16]] }, // บอส: ยกหนวดคู่หน้า → ฟาดพร้อมกัน แล้วเปิดมงกุฎ (ช่วงฟื้นตัวโดนแรงขึ้น 60%)
   spider:   { name: 'นางพญาแมงมุมมรณะ', hp: 85, dmg: 19, spd: 38, aggro: 170, r: 7, reach: 17, big: true, coins: [50, 150], chance: 1, drops: [['arm5', 16], ['wpn4', 14], ['shd3', 14], ['hat3', 12], ['glv3', 12], ['bt3', 12], ['pick4', 10], ['arm6', 6], ['herb', 14]] }, // แมงมุมยักษ์ผลึกม่วงบนหลัง: ตัวใหญ่ วิ่งเร็ว กัดแรง อยู่ตัวเดียวในอุโมงค์ลึก
 };
 const SPAWN_TABLE = {
@@ -6689,6 +6811,9 @@ function monBoxFree(m, x, y, r) {
   return true;
 }
 function monMove(m, e, dx, dy) {
+  if (e.grp?.chaseLimit && Math.hypot(e.x + dx - e.grp.x, e.y + dy - e.grp.y) > e.grp.chaseLimit) return false;
+  if (m.cp && Math.hypot(e.x + dx - m.cp.x, e.y + dy - m.cp.y) < 50
+    && Math.hypot(e.x + dx - m.cp.x, e.y + dy - m.cp.y) < Math.hypot(e.x - m.cp.x, e.y - m.cp.y)) return false;
   if (MONS[e.type].phase) { e.x = clamp(e.x + dx, 20, m.w * 16 - 20); e.y = clamp(e.y + dy, 20, m.h * 16 - 12); return true; } /* วิญญาณ: ลอยทะลุหิน ผนัง และน้ำได้ทุกที่ */
   const r = MONS[e.type].r; let ok = false;
   if (dx && monBoxFree(m, e.x + dx, e.y, r)) { e.x += dx; ok = true; }
@@ -6729,13 +6854,20 @@ function mkMon(m, type, x, y, zz, grp) { const def = MONS[type], ty = Math.floor
   if (type === 'skeleton') skelVariant(o, zz); monTier(o, m.tier || 1); G.mons.push(o); return o; }
 function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = countryOfMap(m.id), G2 = [];
   for (let cy = 16; cy < m.h - 4; cy += GROUP_CELL) for (let cx = 2; cx < m.w - 4; cx += GROUP_CELL) { if (rnd() > GROUP_FILL) continue;
-    for (let tries = 0; tries < 30; tries++) { const tx = cx + Math.floor(rnd() * GROUP_CELL), ty = cy + Math.floor(rnd() * GROUP_CELL); if (tx < 2 || ty < 16 || tx >= m.w - 2 || ty >= m.h - 2) continue; const i = MI(m, tx, ty);
+    for (let tries = 0; tries < 30; tries++) { const tx = cx + Math.floor(rnd() * GROUP_CELL), ty = cy + Math.floor(rnd() * GROUP_CELL); if (tx < 2 || ty < 16 || tx >= m.w - 2 || ty >= m.endRoute.entranceY) continue; const i = MI(m, tx, ty);
       if (m.t[i] !== TILE.FLOOR || m.protect[i]) continue; if (m.t[i + 1] !== TILE.FLOOR && m.t[i - 1] !== TILE.FLOOR) continue;
       const zz = ZONE_KEYS[m.zone[i]], T2 = t2Mine(m), list = T2 ? T2.table[zz] : SPAWN_TABLE[zz].list; let acc = rnd() * list.reduce((t, e) => t + e[1], 0), type = list[0][0]; for (const e of list) { acc -= e[1]; if (acc <= 0) { type = e[0]; break; } }
       const def = MONS[type], n = def.big || type === 'brute' || (T2 && zz === 'gravel') ? 1 : type === 'bandit' ? 3 + Math.floor(rnd() * 2) : 2 + Math.floor(rnd() * 3);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: n > 1 && rnd() < 0.34, champDead: false }); break; } } /* ราว 1 ใน 3 ของกลุ่มมีแม่ทัพนำ */
-  if (t2Mine(m) && G2.length > 2) { /* ก้นเหมือง: กลุ่มที่ลึกที่สุด = บอส โกเลมแกนไพลิน • ลึกรองลงมา = มินิบอส แมงป่องหางทับทิม */
-    const byDepth = G2.slice().sort((a, b) => b.y - a.y), mkU = (g, type) => { g.type = type; g.n = g.left = 1; g.champ = false; g.zz = 'deep'; }; mkU(byDepth[0], t2Mine(m).boss); mkU(byDepth[1], t2Mine(m).mini); }
+  const route = m.endRoute, tierSet = t2Mine(m);
+  const guard = (position, type, chaseLimit) => {
+    const [x, y] = position;
+    G2.push({ x: x * 16 + 8, y: y * 16 + 12, type, zz: 'deep', n: 1, left: 1,
+      deadAt: 0, active: false, champ: false, champDead: false, chaseLimit });
+  };
+  guard(route.guard, tierSet ? tierSet.mini : 'skeleton', 95);
+  guard(route.lowerGuard, tierSet ? tierSet.table.deep.at(-1)[0] : 'zombie', 85);
+  guard(route.boss, tierSet ? tierSet.boss : 'brute', 95);
   m.groups = G2; }
 function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now(), present = new Set(); for (const o of G.mons) if (o.grp) present.add(o.grp);
   for (const g of m.groups) { if (g.active && !present.has(g)) g.active = false;
@@ -6780,6 +6912,44 @@ function spawnMonsters(dt) {
     return;
   }
 }
+function updateKrakenSlam(m, e, def, dt, d) {
+  const spec = def.slam;
+  if (e.wind > 0) {
+    e.wind = Math.max(0, e.wind - dt);
+    if (e.wind > 0) return true;
+    e.atkT = spec.impact;
+    const { x, y, radius } = e.slamTarget;
+    G.shake = Math.max(G.shake, 5);
+    for (let i = 0; i < 14; i++) {
+      const a = i / 14 * Math.PI * 2, ux = Math.cos(a), uy = Math.sin(a);
+      G.parts.push({ k: 'dust', x: x + ux * radius, y: y + uy * radius, z: 0, vx: ux * 26, vy: uy * 26, vz: 24, life: 0.48, max: 0.48, col: '#78eadf', size: 2 });
+    }
+    if (!G.down && Math.hypot(PL.x - x, PL.y - y) < radius && losClear(m, e.x, e.y - 4, PL.x, PL.y - 4)) {
+      hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), x, y, e.name || def.name);
+    }
+    return true;
+  }
+  if (e.atkT > 0) {
+    e.atkT = Math.max(0, e.atkT - dt);
+    if (!e.atkT) e.recT = e.slamRecovery;
+    return true;
+  }
+  if (e.recT > 0) {
+    e.recT = Math.max(0, e.recT - dt);
+    if (!e.recT) e.slamTarget = null;
+    return true;
+  }
+  if (G.down || G.trans || e.state !== 'chase' || d >= def.reach || e.cd > 0) return false;
+  const dx = PL.x - e.x, dy = PL.y - e.y, enraged = e.hp < e.max / 2;
+  if (!losClear(m, e.x, e.y - 4, PL.x, PL.y - 4)) return false;
+  e.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+  [e.ax, e.ay] = DIRV[e.dir];
+  e.slamTarget = { x: e.x + e.ax * spec.offset, y: e.y + e.ay * spec.offset, radius: spec.radius };
+  e.slamRecovery = enraged ? spec.fastRecovery : spec.recovery;
+  e.kx = e.ky = 0;
+  e.wind = e.windMax = enraged ? spec.fastWind : spec.wind;
+  return true;
+}
 function updateMonsters(dt) {
   const m = G.map; if (!m.vein) { G.mons = []; return; }
   spawnMonsters(dt);
@@ -6793,13 +6963,14 @@ function updateMonsters(dt) {
     if (sees && !G.down) e.state = 'chase'; else if (d > def.aggro * 1.6) e.state = 'wander';
     e.moving = false;
     if (e._pl !== (STATE.lv || 1)) monScale(e);
+    if (def.slam && updateKrakenSlam(m, e, def, dt, d)) continue;
     if (e.atkT > 0) e.atkT = Math.max(0, e.atkT - dt);
     if (e.recT > 0 && !(e.wind > 0)) { e.recT -= dt; if (e.atkT <= 0) continue; } /* พักหลังโจมตี: ยืนนิ่ง เปิดช่องให้สวน */
     if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (def.recover) e.recT = def.recover * (def.boss2 && e.hp < e.max * 0.5 ? 0.6 : 1) * (e.champ ? 0.7 : 1); if (def.lava) (G.clouds || (G.clouds = [])).push({ x: e.x - e.ax * 8, y: e.y - 2 - e.ay * 8, r: 13, t: 0, life: 5, burn: Math.max(1, Math.round(def.dmg * 0.35 * (e.dmgMul || 1))) }); /* หยดลาวาค้างบนพื้น */ if (def.push && d < def.reach + 12 && !G.down) { for (let k = 0; k < 6; k++) { const nx = PL.x + e.ax * 6, ny = PL.y + e.ay * 6; if (boxFree(G.map, nx, ny)) { PL.x = nx; PL.y = ny; } } PL.path = null; } /* ลมปีกผลักถอย */ if (def.cloud) { (G.clouds || (G.clouds = [])).push({ x: e.x + e.ax * 14, y: e.y - 4 + e.ay * 14, r: def.ink ? 44 : 26, t: 0, life: def.ink ? 5.5 : 4.5, ink: def.ink }); e.cd = 2.6; continue; } if (def.aoe) { for (let k = 0; k < 14; k++) { const a3 = k / 14 * 6.283; G.parts.push({ k: 'dust', x: e.x + Math.cos(a3) * def.aoe * 0.8, y: e.y + Math.sin(a3) * def.aoe * 0.5, z: 0, vx: Math.cos(a3) * 30, vy: Math.sin(a3) * 18, vz: 30, life: 0.5, max: 0.5, col: def.boss2 ? '#5a8aff' : '#8a8478', size: 2 + Math.random() * 2 }); } G.shake = Math.max(G.shake, def.boss2 ? 5 : 3); if (d < def.aoe && !G.down) hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); e.cd = e.champ ? 0.6 : 1.1; continue; } if (def.ranged) { if (!G.down) { const a2 = Math.atan2((PL.y - 8) - (e.y - 12), PL.x - e.x) + (Math.random() - 0.5) * 0.09, sp = 150; (G.arrows || (G.arrows = [])).push({ x: e.x + Math.cos(a2) * 8, y: e.y - 12 + Math.sin(a2) * 8, vx: Math.cos(a2) * sp, vy: Math.sin(a2) * sp, life: 1.6, dmg: Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), who: e.name || def.name, orb: def.orb, big: def.beam }); const A0 = G.arrows[G.arrows.length - 1]; if (def.beam) { A0.vx *= 1.7; A0.vy *= 1.7; for (let k = 1; k <= 5; k++) G.arrows.push({ ...A0, x: A0.x - Math.cos(a2) * k * 7, y: A0.y - Math.sin(a2) * k * 7, dmg: Math.round(A0.dmg * 0.25) }); } /* ลำแสง: ลูกพลังเรียงเป็นแถวยาว พุ่งเร็ว */ if (def.fan) for (const da of [-0.34, 0.34]) { const a4 = a2 + da; G.arrows.push({ ...A0, x: e.x + Math.cos(a4) * 8, y: e.y - 12 + Math.sin(a4) * 8, vx: Math.cos(a4) * sp, vy: Math.sin(a4) * sp }); } SFX.play('swing', 0.5); } e.cd = e.champ ? 1.3 : 2.1; continue; } /* พลธนู: ปล่อยลูกธนูแทนการตีประชิด แล้วพักขึ้นสายใหม่ */ if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); STATE.coins -= take; e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = e.champ ? 0.6 : 1.1; /* แม่ทัพโจมตีถี่กว่า: พักระหว่างครั้ง 0.6 วิ (ลูกน้อง 1.1 วิ) */ } continue; }
     if (e.state === 'chase') {
       if (def.ranged && d < def.reach && !losClear(m, e.x, e.y - 6, PL.x, PL.y - 6)) { /* ไม่เห็นตัว: เดินเข้าหาต่อ */ } else
-      if (d < def.reach && e.cd <= 0) { e.wind = e.windMax = def.windT ? def.windT * (def.boss2 && e.hp < e.max * 0.5 ? 0.7 : 1) : def.ranged ? (e.champ ? 0.5 : 0.75) : e.type === 'bat' ? 0.2 : e.champ ? 0.26 : 0.38; /* แม่ทัพง้างสั้นกว่า */ const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
-      if (d < def.reach * 0.7 && (!def.ranged || losClear(m, e.x, e.y - 6, PL.x, PL.y - 6))) { if (def.ranged) { if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; } continue; }
+      if (!def.slam && d < def.reach && e.cd <= 0) { e.wind = e.windMax = def.windT ? def.windT * (def.boss2 && e.hp < e.max * 0.5 ? 0.7 : 1) : def.ranged ? (e.champ ? 0.5 : 0.75) : e.type === 'bat' ? 0.2 : e.champ ? 0.26 : 0.38; /* แม่ทัพง้างสั้นกว่า */ const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
+      if (d < def.reach * 0.7 && (!(def.ranged || def.slam) || losClear(m, e.x, e.y - 6, PL.x, PL.y - 6))) { if (def.ranged) { if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; } continue; }
       const sp = def.spd * dt * (def.fly ? 1 + Math.sin(e.t * 9) * 0.3 : 1);
       let tx = PL.x, ty = PL.y;
       if (e.path && e.path.length) { [tx, ty] = e.path[0]; if (Math.hypot(tx - e.x, ty - e.y) < 3) e.path.shift(); }
@@ -6838,7 +7009,10 @@ function hitMonster(e, dmg, fromX, fromY) {
   if (def.frontGuard && !(e.recT > 0) && !(e.atkT > 0)) { const fv = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[e.dir] || [0, 1], ax2 = fromX - e.x, ay2 = fromY - (e.y - 6), l2 = Math.hypot(ax2, ay2) || 1; if ((ax2 * fv[0] + ay2 * fv[1]) / l2 > 0.35) { dmg = Math.max(1, Math.round(dmg * def.frontGuard)); floatText(e.x, e.y - 30, 'ก้ามบัง!', '#7ab0ff', 0.7); } } /* ปู: โดนจากด้านหน้า ก้ามบัง — ต้องอ้อมข้าง/หลัง หรือรอตอนหนีบพลาด */
   if (e.guard) dmg = Math.max(1, Math.round(dmg * e.guard)); /* มีโล่: ดาเมจที่โดนลดลง */
   e.hp -= dmg; e.flash = 0.14; e.state = 'chase';
-  const a = Math.atan2(e.y - fromY, e.x - fromX), kb = def.big ? 60 : 150; e.kx = Math.cos(a) * kb; e.ky = Math.sin(a) * kb; e.wind = 0; e.cd = Math.max(e.cd, 0.35);
+  const a = Math.atan2(e.y - fromY, e.x - fromX), kb = def.big ? 60 : 150; if (!def.slam || !(e.wind > 0 || e.atkT > 0 || e.recT > 0)) {
+    e.kx = Math.cos(a) * kb; e.ky = Math.sin(a) * kb; e.wind = 0;
+  }
+  e.cd = Math.max(e.cd, 0.35);
   floatText(e.x, e.y - 20, (crit ? 'คริ! ' : '') + dmg, crit ? '#ffd040' : '#ffffff', 0.8);
   for (let i = 0; i < 5; i++) G.parts.push({ k: 'star', x: e.x, y: e.y - 8, z: 0, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 60, vz: 0, life: 0.35, max: 0.35, col: e.type === 'skeleton' ? '#ffffff' : '#ff5040', size: 1 });
   SFX.play('hit'); G.shake = Math.max(G.shake, 1.2);
@@ -7856,6 +8030,17 @@ function render() {
     for (const k in G.dmg) { const i = +k, tx = i % m.w, ty = (i / m.w) | 0; if (m.t[i] !== TILE.WALL) { delete G.dmg[k]; continue; } const frac = 1 - G.dmg[k] / rockMaxHp(m, i); const x = tx * 16, y = ty * 16; g.strokeStyle = 'rgba(10,6,4,0.85)'; g.lineWidth = 1; g.beginPath(); const n = 1 + Math.floor(frac * 4); for (let j = 0; j < n; j++) { const a = hash2(i, j, 3) * 6.28; g.moveTo(S(x + 8), T(y + 9)); g.lineTo(S(x + 8 + Math.cos(a) * 7), T(y + 9 + Math.sin(a) * 6)); } g.stroke(); }
     if (G.rock && !UI.isOpen()) { const r = G.rock, a = 0.55 + Math.sin(t * 6) * 0.25; g.strokeStyle = r.bedrock ? `rgba(160,140,140,${a})` : `rgba(255,230,140,${a})`; g.lineWidth = 1; g.strokeRect(S(r.tx * 16) + 0.5, T(r.ty * 16) + 0.5, 15, 15); }
   }
+  for (const e of G.mons) {
+    if (!e.slamTarget || !(e.wind > 0 || e.atkT > 0)) continue;
+    const { x, y, radius } = e.slamTarget;
+    if (!inView(x, y, radius)) continue;
+    const progress = e.wind > 0 ? 1 - e.wind / e.windMax : 1;
+    g.fillStyle = rgba('#ec6c78', e.wind > 0 ? 0.12 + progress * 0.16 : 0.28 * e.atkT / MONS[e.type].slam.impact);
+    g.strokeStyle = rgba('#ffc7ac', 0.75 + progress * 0.25);
+    g.lineWidth = 1.5;
+    g.beginPath(); g.arc(S(x), T(y), radius, 0, Math.PI * 2);
+    g.fill(); g.stroke();
+  }
   for (const tc of m.torches) if (inView(tc.x, tc.y)) g.drawImage(ART.torch[Math.floor(t * 8 + tc.x) % 3], S(tc.x - 4), T(tc.y - 9));
   for (const c of m.crystals) if (c.face && inView(c.x, c.y)) g.drawImage(c.spr, S(c.x - 7), T(c.y - 18));
   if (G.tap) { const a = 1 - G.tap.t / 0.8, r = 3 + G.tap.t * 8; g.strokeStyle = `rgba(255,230,150,${a})`; g.lineWidth = 1; g.strokeRect(S(G.tap.x - r), T(G.tap.y - r * 0.5), r * 2, r); }
@@ -8178,7 +8363,7 @@ function boot() {
   STATE = loaded || newState();
   for (const x of STATE.items || []) if (ITEMS[x.id] && !ITEMS[x.id].dur) delete x.dur; // จอบเริ่มต้นในเซฟเก่า: เลิกนับความทนทาน
   G.maps.village = buildVillage(); G.maps.mine = buildMine(STATE.mine.dug, 'thai'); G.maps.house = buildHouse();
-  if (/^(mine|out)_/.test(STATE.pos.map)) getMap(STATE.pos.map);
+  if (/^(?:mine(?:_|~)|out_)/.test(STATE.pos.map)) getMap(STATE.pos.map);
   const offline = processQueue();
   G.map = G.maps[STATE.pos.map] || G.maps.village;
   syncWarpDoor(); syncDeathBags();
