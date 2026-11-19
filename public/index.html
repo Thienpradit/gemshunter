@@ -6816,12 +6816,16 @@ function drawHitFx(g, S, T) {
   }
   G.hitfx = G.hitfx.filter(f => f.t < 0.32);
 }
+// ท่าโจมตีต่อชนิด: back = องศาเอนหลังตอนง้าง • rear = ชูตัวสูงขึ้นตอนง้าง (ค่าลบ = ย่อตัว) • fwd = องศาโถมตอนฟาด • stretch = ยืดตัวตอนฟาด • lunge = ระยะพุ่ง
+const ATK_POSE = { _: { back: 10, rear: 0, fwd: 16, stretch: 0.1, lunge: 7 }, snake: { back: 14, rear: 0.22, fwd: 30, stretch: 0.3, lunge: 10 }, scorpion: { back: 8, rear: 0.2, fwd: 24, stretch: 0.18, lunge: 8 }, spider: { back: 16, rear: 0.2, fwd: 22, stretch: 0.14, lunge: 10 },
+  mud: { back: 6, rear: 0.3, fwd: 14, stretch: 0.22, lunge: 6 }, ghost: { back: 12, rear: 0.12, fwd: 20, stretch: 0.2, lunge: 11 }, bat: { back: 20, rear: -0.1, fwd: 34, stretch: 0.15, lunge: 12 }, zombie: { back: 12, rear: 0.04, fwd: 24, stretch: 0.08, lunge: 8 }, skeleton: { back: 14, rear: 0.03, fwd: 28, stretch: 0.08, lunge: 9 } };
 function drawMonster(g, e, S, T) {
   const def0 = MONS[e.type], IMG = ART.monImg && ART.monImg[e.type], def = IMG ? { ...def0, human: false } : def0, t = G.time; let fr, w, h, sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1);
   // ท่าโจมตี: ง้าง (ถอยหลังเล็กน้อย+สั่น) → พุ่งเข้าใส่ (ท่าฟาด)
   let ox = 0, oy = 0, sq = 1;
+  if (e.wind > 0 && def.ranged) { /* พลธนู: ยืนนิ่งตอนง้าง */ } else
   if (e.wind > 0) { const k = 1 - e.wind / (e.windMax || 0.38); ox = -(e.ax || 0) * 3 * k + Math.sin(t * 60) * 0.6; oy = -(e.ay || 0) * 3 * k; sq = 1 + 0.08 * k; }
-  else if (e.atkT > 0) { const k = Math.sin((1 - e.atkT / 0.26) * Math.PI); ox = (e.ax || 0) * 7 * k; oy = (e.ay || 0) * 7 * k; }
+  else if (e.atkT > 0 && !def.ranged) { const k = Math.sin((1 - e.atkT / 0.26) * Math.PI), LG = (ATK_POSE[e.type] || ATK_POSE._).lunge; ox = (e.ax || 0) * LG * k; oy = (e.ay || 0) * LG * k; }
   if (def.human) { const sh = ART.mon[e.type]; const sw = sh[e.dir].swing; fr = (e.wind > 0 && sw) ? sw[0] : (e.atkT > 0 && sw) ? sw[e.atkT > 0.15 ? 1 : 2] : e.moving ? sh[e.dir].walk[Math.floor(e.t * 7) % 4] : sh[e.dir].idle[Math.floor(e.t * 2) % 2]; w = fr.width * sc; h = fr.height * sc; }
   else if (IMG) { const arr = IMG[e.dir] || IMG.down; fr = e.wind > 0 ? arr[2] : e.atkT > 0.1 ? (arr[3] || arr[2]) : e.moving ? arr[Math.floor(e.t * (e.type === 'skeleton' ? 7 : 4.2)) % 2] : arr[1]; w = fr.width / fr.k; h = fr.height / fr.k; }
   else if (e.type === 'mud') { const arr = ART.mon.mud[e.dir] || ART.mon.mud.down; fr = e.wind > 0 || e.atkT > 0.1 ? arr[2] : arr[Math.floor(e.t * (e.moving ? 5 : 2.2)) % 2]; w = fr.width / fr.k; h = fr.height / fr.k; if (e.moving && Math.random() < 0.12) G.parts.push({ k: 'dust', x: e.x + (Math.random() - 0.5) * 12, y: e.y, z: 0, vx: 0, vy: 0, vz: 0, life: 0.9, max: 0.9, col: '#4a321c', size: 2 + Math.random() * 2 }); } /* โคลน: ภาพ 4 ทิศ ยุบ-พองเป็นคลื่น ทิ้งรอยโคลนตามทาง ชูตัวตอนจะฟาด */
@@ -6843,8 +6847,14 @@ function drawMonster(g, e, S, T) {
   const dx = (def.human ? S(e.x - 16 * sc) : S(e.x - w / 2)) + Math.round(ox), dy = (def.human ? T(e.y - CHAR_FEET * sc + fy) : T(e.y - h + 2 + fy)) + Math.round(oy);
   if (GH) { const cx2 = dx + w / 2, cy2 = dy + h * 0.42, gr = g.createRadialGradient(cx2, cy2, 1, cx2, cy2, 17); gr.addColorStop(0, 'rgba(210,235,255,0.22)'); gr.addColorStop(1, 'rgba(210,235,255,0)'); g.fillStyle = gr; g.fillRect(cx2 - 17, cy2 - 17, 34, 34); g.globalAlpha = (e.wind > 0 || e.atkT > 0.1 ? 0.9 : 0.66) + Math.sin(t * 3 + e.x) * 0.1; } /* ตอนจู่โจมตัวชัดขึ้น */ /* เรืองแสงจาง ๆ + ตัวโปร่งแสง มองทะลุเห็นพื้นหลัง */
   const hiRes = !!fr.k, sm0 = g.imageSmoothingEnabled; if (hiRes) { g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; } /* ภาพละเอียดสูง: ย่อแบบเนียน */
-  g.drawImage(fr, dx, dy, Math.round(w), Math.round(h)); g.globalAlpha = 1;
-  if (e.flash > 0) { g.globalAlpha = 0.85; g.drawImage(whiteOf(fr), dx, dy, Math.round(w), Math.round(h)); g.globalAlpha = 1; }
+  /* ท่าโจมตีของศัตรูภาพละเอียด: ง้าง (เอนหลัง/ย่อ/ชูตัว ตามชนิด) → ฟาด (โถมไปข้างหน้า ยืดตัว) หมุนรอบเท้า • หันหน้า/หลัง ใช้การขยาย-หดแทนการเอน */
+  let rot = 0, sxA = 1, syA = 1;
+  if (hiRes && !def0.ranged && (e.wind > 0 || e.atkT > 0)) { const A = ATK_POSE[e.type] || ATK_POSE._, sg = e.dir === 'right' ? 1 : e.dir === 'left' ? -1 : 0, D2R = Math.PI / 180;
+    if (e.wind > 0) { const k = clamp(1 - e.wind / (e.windMax || 0.38), 0, 1), kk = k * k * (3 - 2 * k); rot = -sg * A.back * kk * D2R; syA = 1 + A.rear * kk; sxA = 1 - A.rear * 0.5 * kk; if (!sg) { syA *= 1 + (e.dir === 'down' ? -0.04 : 0.04) * kk; } }
+    else { const k = clamp(1 - e.atkT / 0.26, 0, 1), p = Math.sin(Math.min(1, k * 1.25) * Math.PI); rot = sg * A.fwd * p * D2R; syA = 1 + A.stretch * p * (sg ? 0.4 : 1) * (e.dir === 'up' ? -0.5 : 1); sxA = 1 + A.stretch * p * (sg ? 1 : e.dir === 'up' ? -0.4 : 0.8); } }
+  const drawFr = img => { if (!rot && sxA === 1 && syA === 1) { g.drawImage(img, dx, dy, Math.round(w), Math.round(h)); return; } g.save(); g.translate(dx + w / 2, dy + h); g.scale(1, 1 / (G.TILT || 1)); g.rotate(rot || 1e-5); g.scale(sxA, syA); g.drawImage(img, -w / 2, -h, w, h); g.restore(); }; /* ฉากถูกบีบแนวตั้งตามมุมกล้อง (TILT): คืนสัดส่วนเองก่อนหมุน • หมุนนิดเดียวเสมอเพื่อข้ามตัวจัดพิกเซลของ drawImage ที่จะคืนสัดส่วนซ้ำ */
+  drawFr(fr); g.globalAlpha = 1;
+  if (e.flash > 0) { g.globalAlpha = 0.85; drawFr(whiteOf(fr)); g.globalAlpha = 1; }
   if (hiRes) g.imageSmoothingEnabled = sm0;
   if (e.wind > 0) { g.fillStyle = '#ff3020'; const ex = S(e.x), ey = T(e.y - (def.human ? 30 * sc : h + 4) + fy); g.fillRect(ex, ey, 1, 4); g.fillRect(ex, ey + 5, 1, 1); }
   if (false && e.hp < e.max) { /* หลอดเลือดย้ายไปวาดคู่กับป้ายชื่อเหนือหัว (game.js) */ const bw = Math.round(14 * sc), bx = S(e.x - bw / 2), by = T(e.y - (def.human ? 34 * sc : h + 6) + fy); g.fillStyle = '#1a0a08'; g.fillRect(bx - 1, by - 1, bw + 2, 4); g.fillStyle = '#e04030'; g.fillRect(bx, by, Math.max(0, Math.round(bw * e.hp / e.max)), 2); }
