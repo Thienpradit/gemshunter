@@ -595,6 +595,14 @@ body.touch #btnWarp small{display:none}body.touch #btnWarp b{font-size:12px}body
 body.touch #toasts{bottom:auto!important;top:calc(4px + env(safe-area-inset-top))!important;left:calc(200px + env(safe-area-inset-left))!important;right:calc(180px + env(safe-area-inset-right));width:auto!important;transform:none!important}
 body.touch .toast{font-size:12px!important;padding:4px 8px;line-height:1.35}
 body.touch .toast img{width:18px;height:18px}
+.scsum{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;background:rgba(0,0,0,.3);border:1px solid #6b3a16;border-radius:8px;padding:8px 12px;margin:6px 0}.scsum .scv{color:#ffd77a;font-size:1.15em}
+.scgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;max-height:52vh;overflow:auto;padding:4px 2px;margin-top:6px}
+.scbox{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:8px 6px;border-radius:9px;border:2px solid rgba(20,10,5,.85);background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.4));cursor:pointer;min-height:128px}
+.scbox b{font-size:12px;line-height:1.25}.scbox small{font-size:11px;opacity:.8}.scbox .scp{margin-top:auto;font-weight:bold;color:#ffd77a;font-size:13px}
+.scbox .scimg{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,color-mix(in srgb,var(--gc) 35%,transparent),rgba(0,0,0,.5));border:1px solid rgba(255,255,255,.12)}.scbox .scimg img{max-width:46px;max-height:46px;image-rendering:pixelated}
+.scbox .scimg i{font-style:normal;font-size:26px;color:var(--gc);opacity:.55}
+.scbox.on{border-color:#d9a441;box-shadow:0 0 0 1px #6b3a16 inset}.scbox.off{opacity:.62}.scbox.can{border-color:#5fbf6a}.scbox.can small{color:#9fe8a8}.scbox:hover{transform:translateY(-1px)}
+body.touch .scgrid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));max-height:44vh}
 @media (orientation:portrait){body.touch #toasts{left:8px!important;right:8px;top:calc(150px + env(safe-area-inset-top))!important}}
 @media (orientation:portrait){
   body.touch #btnAct{bottom:calc(max(6px,env(safe-area-inset-bottom)) + 72px)}
@@ -1494,6 +1502,8 @@ function jenaWants(g) { return !!jenaSlot(g); }
 function jenaNear(g) { if (!g || g.state !== 'cut' || jenaSlot(g)) return false; const J = jenaState(); return jenaWeek().pieces.some(P => !J.done[P.k] && P.need.some(nd => nd.type === g.type && (J.got[nd.key] || 0) < nd.n)); }
 function jenaPrice(g) { return Math.round(bestCutOffer(g).price * JENA_PREMIUM); }
 function gemOrigins(type) { const out = []; for (const k of COUNTRY_KEYS) { const L = k === 'thai' ? Object.values(CONFIG.zoneOdds) : (COUNTRIES[k].odds || []); if (L.some(o => o && o[type] > 0)) out.push(COUNTRIES[k].short || COUNTRIES[k].name); } return out; }
+function showcaseState() { return STATE.showcase && typeof STATE.showcase === 'object' ? STATE.showcase : (STATE.showcase = {}); }
+function showcaseValue() { let v = 0; const S = showcaseState(); for (const k in S) v += estValue(S[k]); return v; }
 function estValue(g) { if (g.state === 'raw') return rawPrice(g); return bestCutOffer(g).price; }
 function cleanPct(flaw, seed) { const lo = [90, 78, 64, 48, 30, 12][flaw], hi = [100, 89, 77, 63, 47, 29][flaw]; return lo + ((seed >>> 5) % (hi - lo + 1)); }
 function cutSeconds(g, avoid) {
@@ -1827,7 +1837,7 @@ function heroDefault() {
 }
 function newState() {
   return {
-    hero: heroDefault(), cps: {}, pins: {}, gates: {},
+    hero: heroDefault(), cps: {}, pins: {}, gates: {}, showcase: {},
     v: SAVE_VERSION, durV: 2, coins: CONFIG.startCoins, inv: [], questIdx: 0, questProg: 0,
     stats: { sold: 0, soldCut: 0, dug: 0, found: 0, earned: 0, kills: 0, deepest: 0 },
     queue: { jobs: [], startAt: 0 },
@@ -1862,6 +1872,7 @@ function migrateSave(s) {
   st.coins = Math.max(0, Math.round(Number(s.coins ?? s.money ?? s.gold ?? st.coins)));
   const inv = Array.isArray(s.inv) ? s.inv : Array.isArray(s.inventory) ? s.inventory : Array.isArray(s.bag) ? s.bag : [];
   st.inv = inv.map(g => normGem(g, st)).filter(Boolean);
+  st.showcase = {}; if (s.showcase && typeof s.showcase === 'object') for (const k in s.showcase) { const g = GEMS[k] && normGem(s.showcase[k], st); if (g && g.type === k) st.showcase[k] = g; } /* ตู้โชว์คอลเลกชัน: ชนิดละ 1 เม็ด */
   if (s.safe && typeof s.safe === 'object') st.safe = { lv: clamp(Number(s.safe.lv) | 0, 0, SAFES.length - 1), gems: (Array.isArray(s.safe.gems) ? s.safe.gems : []).map(g => normGem(g, st)).filter(Boolean) };
   st.questIdx = clamp(Number(s.questIdx ?? s.quest?.idx ?? 0) || 0, 0, QUESTS.length);
   st.questProg = Number(s.questProg ?? s.quest?.progress ?? s.soldCount ?? 0) || 0;
@@ -2774,6 +2785,15 @@ function sprTree(kind, seed) {
 }
 function sprBush(seed) { const { c, g } = mk(20, 14); blob(g, 7, 8, 6, GREEN, seed); blob(g, 13, 8, 6, GREEN, seed + 1); blob(g, 10, 5, 5, GREEN, seed + 2); if (seed % 2) { P(g, 6, 6, '#f4e070'); P(g, 13, 5, '#f07090'); P(g, 10, 9, '#ffffff'); } return addOutline(c, '#11200e'); }
 function sprRock(seed, pal = ['#55504a', '#6e6860', '#8a8278', '#a89e90']) { const { c, g } = mk(16, 12); blob(g, 8, 7, 5.5, pal, seed, 0.25); return addOutline(c, '#1a1612'); }
+function sprShowcase() { // ตู้โชว์คอลเลกชันพลอยในบ้าน: ตู้ไม้กระจกสองชั้น มีพลอยวางเรียง
+  const { c, g } = mk(30, 36); const wd = '#7a4a22', lt = '#a86a34', dk = '#4a2a10', gl = '#1e2a38';
+  R(g, 1, 2, 28, 31, wd); R(g, 1, 2, 28, 2, lt); R(g, 1, 2, 2, 31, lt); R(g, 27, 4, 2, 29, dk); R(g, 1, 31, 28, 2, dk); R(g, 0, 1, 30, 2, '#d9a441');
+  for (const y of [6, 19]) { R(g, 4, y, 22, 10, gl); R(g, 4, y, 22, 1, '#5a7a90'); R(g, 4, y + 9, 22, 1, '#c8a060'); R(g, 5, y + 1, 1, 6, '#3a5266'); }
+  [['#e8284f', '#ffb0c0'], ['#3a6ad8', '#b0c8ff'], ['#1ea464', '#a0f0c0'], ['#f0c030', '#fff0a0']].forEach((cl, i) => { R(g, 6 + i * 5, 12, 3, 3, cl[0]); P(g, 6 + i * 5, 12, cl[1]); });
+  [['#9058c8', '#e0c0ff'], ['#30d8e0', '#c0ffff'], ['#f08068', '#ffd0c0'], ['#e8e8f0', '#ffffff']].forEach((cl, i) => { R(g, 6 + i * 5, 25, 3, 3, cl[0]); P(g, 6 + i * 5, 25, cl[1]); });
+  R(g, 3, 33, 4, 3, dk); R(g, 23, 33, 4, 3, dk);
+  return addOutline(c, '#20120a');
+}
 function sprSafe() { // ตู้เซฟเหล็กในบ้าน: บานประตูหนา หน้าปัดหมุนรหัส มือจับ บานพับ
   const { c, g } = mk(22, 26); const st = '#6e7884', lt = '#9aa6b2', dk = '#444c56', dd = '#2c323a';
   R(g, 1, 2, 20, 22, st); R(g, 1, 2, 20, 2, lt); R(g, 1, 2, 2, 22, lt); R(g, 19, 4, 2, 20, dk); R(g, 1, 22, 20, 2, dk);
@@ -7236,6 +7256,8 @@ function buildHouse() {
   addObj(m, ART.barrel || sprBarrel(), 1.6 * 16, 10.5 * 16, { solid: [10, 6] });
   addObj(m, sprSafe(), 10.5 * 16, 4 * 16 + 6, { solid: [20, 8], kind: 'safe' });
   m.interact.push({ kind: 'safe', x: 10.5 * 16, y: 4 * 16 + 14, r: 26, label: 'ตู้เซฟ (เก็บพลอย)', verb: 'เปิด', hit: { x: 10.5 * 16 - 13, y: 4 * 16 - 30, w: 26, h: 40 } });
+  addObj(m, sprShowcase(), 7.6 * 16, 4 * 16 + 6, { solid: [26, 8], kind: 'showcase' });
+  m.interact.push({ kind: 'showcase', x: 7.6 * 16, y: 4 * 16 + 14, r: 26, label: 'ตู้โชว์คอลเลกชันพลอย', verb: 'เปิดดู', hit: { x: 7.6 * 16 - 15, y: 4 * 16 - 32, w: 30, h: 44 } });
   m.interact.push({ kind: 'home', x: 14.5 * 16, y: 6 * 16 + 8, r: 34, label: 'เตียงนอน', verb: 'นอนพัก', hit: { x: 14.5 * 16 - 20, y: 6 * 16 - 50, w: 40, h: 52 } });
   { const sg = addSign(m, 'bed', 'เตียงนอน', '', 14.5 * 16, 6 * 16 - 50, { sortY: 6 * 16 + 1 }); if (typeof PIXEL !== 'undefined' && PIXEL && sg) sg.by = 6 * 16; } // ป้ายลอยเหนือหัวเตียง (ยึดกับฐานเตียงตามมุมกล้องเอียง)
   m.triggers.push({ kind: 'exitHouse', to: 'village', spawn: 'house', x: 8 * 16, y: (H - 1) * 16 + 6, w: 32, h: 12 });
@@ -7970,6 +7992,7 @@ function doInteract(it) {
     case 'repair': return UI.repair();
     case 'home': return UI.home();
     case 'safe': return UI.safe();
+    case 'showcase': return UI.showcase();
     case 'mint': return UI.mint();
     case 'jeweler': return UI.jeweler();
     case 'enterHouse': return goMap('house');
@@ -9679,6 +9702,31 @@ const UI = (() => {
   }
   // ---------- ตู้เซฟในบ้าน: ย้ายพลอย กระเป๋า ⇄ ตู้ (เมนูแบบเดียวกับหน้าขาย) ----------
   let safeTab = 'in', safeSel = new Set();
+  // ---------- ตู้โชว์คอลเลกชันพลอย (ในบ้าน): กล่องละชนิด ใส่พลอยของเราได้ชนิดละ 1 เม็ด แสดงราคาประเมินรายเม็ดและรวมทั้งคอลเลกชัน ----------
+  let scFilter = 'all', scType = null;
+  function showcase() {
+    const SC = showcaseState(), types = Object.keys(GEMS), S = safeState(), total = showcaseValue(), have = types.filter(t => SC[t]).length;
+    const mine = t => [...STATE.inv.filter(g => g.type === t).map(g => ({ g, src: 'bag' })), ...S.gems.filter(g => g.type === t).map(g => ({ g, src: 'safe' }))].sort((a, b) => estValue(b.g) - estValue(a.g));
+    const head = `<h3>💎 ตู้โชว์คอลเลกชันพลอย</h3><div class="scsum"><span>สะสมแล้ว <b>${have}</b> / ${types.length} ชนิด</span><span>ราคาประเมินรวมทั้งคอลเลกชัน <b class="scv">${money(total)}</b></span></div>`;
+    if (scType && GEMS[scType]) { const t = scType, cur = SC[t], cand = mine(t);
+      show('showcase', `${head}<h4 style="margin:8px 0 4px">กล่อง: ${GEMS[t].name}</h4>
+        ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}<br><button class="btn small" data-a="scout">เอาออกจากตู้</button>`, true, 'none')}</div>` : '<div class="empty">กล่องนี้ยังว่าง — เลือกพลอยด้านล่างเพื่อใส่</div>'}
+        <h4 style="margin:10px 0 4px">พลอยชนิดนี้ที่คุณมี (กระเป๋า + ตู้เซฟ) ${cand.length ? `• ${cand.length} เม็ด` : ''}</h4>
+        <div class="list">${cand.length ? cand.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'} • ประเมิน</small><br>${money(estValue(g))}<br><button class="btn small gold" data-a="scput" data-id="${g.id}" data-s="${src}">${cur ? 'สลับใส่แทน' : 'ใส่ในกล่อง'}</button>`, false, 'none')).join('') : '<div class="empty">คุณยังไม่มีพลอยชนิดนี้ ต้องไปขุดหามาก่อน</div>'}</div>
+        <div class="row end"><button class="btn" data-a="scback">◀ กลับไปดูทั้งตู้</button><button class="btn" data-a="close">ปิด</button></div>`,
+        (a, b) => {
+          if (a === 'scback') { scType = null; SFX.play('click'); return showcase(); }
+          if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t); if (i < 0) return; const g = arr[i]; if (SC[t]) arr[i] = SC[t]; else arr.splice(i, 1); SC[t] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> ลงตู้โชว์แล้ว • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
+          if (a === 'scout') { const g = SC[t]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากตู้โชว์ไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[t]; SFX.play('click'); saveGame(); hud(); return showcase(); } });
+      api.onE = null; return; }
+    const list = types.filter(t => scFilter === 'have' ? SC[t] : scFilter === 'miss' ? !SC[t] : scFilter === 'can' ? !SC[t] && mine(t).length : true), canN = types.filter(t => !SC[t] && mine(t).length).length;
+    show('showcase', `${head}<div class="row wrap">${[['all', `ทั้งหมด (${types.length})`], ['have', `ใส่แล้ว (${have})`], ['miss', `ยังว่าง (${types.length - have})`], ['can', `มีพลอยพร้อมใส่ (${canN})`]].map(([k, n]) => `<button class="btn small ${scFilter === k ? 'gold' : ''}" data-a="scf" data-f="${k}">${n}</button>`).join('')}</div>
+      <div class="scgrid">${list.length ? list.map(t => { const g = SC[t], n = g ? 0 : mine(t).length, col = g ? gemHex(g) : GEMS[t].colors[4][1]; return `<div class="scbox ${g ? 'on' : n ? 'can' : 'off'}" data-a="scbox" data-t="${t}" style="--gc:${col}"><div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : '<i>?</i>'}</div><b>${GEMS[t].name}</b>${g ? `<small>${g.state === 'cut' ? 'เจียระไน' : 'ก้อน'} • ${g.carat.toFixed(2)} กะรัต</small><span class="scp">${money(estValue(g))}</span>` : `<small>${n ? `มี ${n} เม็ดพร้อมใส่` : 'ยังไม่มี'}</small><span class="scp muted">ว่าง</span>`}</div>`; }).join('') : '<div class="empty">ไม่มีกล่องในหมวดนี้</div>'}</div>
+      <p class="muted small">แตะกล่องเพื่อใส่ สลับ หรือเอาพลอยออก • ใส่ได้ชนิดละ 1 เม็ด ทั้งพลอยก้อนและพลอยเจียระไน • ราคาประเมินเปลี่ยนตามราคาตลาด</p>
+      <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
+      (a, b) => { if (a === 'scf') { scFilter = b.dataset.f; SFX.play('click'); return showcase(); } if (a === 'scbox') { scType = b.dataset.t; SFX.play('click'); return showcase(); } });
+    api.onE = null;
+  }
   function safe() {
     const S = safeState(), cap = SAFES[S.lv].cap, up = safeTab === 'up', inMode = safeTab === 'in', all = inMode ? STATE.inv : S.gems;
     safeSel = new Set([...safeSel].filter(id => all.some(g => g.id === id)));
@@ -10581,7 +10629,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { cps, mineSelect, character, editHero, safe, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
