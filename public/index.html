@@ -4392,15 +4392,23 @@ const PIX = (() => {
         for (const k of [0, 1]) { const g = fr[k + 1].getContext('2d'); g.drawImage(im, 0, 0, FW, c2, 0, k ? 0 : -K, FW, c2 + (k ? 0 : K)); g.drawImage(im, 0, c2, hf, FW - c2, 0, c2 - (k === 0 ? K : 0), hf, FW - c2); g.drawImage(im, hf, c2, hf, FW - c2, hf, c2 - (k === 1 ? K : 0), hf, FW - c2); }
         if (++S.n >= total) S.ready = true; }; im.src = 'data:image/png;base64,' + D[pose][d]; } }
     return S; }
-  function drawHero(g, sx, sy, o, S) { const dir = S.f.pick[o.dir] ? o.dir : 'down', sc = o.scale || 1, sw = o.swing, IT = o.tool && typeof ITEMS !== 'undefined' ? ITEMS[o.tool] : null, idlePose = IT && IT.slot === 'weapon' ? 'sword' : 'pick';
-    const gunPose = IT && IT.gun && S.f.gun ? 'gun' : null; let fr; if (o.fall != null) fr = S.f[idlePose][dir][0]; else if (gunPose && sw == null) fr = S.f.gun[dir][o.moving ? 1 + Math.floor((o.anim || 0) * 1.2) % 2 : 0]; else if (sw != null) fr = S.f[sw < 0.4 || sw > 0.86 ? 'up' : 'dn'][dir][0]; else if (o.moving) fr = S.f[idlePose][dir][1 + Math.floor((o.anim || 0) * 1.2) % 2]; else fr = S.f[idlePose][dir][0];
-    const w = 48 * sc, x = sx - w / 2, y = sy - 45 * sc - (o.moving || sw != null || o.fall != null ? 0 : (Math.floor(((o.idleT != null ? o.idleT : G.time) * 1.6)) % 2 ? 0 : 0)), sm0 = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    const put = img => { if (o.fall != null) { const k = Math.min(1, o.fall); g.save(); g.translate(sx, sy - 2 * sc); g.rotate(-k * Math.PI / 2 + 1e-5); g.drawImage(img, -w / 2, -43 * sc, w, w); g.restore(); } else g.drawImage(img, x, y, w, w); };
+  // ของในมือต้องตรงกับที่ใช้จริง: พลั่ว → ภาพถือพลั่ว/ขุด • ดาบ/มีด → ภาพถือดาบ • ขวาน → ภาพขวาน • ปืน → ภาพถือปืน
+  //  ท่าเหวี่ยงที่ไม่มีภาพวาด (ฟันดาบ / สับขวานลง) ใช้ภาพถืออาวุธนั้นเอนหลังแล้วโถมไปข้างหน้า ไม่สลับไปใช้ภาพของอาวุธอื่น
+  function heroKind(o) { const IT = o.tool && typeof ITEMS !== 'undefined' ? ITEMS[o.tool] : null; return !IT || IT.slot === 'pick' ? 'pick' : IT.gun ? 'gun' : o.tool === 'wpn3' ? 'axe' : 'blade'; }
+  function drawHero(g, sx, sy, o, S) { const dir = S.f.pick[o.dir] ? o.dir : 'down', sc = o.scale || 1, sw = o.fall != null ? null : o.swing, kind = heroKind(o), idlePose = { pick: 'pick', blade: 'sword', axe: 'up', gun: 'gun' }[kind];
+    let fr, rot = 0, lx = 0, ly = 0; const sg = dir === 'right' || dir === 'dr' || dir === 'ur' ? 1 : dir === 'left' || dir === 'dl' || dir === 'ul' ? -1 : 0, vy = dir[0] === 'd' ? 1 : dir[0] === 'u' ? -1 : 0;
+    if (sw != null && kind === 'pick') fr = S.f[sw < 0.38 || sw > 0.86 ? 'pick' : 'dn'][dir][0];
+    else if (sw != null) { fr = S.f[idlePose][dir][0]; const back = sw < 0.36 ? Math.sin(sw / 0.36 * Math.PI / 2) : 0, hit = sw >= 0.36 ? Math.sin(Math.min(1, (sw - 0.36) / 0.3) * Math.PI / 2) * (sw > 0.8 ? (1 - sw) / 0.2 : 1) : 0, A = kind === 'axe' ? [5, 17] : [7, 15];
+      rot = sg * (-A[0] * back + A[1] * hit) * Math.PI / 180; lx = sg * (-1.5 * back + 4 * hit) * sc; ly = vy * (-1 * back + 3 * hit) * sc - (sg ? 0 : hit * 1.5 * sc); }
+    else if (o.moving) fr = S.f[idlePose][dir][1 + Math.floor((o.anim || 0) * 1.2) % 2]; else fr = S.f[idlePose][dir][0];
+    const w = 48 * sc, sm0 = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    const put = img => { if (o.fall != null) { const k = Math.min(1, o.fall); g.save(); g.translate(sx, sy - 2 * sc); g.rotate(-k * Math.PI / 2 + 1e-5); g.drawImage(img, -w / 2, -43 * sc, w, w); g.restore(); }
+      else if (rot) { g.save(); g.translate(sx + lx, sy + ly); g.rotate(rot); g.drawImage(img, -w / 2, -45 * sc, w, w); g.restore(); } else g.drawImage(img, sx - w / 2 + lx, sy - 45 * sc + ly, w, w); };
     put(fr); if (o.tint && o.tintA > 0) { g.globalAlpha = Math.min(1, o.tintA); put(tintOf(fr, o.tint)); g.globalAlpha = 1; }
     g.imageSmoothingEnabled = sm0; return 29 * sc; }
   function drawChar(g, sx, sy, o) {
     { const K = (typeof G !== 'undefined' && G.TILT) || 1; if (K !== 1 && !o._up && Math.abs(g.getTransform().d - Math.abs(g.getTransform().a)) > 1e-6) { g.save(); g.translate(sx, sy); g.scale(1, 1 / K); const r = drawChar(g, 0, 0, { ...o, _up: 1 }); g.restore(); return r; } } // ตัวละครตั้งตรงในมุมกล้องเฉียง
-    if (o.hero) { const HS = heroSet(o.hero); if (HS && HS.ready) return drawHero(g, sx, sy, o, HS); } /* ตัวละครแบบภาพวาด (ระหว่างโหลดภาพใช้ตัวเดิมไปก่อน) */
+    if (o.hero) { const HS = heroSet(o.hero); if (HS && HS.ready && (heroKind(o) !== 'gun' || HS.f.gun)) return drawHero(g, sx, sy, o, HS); } /* ชุดภาพที่ยังไม่มีท่าถือปืน (ผู้ชาย): ตอนถือปืนใช้ตัวละครแบบเดิมที่วาดปืนได้ จะได้ไม่ถือผิดของ */ /* ตัวละครแบบภาพวาด (ระหว่างโหลดภาพใช้ตัวเดิมไปก่อน) */
     if (o.fall != null) { const f = fallSpr(o.L, Math.min(7, Math.floor(o.fall * 7.999))), sc = o.scale || 1, w = f.width * sc / f.res, lift = Math.min(1, o.fall) * 5 * sc, fx = sx - w / 3 - Math.min(1, o.fall) * 8 * sc; g.drawImage(f, fx, sy - w * 0.8 - lift + 2 * sc, w, w); if (o.tint && o.tintA > 0) { g.globalAlpha = Math.min(1, o.tintA); g.drawImage(tintOf(f, o.tint), fx, sy - w * 0.8 - lift + 2 * sc, w, w); g.globalAlpha = 1; } return 29 * sc; }
     const dir = o.dir || 'down', sc = o.scale || 1, sw = o.swing, s = sheet(o.L, o.tool && o.hold !== false ? o.tool : null);
     const fr = sw != null ? s[dir].swing[MINER.SWING_N === 4 ? (sw < 0.2 ? 0 : sw < 0.38 ? 1 : sw < 0.47 ? 2 : sw < 0.82 ? 3 : 2) : Math.min(MINER.SWING_N - 1, Math.floor(sw * MINER.SWING_N))] /* จังหวะเหวี่ยง: ง้างช้า → ฟาดเร็ว → ค้างตอนกระทบ → ดึงกลับ */ : o.fire != null ? s[dir].fire[Math.min(3, Math.floor(o.fire * 4))] : o.moving ? s[dir].walk[Math.floor((o.anim || 0) * 2) % 8] : s[dir].idle[Math.floor(((o.idleT != null ? o.idleT : G.time) * 6 + (o.ph || 0) * 0.74)) % 16];
