@@ -1854,7 +1854,7 @@ function heroDefault() {
 }
 function newState() {
   return {
-    hero: heroDefault(), cps: {}, pins: {}, gates: {}, showcase: {},
+    hero: heroDefault(), cps: {}, pins: {}, gates: {}, showcase: {}, regen: {}, grp: {},
     v: SAVE_VERSION, durV: 2, coins: CONFIG.startCoins, inv: [], questIdx: 0, questProg: 0,
     stats: { sold: 0, soldCut: 0, dug: 0, found: 0, earned: 0, kills: 0, deepest: 0 },
     queue: { jobs: [], startAt: 0 },
@@ -1931,6 +1931,9 @@ function migrateSave(s) {
     const facing = ['up', 'down', 'left', 'right'].includes(dir) ? dir : 'down';
     st.pos = { map: mapId, x: compatible ? x : -1, y: compatible ? y : -1, dir: facing };
   }
+  /* เวลารีของเหมืองเก็บในเซฟ (นับเวลาจริง): regen = บล็อกที่ขุดแล้วรองอกกลับ {แผนที่: {ช่อง: เวลาที่ขุด}} • grp = กลุ่มศัตรูที่ถูกฆ่า {แผนที่: {ลำดับกลุ่ม: {l เหลือ, d เวลาที่ตายหมด, c แม่ทัพตาย}}} — รีเฟรชหน้าเว็บแล้วไม่รีเซ็ต */
+  st.regen = {}; if (s.regen && typeof s.regen === 'object') for (const id in s.regen) { const L = s.regen[id], o = {}; let n = 0; if (L && typeof L === 'object') for (const k in L) { if (n++ > 6000) break; const t = Number(L[k]); if (/^\d+$/.test(k) && t >= 0) o[k] = t; } st.regen[id] = o; }
+  st.grp = {}; if (s.grp && typeof s.grp === 'object') for (const id in s.grp) { const L = s.grp[id], o = {}; if (L && typeof L === 'object') for (const k in L) { const v = L[k]; if (/^\d+$/.test(k) && v && typeof v === 'object') o[k] = { l: Math.max(0, v.l | 0), d: Number(v.d) || 0, c: v.c ? 1 : 0 }; } st.grp[id] = o; }
   st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
   st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
@@ -7464,10 +7467,12 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
   guard(route.guard, tierSet ? tierSet.mini : 'skeleton', 95);
   guard(route.lowerGuard, tierSet ? tierSet.table.deep.at(-1)[0] : 'zombie', 85);
   guard(route.boss, tierSet ? tierSet.boss : 'brute', 95);
+  { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   m.groups = G2; }
+function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
 function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now(), present = new Set(); for (const o of G.mons) if (o.grp) present.add(o.grp);
   for (const g of m.groups) { if (g.active && !present.has(g)) g.active = false;
-    if (g.left <= 0) { if (now - g.deadAt >= GROUP_RESPAWN_MIN * 60000) { g.left = g.n; g.deadAt = 0; g.champDead = false; } else continue; }
+    if (g.left <= 0) { if (now - g.deadAt >= GROUP_RESPAWN_MIN * 60000) { g.left = g.n; g.deadAt = 0; g.champDead = false; grpSave(m, g); } else continue; }
     if (g.active) continue; const d = Math.hypot(g.x - PL.x, g.y - PL.y); if (d > GROUP_NEAR || d < 90) continue; /* ไม่โผล่ทับตัวผู้เล่น */
     const def = MONS[g.type]; let made = 0; const spots = [[0, 0], [18, 4], [-18, -4], [4, 18], [-4, -18], [16, 16], [-16, 16], [16, -16], [-16, -16], [32, 0], [-32, 0], [0, 32], [0, -32]];
     for (const [ox, oy] of spots) { if (made >= g.left) break; const x = g.x + ox, y = g.y + oy, i = MI(m, Math.floor(x / 16), Math.floor(y / 16)); if (m.t[i] !== TILE.FLOOR || !monBoxFree(m, x, y, def.r)) continue; const o = mkMon(m, g.type, x, y, g.zz, g); if (g.champ && !g.champDead && made === 0) makeChamp(o); made++; }
@@ -7489,7 +7494,7 @@ function bossSummon(m, e, dt) { if (e.sumT == null) e.sumT = SUMMON_FIRST; e.sum
   if (made) { floatText(e.x, e.y - 50, 'เรียกลูกสมุน!', '#d0a0ff', 1.1); SFX.play('growl'); G.shake = Math.max(G.shake, 2); } }
 function groupKill(e) { if (MONS[e.type].boss2) for (const o of G.mons) if (o.sumBy === e && !o.dead) { o.dead = true; for (let j = 0; j < 8; j++) G.parts.push({ k: 'dust', x: o.x, y: o.y - 6, z: 2, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40, vz: 24, life: 0.5, max: 0.5, col: '#b090d0', size: 2 }); }
    if (G.map && gateBoss(G.map) === e.type && !(STATE.gates && STATE.gates[G.map.id])) { (STATE.gates || (STATE.gates = {}))[G.map.id] = Date.now(); saveGame(); if (typeof NET !== 'undefined' && NET.online) NET.dirty = true; banner('✦ ประตูวิเศษสลายแล้ว'); toast('ปราบบอสสำเร็จ! <b>ประตูวิเศษ</b>หน้าบันไดทางลงสลายไปแล้ว ลงชั้นต่อไปได้', 'good'); SFX.play('done'); if (G.map.descend) for (let k = 0; k < 30; k++) G.parts.push({ k: 'star', x: G.map.descend.x, y: G.map.descend.y - 12, z: 6, vx: (Math.random() - 0.5) * 90, vy: (Math.random() - 0.5) * 90, vz: 40, life: 0.9, max: 0.9, col: '#d0a0ff', size: 1 }); }
-  const g = e.grp; if (!g || e._gk) return; e._gk = true; if (e.champ) g.champDead = true; g.left = Math.max(0, g.left - 1); if (g.left <= 0) { g.deadAt = Date.now(); g.active = false; } }
+  const g = e.grp; if (!g || e._gk) return; e._gk = true; if (e.champ) g.champDead = true; g.left = Math.max(0, g.left - 1); if (g.left <= 0) { g.deadAt = Date.now(); g.active = false; } grpSave(G.map, g); }
 function spawnMonsters(dt) {
   const m = G.map; if (!m.vein || !CONFIG.monsters) return;
   if (PL.y >= 13 * 16 || G.mons.length) groupTick(m); return; /* ระบบใหม่: ศัตรูอยู่เป็นกลุ่มประจำจุด ไม่สุ่มเกิดรอบตัวผู้เล่นแล้ว (โค้ดเดิมด้านล่างไม่ถูกใช้) */
@@ -7890,7 +7895,7 @@ function action() {
     if (r && r.bedrock) { toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); G.holdAct = false; return; }
     if (r) return startSwing('dig', r);
     if (!isMine(G.map)) return;
-    if (nearMonster()) return startSwing('attack');
+    if (nearMonster()) { if (!G.pickHintT || G.time - G.pickHintT > 4) { G.pickHintT = G.time; toast('พลั่วใช้ขุดหินเท่านั้น — กด <b>Q</b> (ปุ่มสลับ) เปลี่ยนเป็นอาวุธเพื่อสู้', 'muted'); } G.holdAct = false; return; } /* พลั่วไม่ตีศัตรู: มีแต่อาวุธที่ตีได้ */
     if (!G.holdAct) toast('หันหน้าเข้าหาผนังหินแล้วกดขุด — ขุดได้ทุกก้อน', 'muted');
     G.holdAct = false; return;
   }
@@ -7906,6 +7911,7 @@ function monAt(w) { if (!w) return null; const up = 34 / (G.TILT || 1); let best
 function monNear(R) { let best = null, bd = R; for (const e of G.mons) { const d = Math.hypot(e.x - PL.x, e.y - PL.y); if (d < bd) { bd = d; best = e; } } return best; }
 // คลิกซ้ายเมื่อไรเป็นการโจมตี: คลิกโดนศัตรู • หรือมีศัตรูอยู่ในระยะต่อสู้ (ดาบ/พลั่ว = ประชิดตัว • ปืน = ในระยะยิง) — นอกนั้นคลิกซ้าย = เดินไป/ขุด/ใช้งาน เหมือนกันทุกของในมือ
 function mouseFight() { // คลิกซ้าย = ตี เฉพาะเมื่อคลิกโดนตัวศัตรู หรือมีศัตรูอยู่ในระยะตีถึงจริง ๆ ทางที่ชี้เมาส์ — นอกนั้นคือเดิน (ไม่ยืนฟันลมรอศัตรู) • ยิงปืนไปทางเมาส์ใช้คลิกขวา
+  if (STATE.hand === 'pick') return false; /* ถือพลั่ว: คลิก = เดิน/ขุดเสมอ ไม่ล็อกเป้าศัตรู */
   const mo = G.mouse; if (monAt(mo)) return true; if (interactAt(mo)) return false;
   const w = pstats().weapon; if (STATE.hand === 'weapon' && w.gun) return false;
   const a = aimAngle(), reach = (STATE.hand === 'weapon' ? w.range : 18) + 6;
@@ -7940,9 +7946,9 @@ function useAtMouse() {
   if (G.trans || PL.state === 'swing' || UI.isOpen() || G.down) return;
   let a = aimAngle(); const w = pstats().weapon, gun = STATE.hand === 'weapon' && w.gun;
   // เล็งศัตรูที่คลิกโดน (หรือศัตรูที่ประชิดตัวในแนวเมาส์) ให้ตรงตัว ไม่ใช่เล็งไปที่พื้นหลังตัวมัน
-  let tg = monAt(G.mouse);
+  const PK = STATE.hand === 'pick'; let tg = PK ? null : monAt(G.mouse); if (PK) G.chaseTg = null;
   if (tg) G.chaseTg = tg; else if (!gun && G.chaseTg && !G.chaseTg.dead && G.mons.includes(G.chaseTg)) tg = G.chaseTg; /* กดค้างไล่ตีตัวเดิมต่อ แม้กล้องเลื่อนจนเมาส์ไม่ได้ชี้โดนตัวมันแล้ว (ไม่ยืนฟันลม) */
-  if (!tg && !gun) { const reach = (STATE.hand === 'weapon' ? w.range : 18) + 14; let bd = 1e9; for (const e of G.mons) { const dx = e.x - PL.x, dy = (e.y - 6) - (PL.y - 8), d = Math.hypot(dx, dy); if (d > reach + MONS[e.type].r) continue; let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = Math.PI * 2 - da; if (da < 1.1 && d < bd) { bd = d; tg = e; } } }
+  if (!tg && !gun && !PK) { const reach = (STATE.hand === 'weapon' ? w.range : 18) + 14; let bd = 1e9; for (const e of G.mons) { const dx = e.x - PL.x, dy = (e.y - 6) - (PL.y - 8), d = Math.hypot(dx, dy); if (d > reach + MONS[e.type].r) continue; let da = Math.abs(Math.atan2(dy, dx) - a); if (da > Math.PI) da = Math.PI * 2 - da; if (da < 1.1 && d < bd) { bd = d; tg = e; } } }
   if (tg) a = Math.atan2((tg.y - 6) - (PL.y - 8), tg.x - PL.x);
   PL.aim = a; PL.aimT = G.time; PL.dir = dirOfAngle(a); PL.act = null; PL.faceA = a; PL.faceT = G.time;
   if (gun) { PL.path = null; return fireGun(); }
@@ -7957,6 +7963,7 @@ function useAtMouse() {
     const r = rockToward(a);
     if (r && r.bedrock) { if (!G.bedT || G.time - G.bedT > 2) { G.bedT = G.time; toast('หินชั้นนี้แข็งเกินกว่าจะขุดได้', 'muted'); } G.holdAct = false; return; }
     if (r) return startSwing('dig', r);
+    return; /* ถือพลั่วแต่ไม่มีหินให้ขุดทางนั้น: ไม่ทำอะไร (ไม่ฟันศัตรู) */
   }
   startSwing('attack'); PL.dir = dirOfAngle(a); PL.faceA = a; PL.faceT = G.time;
 }
@@ -8071,6 +8078,7 @@ function resolveImpact() {
     const [fx, fy] = (G.mouseAct || G.time - (PL.aimT || -9) < 0.6) && PL.aim != null ? [Math.cos(PL.aim), Math.sin(PL.aim)] : DIRV[PL.dir], dmg = Math.round((STATE.hand === 'weapon' ? ps.weapon.dmg * ps.wMul : ps.pick.power * 2 + 2) * ps.dmgMul), range = STATE.hand === 'weapon' ? ps.weapon.range : 18;
     const cx = PL.x, cy = PL.y - 8; let hits = 0;
     for (const e of G.mons) {
+      if (STATE.hand === 'pick') break; /* พลั่วไม่ทำดาเมจศัตรู */
       if (e.riseT > 0) continue;
       const ex = e.x - cx, ey = (e.y - 6) - cy, d = Math.hypot(ex, ey); if (d > range + MONS[e.type].r) continue;
       if (d > 8 && (ex * fx + ey * fy) / d < 0.25) continue;
@@ -9770,7 +9778,7 @@ const UI = (() => {
       for (const t of allTypes) for (const c of originKeys(t)) for (let col = 0; col < NC; col++) { const key = K(c, t, col), best = mine(c, t, col)[0]; if (!best) continue; const cur = SC[key], bv = estValue(best.g); if (cur && estValue(cur) >= bv) continue;
         const arr = best.src === 'bag' ? STATE.inv : S.gems, i = arr.indexOf(best.g); if (i < 0) continue; if (cur) { arr[i] = cur; swap++; gain += bv - estValue(cur); } else { arr.splice(i, 1); put++; gain += bv; } SC[key] = best.g; }
       if (put + swap) { SFX.play('done'); toast(`จัดเม็ดที่แพงที่สุดขึ้นโชว์แล้ว: ใส่ใหม่ <b>${put}</b> กล่อง${swap ? ` • เปลี่ยนเป็นเม็ดที่ดีกว่า <b>${swap}</b> กล่อง` : ''} • มูลค่าเพิ่ม ${money(gain)}`, 'good'); saveGame(); hud(); } else { SFX.play('click'); toast('ทุกกล่องโชว์เม็ดที่แพงที่สุดที่คุณมีอยู่แล้ว'); } };
-    const topV = t => gemsOf(t).reduce((v, g) => Math.max(v, estValue(g)), 0), byBest = arr => arr.map((t, i) => [t, topV(t), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(x => x[0]); /* เรียงชนิดที่มีเม็ดแพงที่สุดขึ้นก่อน ชนิดที่ยังว่างอยู่ท้าย (คงลำดับเดิม) */
+    const enName = t => (nm(GEMS[t].name)[1] || GEMS[t].name).toLowerCase(), byAZ = arr => arr.slice().sort((a, b) => enName(a).localeCompare(enName(b), 'en')); /* เรียงชนิดพลอยตามชื่อภาษาอังกฤษ A–Z */
     const common = (a, b) => { if (a === 'scauto') { if (!RO) { autoBest(); showcase(); } return true; } if (a === 'scboard') { scView = null; scSlot = null; SFX.play('click'); board(); return true; } if (a === 'scpage') { scPage = +b.dataset.p; scSlot = null; SFX.play('click'); showcase(); return true; } return false; };
     if (scSlot) { const m = /^([a-z]+)\|([a-z]+):([0-4])$/.exec(scSlot); if (!m || !COUNTRIES[m[1]] || !GEMS[m[2]]) { scSlot = null; return showcase(); }
       const c = m[1], t = m[2], col = +m[3], key = scSlot, cur = SC[key], cand = mine(c, t, col), CN = GEMS[t].colors[col];
@@ -9787,14 +9795,14 @@ const UI = (() => {
           if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากคอลเลกชันไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
       api.onE = null; return; }
     const colBox = (c, t, col) => { const g = SC[K(c, t, col)], n = g ? 0 : mine(c, t, col).length, CN = GEMS[t].colors[col], [th, en] = nm(CN[0]); return `<div class="scbox ${g ? 'on' : n ? 'can' : 'off'}" data-a="scslot" data-k="${K(c, t, col)}" style="--gc:${CN[1]}">${n ? `<span class="scbadge">ใส่ได้ ${n}</span>` : ''}<div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : ''}</div><b>${th}</b><em>${en || '&nbsp;'}</em><span class="scp ${g ? '' : 'muted'}">${g ? money(estValue(g)) : 'ว่าง'}</span></div>`; };
-    if (scPage === 2) { const pick = scSel && GEMS[scSel] ? [scSel] : byBest(types);
-      show('showcase', `${head}${tool(`<label>ชนิด <select class="sel" id="scsel"><option value="">ทั้งหมด (${types.length})</option>${types.map(t => `<option value="${t}" ${scSel === t ? 'selected' : ''}>${nm(GEMS[t].name)[0]} ${colN(t)}/${NC}</option>`).join('')}</select></label>`)}
-        <div class="scgrid scall">${pick.map(t => { const [th, en] = nm(GEMS[t].name); return cs(t).map((c, i) => [c, GEMS[t].colors.reduce((v, _, col) => Math.max(v, SC[K(c, t, col)] ? estValue(SC[K(c, t, col)]) : 0), 0), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(x => x[0]).map(c => { const sl = GEMS[t].colors.map((_, col) => SC[K(c, t, col)]).filter(Boolean); return `<div class="schd"><b>${th} <em>${en}</em> <span class="sccty">⛏ ${COUNTRIES[c].short}</span></b><span>${sl.length}/${NC} สี${sl.length ? ' • ' + money(sl.reduce((v, g) => v + estValue(g), 0)) : ''}</span></div>${GEMS[t].colors.map((_, col) => colBox(c, t, col)).join('')}`; }).join(''); }).join('')}</div>
+    if (scPage === 2) { const pick = scSel && GEMS[scSel] ? [scSel] : byAZ(types);
+      show('showcase', `${head}${tool(`<label>ชนิด <select class="sel" id="scsel"><option value="">ทั้งหมด (${types.length})</option>${byAZ(types).map(t => `<option value="${t}" ${scSel === t ? 'selected' : ''}>${nm(GEMS[t].name)[1] || ''} • ${nm(GEMS[t].name)[0]} ${colN(t)}/${NC}</option>`).join('')}</select></label>`)}
+        <div class="scgrid scall">${pick.map(t => { const [th, en] = nm(GEMS[t].name); return cs(t).map(c => { const sl = GEMS[t].colors.map((_, col) => SC[K(c, t, col)]).filter(Boolean); return `<div class="schd"><b>${th} <em>${en}</em> <span class="sccty">⛏ ${COUNTRIES[c].short}</span></b><span>${sl.length}/${NC} สี${sl.length ? ' • ' + money(sl.reduce((v, g) => v + estValue(g), 0)) : ''}</span></div>${GEMS[t].colors.map((_, col) => colBox(c, t, col)).join('')}`; }).join(''); }).join('')}</div>
         <div class="row end"><span class="muted small scnote">${RO ? 'แตะกล่องที่มีพลอยเพื่อดูรายละเอียด' : 'แต่ละกล่องรับเฉพาะพลอยที่ขุดจากประเทศนั้น • สีละ 1 เม็ด'}</span>${backB}<button class="btn" data-a="close">ปิด</button></div>`,
         (a, b) => { if (common(a, b)) return; if (a === 'scslot') { if (RO && !SC[b.dataset.k]) return; scSlot = b.dataset.k; SFX.play('click'); return showcase(); } }, { xwide: true });
       bindSel(); api.onE = null; return; }
     const cnt = k => types.filter(t => { const n = colN(t); return k === 'have' ? n : k === 'miss' ? !n : k === 'full' ? n === NC : k === 'can' ? canT(t) : true; });
-    const list = byBest(cnt(scFilter));
+    const list = byAZ(cnt(scFilter));
     show('showcase', `${head}${tool(`<label>แสดง <select class="sel" id="scflt">${[['all', 'ทั้งหมด'], ['have', 'มีแล้ว'], ['miss', 'ยังไม่มี'], ['full', `ครบ ${NC} สี`], ['can', 'มีพลอยพร้อมใส่']].map(([k, n]) => `<option value="${k}" ${scFilter === k ? 'selected' : ''}>${n} (${cnt(k).length})</option>`).join('')}</select></label>`)}
       <div class="scgrid">${list.length ? list.map(t => { const sl = gemsOf(t), g = sl.slice().sort((a, b) => estValue(b) - estValue(a))[0], can = canT(t), col = g ? gemHex(g) : GEMS[t].colors[4][1], [th, en] = nm(GEMS[t].name); return `<div class="scbox ${g ? 'on' : can ? 'can' : 'off'}" data-a="sctype" data-t="${t}" style="--gc:${col}">${can ? '<span class="scbadge">ใส่ได้</span>' : ''}<div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : ''}</div><b>${th}</b><em>${en || '&nbsp;'}</em>${dots(t)}<span class="scp ${g ? '' : 'muted'}">${g ? money(sumOf(t)) : 'ว่าง'}</span></div>`; }).join('') : '<div class="empty">ไม่มีชนิดพลอยในหมวดนี้</div>'}</div>
       <div class="row end"><span class="muted small scnote">${scCty ? `แสดงเฉพาะพลอยที่ขุดจาก${COUNTRIES[scCty].short}` : 'รวมทุกประเทศ'} • แตะชนิดพลอยเพื่อดูทั้ง ${NC} สี</span>${backB}<button class="btn" data-a="close">ปิด</button></div>`,
