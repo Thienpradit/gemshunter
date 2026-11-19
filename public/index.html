@@ -4256,7 +4256,7 @@ const PIX = (() => {
   function sheet(L, tool) { // โมเดลนักขุด 64x64: {ทิศ} × {idle[4], walk[4], swing[4]} สร้างเมื่อใช้ทิศนั้นครั้งแรก
     const k = JSON.stringify(L) + '|' + (tool || ''); let s = sheetCache.get(k); if (s) return s;
     s = {}; for (const d of ['down', 'up', 'right', 'left']) { let v = null; Object.defineProperty(s, d, { get() { return v || (v = { idle: lazyFrames(16, f => MINER.frame(L, tool, d, 'idle', f)), walk: lazyFrames(8, f => MINER.frame(L, tool, d, 'walk', f)), swing: lazyFrames(MINER.SWING_N, f => MINER.frame(L, tool, d, 'dig', f)), fire: lazyFrames(4, f => MINER.frame(L, tool, d, 'fire', f)) }); } }); }
-    for (const [d, base, sg] of [['dr', 'down', 1], ['dl', 'down', -1], ['ur', 'up', -1], ['ul', 'up', 1]] /* มองจากด้านหลัง: แผ่นหลังเลื่อนไปทางตรงข้ามกับทิศที่หัน */) { let v = null; const tf = (arr, n) => lazyFrames(n, f => turnFrame(arr[f], sg)); Object.defineProperty(s, d, { get() { return v || (v = { idle: tf(s[base].idle, 16), walk: tf(s[base].walk, 8), swing: tf(s[base].swing, MINER.SWING_N) }); } }); }
+    for (const [d, base, sg] of [['dr', 'down', 1], ['dl', 'down', -1], ['ur', 'up', -1], ['ul', 'up', 1]] /* มองจากด้านหลัง: แผ่นหลังเลื่อนไปทางตรงข้ามกับทิศที่หัน */) { let v = null; Object.defineProperty(s, d, { get() { return v || (v = { idle: lazyFrames(16, f => MINER.frame(L, tool, d, 'idle', f)), walk: lazyFrames(8, f => MINER.frame(L, tool, d, 'walk', f)), swing: lazyFrames(MINER.SWING_N, f => MINER.frame(L, tool, d, 'dig', f)), fire: lazyFrames(4, f => MINER.frame(L, tool, d, 'fire', f)) }); } }); }
     sheetCache.set(k, s); return s;
   }
   // หน้าตาผู้เล่นตามอุปกรณ์
@@ -5346,12 +5346,16 @@ const MINER = (() => {
     return rc[k] = { hi: [r + (255 - r) * .3 | 0, g + (255 - g) * .28 | 0, b + (255 - b) * .2 | 0], base: [r, g, b], sh: m(.82, .78, .84), dk: m(.66, .61, .72), ol: m(.4, .34, .4) }; };
   const DIG_PAD = 20, SWING_N = 4; /* จำนวนเฟรมท่าเหวี่ยงขุด/ตี */
   function drawFrame(ctx, v, dir, anim, f) {
-    const outline = true, side = dir === 'left' || dir === 'right', back = dir === 'up', mir = dir === 'left' || back, dig = anim === 'dig';
+    /* มุมเฉียง 4 ทิศ (dr/dl/ur/ul): วาดใหม่ทั้งตัวแบบหันสามส่วนสี่ — ท่าทาง/การถือของ/การเหวี่ยงใช้โครงเดียวกับหันข้าง (ของอยู่ฝั่งที่หันไป)
+       แต่ลำตัวกว้างขึ้นเห็นอก (เฉียงหน้า) หรือเห็นแผ่นหลัง (เฉียงหลัง) และหัวหันสามส่วนสี่ • dl/ul = กลับซ้ายขวาของ dr/ur */
+    const DQ = { dr: 'f', dl: 'f', ur: 'b', ul: 'b' }[dir] || '', D = !!DQ, bk = DQ === 'b'; if (D) dir = dir[1] === 'r' ? 'right' : 'left';
+    const outline = true, side = dir === 'left' || dir === 'right', back = dir === 'up', mir0 = dir === 'left' || back, dig = anim === 'dig';
+    const fsg = bk ? -1 : 1; let flp = false; const C = fn => { flp = fsg < 0; fn(); flp = false; }; /* C(): วาดหัวในพิกัดมาตรฐาน (ฝั่งไกลกล้อง = ขวา) แล้วกลับด้านให้เองเมื่อเป็นมุมเฉียงหลัง */
     const PAD = anim === 'dig' ? DIG_PAD : 0, FH = 64 + PAD; /* เฟรมท่าเหวี่ยง: เผื่อที่ด้านบน ให้ของที่ยกเหนือหัวไม่โดนตัดขอบ */
     const buf = new Uint8ClampedArray(64 * FH * 4);
     const put = (x, y, c) => { x = Math.round(x); y = Math.round(y) + PAD; if (x < 0 || x > 63 || y < 0 || y >= FH) return; const i = (y * 64 + x) * 4; buf[i] = c[0]; buf[i + 1] = c[1]; buf[i + 2] = c[2]; buf[i + 3] = 255; };
     const c = (col, t) => ramp(col)[t || 'base'];
-    const B = (x, y, w, h, col) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(mir ? 63 - (x + i) : x + i, y + j, col); };
+    const B = (x, y, w, h, col) => { const mir = mir0 !== flp; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(mir ? 63 - (x + i) : x + i, y + j, col); };
     const px = (x, y, col) => B(x, y, 1, 1, col);
     const rr = (x, y, w, h, r) => ({ bb: [x, y, x + w - 1, y + h - 1], m: (p, q) => {
       if (p < x || q < y || p >= x + w || q >= y + h) return false; if (!r) return true;
@@ -5366,7 +5370,7 @@ const MINER = (() => {
     const P = (s, col, o) => {
       o = o || {}; const rp = ramp(col);
       const y0 = Math.floor(s.bb[1]), y1 = Math.ceil(s.bb[3]), a0 = Math.floor(s.bb[0]), a1 = Math.ceil(s.bb[2]);
-      const X0 = mir ? 63 - a1 : a0, X1 = mir ? 63 - a0 : a1, W = X1 - X0 + 5;
+      const mir = mir0 !== flp, X0 = mir ? 63 - a1 : a0, X1 = mir ? 63 - a0 : a1, W = X1 - X0 + 5;
       const M = new Uint8Array(W * (y1 - y0 + 5));
       for (let y = y0; y <= y1; y++) for (let x = X0; x <= X1; x++) if (s.m(mir ? 63 - x : x, y)) M[(y - y0 + 2) * W + x - X0 + 2] = 1;
       const g = (x, y) => M[(y - y0 + 2) * W + x - X0 + 2];
@@ -5605,31 +5609,52 @@ const MINER = (() => {
       else if (ZB) { H = back ? [40, 30.5 + b] : [38.5, 32 + b - s]; ang = 18; }
       else { H = back ? [42.5, 37.5 + b - s] : [41.5, 37.5 + b - s]; ang = back ? 26 : 18; armAfter = true; }
     } else {
-      const d = Math.round(sr * (ZB ? 2 : 3)); S = [31.5, 26 + b];
+      const d = Math.round(sr * (ZB ? 2 : 3)); S = D ? [bk ? 34.5 : 29.5, 26 + b] : [31.5, 26 + b];
       H = dig ? keyS([[43, 21], [44, 19], [42, 31], [40, 38]]) : ZB ? [42.5, 28.5 + b + sr] : [36 - sr * 2, 37 + b]; ang = dig ? keyS([0, 30, 75, 125]) : 38;
+      if (D && !dig && !ZB) H = [38 - sr * 2, 36 + b]; /* มุมเฉียง: ถือของยื่นไปข้างหน้าเล็กน้อย */
       if (gp) H = pistol ? [42.5 - RC, 29.5 + bG] : [36.5 - RC, 31.5 + bG];
-      limb([33, 26 + b], SHI ? [40, 32 + b] : gp ? (pistol ? [41.5 - RC, 30 + bG] : [45 - RC, 31 + bG]) : dig ? [H[0] + 1, H[1] - 2] : ZB ? [43.5, 30.5 + b - sr] : [32 + sr * 2, 38 + b], true);
-      if (v.shorts) P(prof(38, LEGS, 28 - d), dim(skin));
-      P(prof(38, LEGS, 28 - d, lh), dim(v.pants));
-      boot(28 - d, 54, 7, true);
-      if (SHB) shield(26.6, 31 + b, 'side', 0.5); /* โล่สะพายหลัง มองจากด้านข้าง: เห็นสันโล่ยื่นพ้นแผ่นหลัง */
+      limb([D ? (bk ? 29 : 35.5) : 33, 26 + b], SHI ? [40, 32 + b] : gp ? (pistol ? [41.5 - RC, 30 + bG] : [45 - RC, 31 + bG]) : dig ? [H[0] + 1, H[1] - 2] : ZB ? [43.5, 30.5 + b - sr] : D ? [H[0] + 1.5, H[1] - 2.5] : [32 + sr * 2, 38 + b], true); /* มุมเฉียง: มือฝั่งไกลจับด้ามด้วย (ถือสองมือ) */
+      const TS2 = D ? TS.map(r => [r[0] - 1, r[1]]) : TS, fx = D && !bk ? 31 : 28, nx = D && !bk ? 28 : 31, hx0 = D ? 27 : 27, hw = D ? 10 : 10; /* เฉียงหน้า: ขาฝั่งใกล้อยู่ซ้าย • เฉียงหลัง/หันข้าง: ขาฝั่งใกล้อยู่ขวา */
+      if (v.shorts) P(prof(38, LEGS, fx - d), dim(skin));
+      P(prof(38, LEGS, fx - d, lh - (D && !v.shorts ? 1 : 0)), dim(v.pants));
+      boot(fx - d, D ? 53 : 54, 7, true);
+      if (SHB && !bk) shield(26.6, 31 + b, 'side', 0.5); /* โล่สะพายหลัง มองจากด้านข้าง: เห็นสันโล่ยื่นพ้นแผ่นหลัง */
       P(rr(30, 22 + b, 4, 3, 0), skin);
-      if (bare) { P(prof(24 + b, TS), skin, { sw: 2 }); if (v.top === 'tank') P(clip(prof(24 + b, TS), (x, y) => y >= 27 + b || x === 31 || x === 32), v.shirt, { sw: 2 }); else { B(33, 29 + b, 3, 1, ss); B(34, 32 + b, 2, 1, ss); } }
-      else { P(prof(24 + b, TS), v.shirt, { sw: 2, tex: atex }); if (!AT) { B(34, 27 + b, 1, 6, sd); B(30, 31 + b, 1, 3, sd); } }
-      if (v.vest) P(clip(prof(24 + b, TS), (x, y) => x <= 33), v.vest);
-      if (v.fur) P(rr(28, 23 + b, 9, 3, 1), '#ece4d4');
-      if (v.apron) P(rr(33, 28 + b, 3, 11, 1), v.apron);
-      if (v.shorts) { P(prof(38, LEGS, 31 + d), skin); B(33 + d, 46, 3, 1, ss); }
-      P(uni(rr(27, 35, 10, 5, 2), prof(38, LEGS, 31 + d, lh)), v.pants);
-      if (!v.shorts) { px(34 + d, 45, pd); px(35 + d, 46, pd); }
+      if (!D) {
+        if (bare) { P(prof(24 + b, TS), skin, { sw: 2 }); if (v.top === 'tank') P(clip(prof(24 + b, TS), (x, y) => y >= 27 + b || x === 31 || x === 32), v.shirt, { sw: 2 }); else { B(33, 29 + b, 3, 1, ss); B(34, 32 + b, 2, 1, ss); } }
+        else { P(prof(24 + b, TS), v.shirt, { sw: 2, tex: atex }); if (!AT) { B(34, 27 + b, 1, 6, sd); B(30, 31 + b, 1, 3, sd); } }
+        if (v.vest) P(clip(prof(24 + b, TS), (x, y) => x <= 33), v.vest);
+        if (v.fur) P(rr(28, 23 + b, 9, 3, 1), '#ece4d4');
+        if (v.apron) P(rr(33, 28 + b, 3, 11, 1), v.apron);
+      } else if (!bk) { /* เฉียงหน้า: เห็นอก — เสื้อกั๊กเปิดเฉียงไปทางที่หัน จี้/กระดุม/เนกไทอยู่ค่อนไปทางนั้น */
+        if (bare) { P(prof(24 + b, TS2), skin, { sw: 2 }); B(31, 25 + b, 2, 1, ss); B(34, 25 + b, 2, 1, ss);
+          if (v.top === 'tank') { P(clip(prof(24 + b, TS2), (x, y) => y >= 27 + b || x === 29 || x === 30 || x === 35), v.shirt, { sw: 2 }); B(34, 30 + b, 1, 4, sd); }
+          else { B(29, 29 + b, 4, 1, ss); B(34, 29 + b, 2, 1, ss); B(33, 26 + b, 1, 2, ss); B(31, 31 + b, 4, 1, ss); B(31, 33 + b, 4, 1, ss); } }
+        else { P(prof(24 + b, TS2), v.shirt, { sw: 2, tex: atex }); B(32, 24 + b, 2, 2, ss); if (!AT) { px(33, 27 + b, sd); px(33, 30 + b, sd); px(33, 33 + b, sd); B(28, 28 + b, 3, 1, sd); B(29, 32 + b, 1, 2, sd); } }
+        if (v.vest) P(clip(prof(24 + b, TS2), (x, y) => x <= 30 || x >= 35), v.vest);
+        if (v.fur) P(rr(27, 23 + b, 10, 3, 1), '#ece4d4');
+        if (v.tie) { B(32, 24 + b, 3, 2, WH); B(33, 26 + b, 2, 7, c(v.tie)); px(33, 26 + b, c(v.tie, 'hi')); }
+        if (v.apron) P(rr(30, 28 + b, 6, 11, 1), v.apron);
+        if (v.chain) { px(31, 25 + b, GOLD); px(34, 25 + b, GOLD); px(32, 26 + b, GOLD); px(33, 26 + b, GOLD); B(32, 27 + b, 2, 1, [240, 210, 110]); }
+        if (v.pendant) { px(31, 25 + b, DK); px(34, 25 + b, DK); px(32, 26 + b, DK); px(33, 26 + b, DK); B(32, 27 + b, 2, 2, [80, 215, 235]); px(32, 27 + b, [255, 255, 255]); }
+      } else { /* เฉียงหลัง: เห็นแผ่นหลัง แนวสันหลังค่อนไปฝั่งไกล */
+        if (bare) { P(prof(24 + b, TS2), skin, { sw: 2 }); if (v.top === 'tank') P(clip(prof(24 + b, TS2), (x, y) => y >= 27 + b || x === 28 || x === 29 || x === 33 || x === 34), v.shirt, { sw: 2 }); else { B(30, 26 + b, 1, 9, ss); B(32, 28 + b, 3, 1, ss); } }
+        else { P(prof(24 + b, TS2), v.shirt, { sw: 2, tex: atex }); B(30, 26 + b, 1, 8, c(v.shirt, 'sh')); B(32, 33 + b, 3, 1, sd); }
+        if (v.vest) { P(prof(24 + b, TS2), v.vest, { sw: 2 }); B(30, 26 + b, 1, 8, c(v.vest, 'sh')); }
+        if (v.fur) P(rr(27, 23 + b, 10, 3, 1), '#ece4d4');
+        if (SHB) shield(30.5, 31 + b, 'front', -1.2); /* โล่สะพายหลัง: เห็นหน้าโล่เฉียงบนแผ่นหลัง */
+      }
+      if (v.shorts) { P(prof(38, LEGS, nx + d), skin); B(nx + 2 + d, 46, 3, 1, ss); }
+      P(uni(rr(27, 35, 10, 5, 2), prof(38, LEGS, nx + d, lh)), v.pants);
+      if (!v.shorts) { px(nx + 3 + d, 45, pd); px(nx + 4 + d, 46, pd); }
       if (v.dress) P(prof(35, [...R(27, 36, 3), ...R(26, 37, 5), ...R(25, 38, 7)]), v.shirt, { sw: 2 });
       if (v.coat) P(rr(27, 35, 10, 9, 1), v.shirt, { sw: 2 });
-      if (v.belt && !v.dress) { B(27, 35, 10, 1, c(v.belt, 'hi')); B(27, 36, 10, 1, c(v.belt, 'sh')); B(35, 35, 2, 2, GOLD); }
+      if (v.belt && !v.dress) { B(27, 35, 10, 1, c(v.belt, 'hi')); B(27, 36, 10, 1, c(v.belt, 'sh')); if (!bk) B(D ? 33 : 35, 35, 2, 2, GOLD); }
       if (v.sash) { P(rr(26, 34, 12, 4, 1), v.accent); checker(27, 34, 10, 4, WH); P(rr(28, 37, 4, 7, 1), v.accent); checker(28, 38, 4, 6, WH); }
-      if (v.pouch) pouch(32, 37);
-      boot(30 + d, 54, 8);
+      if (v.pouch) pouch(D ? (bk ? 31 : 28) : 32, 37);
+      boot(nx + d, 54, 8);
     }
-    if (SHI && side) shield(42.5, 32 + b, 'side');
+    if (SHI && side) { if (D) shield(41.5, 32 + b, bk ? 'back' : 'front', -1.4); else shield(42.5, 32 + b, 'side'); } /* มุมเฉียง: เห็นหน้าโล่ (หรือด้านในโล่) แบบเฉียง */
     const swordFront = v.tool && !dig && !gp && armAfter && !back && !side && IT && IT.slot === 'weapon'; /* หันหน้าถือดาบ/ขวาน: วาดอาวุธทับแขน (เดิมแขนบังด้ามกับโคนใบจนดาบดูขาด) แล้ววาดมือกำด้ามทับอีกที */
     if (v.tool && !dig && !swordFront) { if (gp) gunPose(); else pick(H[0], H[1], ang); }
     if (armAfter) arm(ARMR, 39, 24 + b - s);
@@ -5640,7 +5665,32 @@ const MINER = (() => {
     const SPK = [0, 1, 2, 1, 0, 1, 3, 2, 1, 0, 2, 1, 0, 0], spk = v.hairStyle === 'spiky';
     const spikeTop = { bb: [25, hy - 5, 38, hy], m: (x, y) => x >= 26 && x <= 37 && y >= hy - 2 - SPK[x - 25] && y <= hy };
     const fringe = (x, y) => y <= hy + 2 + (x % 3 === 0 ? 1 : 0) || ((x <= 26 || x >= 37) && y <= hy + 5);
-    if (!side) {
+    if (D) C(() => {
+      /* หัวหันสามส่วนสี่: ใบหน้าเลื่อนไปฝั่งที่หัน ผมด้านหลังศีรษะคลุมฝั่งตรงข้าม เห็นหูข้างเดียว • หันหลังเฉียง: เห็นแก้ม/หูฝั่งที่หันไป */
+      if (v.longHair && hairC) P(bk ? rr(26, hy + 6, 13, 14, 2) : rr(24, hy + 4, 5, 15, 1), hairC, { sw: 2 });
+      P(prof(hy, HF), skin);
+      if (!bk) { B(31, hy + 12, 4, 1, sdk); px(37, hy + 7, ss); }
+      if (hairC) {
+        if (bk) { const hb = clip(rr(25, hy - 1, 14, 11, 4), (x, y) => !(x <= 27 && y >= hy + 4)); P(spk ? uni(hb, spikeTop) : hb, hairC, { sw: 2 }); B(30, hy + 3, 4, 1, c(hairC, 'hi')); B(34, hy + 6, 3, 1, c(hairC, 'hi')); }
+        else { const hf = clip(rr(25, hy - 1, 14, 14, 4), (x, y) => y <= hy + 2 + (x % 3 === 0 ? 1 : 0) || (x <= 27 && y <= hy + 8) || (x <= 28 && y <= hy + 4)); P(spk ? uni(hf, spikeTop) : hf, hairC); }
+        if (v.bun) P(el(bk ? 33 : 30, hy - 2, 3.2, 2.6), hairC);
+      }
+      if (bk) { B(27, hy + 5, 1, 3, ss); px(26, hy + 9, ss); } else B(28, hy + 5, 1, 3, ss); /* หู */
+      if (!bk) {
+        if (v.skull) { B(30, hy + 4, 3, 3, DK); B(35, hy + 4, 2, 3, DK); B(33, hy + 8, 2, 1, DK); for (let k = 0; k < 6; k++) px(31 + k, hy + 10, k % 2 ? DK : WH); }
+        else {
+          B(30, hy + 4, 3, 1, browC); B(35, hy + 4, 2, 1, browC);
+          px(30, hy + 5, WH); px(31, hy + 5, DK); px(35, hy + 5, WH); px(36, hy + 5, DK); if (v.hero) { px(30, hy + 6, WH); px(31, hy + 6, IRIS); px(35, hy + 6, WH); px(36, hy + 6, IRIS); }
+          if (blink) { const eh = v.hero ? 2 : 1; B(30, hy + 5, 2, eh, c(skin)); B(35, hy + 5, 2, eh, c(skin)); B(30, hy + 4 + eh, 2, 1, sdk); B(35, hy + 4 + eh, 2, 1, sdk); }
+          B(33, hy + 6, 1, 2, ss); px(34, hy + 7, ss);
+          if (v.beard) { P(clip(rr(27, hy + 5, 11, 9, 3), (x, y) => y >= hy + 8 || x <= 27), hairC); B(31, hy + 8, 6, 1, c(hairC, 'hi')); B(32, hy + 10, 4, 1, c(hairC, 'ol')); }
+          else { if (v.stubble) { px(29, hy + 8, ss); px(37, hy + 8, ss); px(30, hy + 9, ss); px(36, hy + 9, ss); B(31, hy + 10, 6, 1, ss); }
+            if (v.mustache) { B(31, hy + 8, 6, 2, c(hairC || '#4a3628')); px(30, hy + 9, c(hairC || '#4a3628')); } else { B(32, hy + 9, 4, 1, MO); px(31, hy + 8, MO); px(36, hy + 8, MO); } }
+          if (v.blush) { B(29, hy + 8, 2, 1, [236, 140, 120]); B(36, hy + 8, 2, 1, [236, 140, 120]); }
+          if (v.glasses) { B(29, hy + 4, 4, 1, DK); B(35, hy + 4, 3, 1, DK); B(29, hy + 7, 4, 1, DK); B(35, hy + 7, 3, 1, DK); B(29, hy + 5, 1, 2, DK); B(32, hy + 5, 1, 2, DK); B(35, hy + 5, 1, 2, DK); B(37, hy + 5, 1, 2, DK); B(33, hy + 5, 2, 1, DK); B(26, hy + 5, 3, 1, DK); }
+        }
+      }
+    }); else if (!side) {
       if (v.longHair && hairC) P(back ? rr(25, hy + 6, 14, 14, 2) : uni(rr(24, hy + 4, 3, 15, 1), rr(37, hy + 4, 3, 15, 1)), hairC, { sw: 2 });
       P(rr(25, hy + 5, 2, 3, 0), skin); P(rr(37, hy + 5, 2, 3, 0), skin);
       P(prof(hy, HF), skin);
@@ -5686,11 +5736,11 @@ const MINER = (() => {
       if (!v.crown) { if (back) { P(rr(30, hy + 4, 2, 7, 0), ac); P(rr(33, hy + 4, 2, 5 + w, 0), ac); } else if (side) { P(seg(26, hy + 3.5, 19, hy + 5 + w * 2, 1.1), ac); P(seg(26, hy + 3.5, 20, hy + 9 - w, 1.1), ac); } else { P(rr(38, hy + 3, 2, 6 + w, 0), ac); P(rr(40, hy + 4, 2, 4, 0), ac); } }
       P(rr(25, hy + 2, 14, 2, 0), ac); B(26, hy + 3, 12, 1, c(ac, 'sh'));
       if (v.crown) { for (const [x, h2] of [[26, 3], [29, 2], [31, 4], [34, 2], [36, 3]]) P(rr(x, hy + 2 - h2, 2, h2, 0), ac); if (!back) { px(28, hy + 2, [255, 80, 110]); px(32, hy + 2, [80, 200, 255]); px(36, hy + 2, [90, 224, 138]); } }
-      else if (back) P(rr(31, hy + 2, 3, 3, 1), ac);
+      else if (back) P(rr(31, hy + 2, 3, 3, 1), ac); else if (bk) P(rr(27, hy + 2, 3, 3, 1), ac);
     } else if (v.hat === 'helmet') { const hc = v.hatC;
       P(clip(el(32, 12 + b, 7.5, 7), (x, y) => y <= 11 + b), hc, { sw: 2 });
       B(25, 10 + b, 14, 1, v.flaps ? WH : [50, 54, 60]);
-      if (side) { P(rr(24, 12 + b, v.capBrim === false ? 14 : 19, 2, 1), hc); if (v.lamp) { P(rr(38, 7 + b, 4, 5, 1), '#5f666e'); B(41, 8 + b, 2, 3, [255, 236, 160]); } if (v.flaps) P(rr(27, 13 + b, 4, 8, 1), '#ece4d4'); }
+      if (side) { P(rr(24, 12 + b, v.capBrim === false ? 14 : 19, 2, 1), hc); if (v.lamp && !bk) { const lx = D ? -3 : 0; P(rr(38 + lx, 7 + b, 4, 5, 1), '#5f666e'); B(41 + lx, 8 + b, 2, 3, [255, 236, 160]); } if (v.flaps) P(rr(27, 13 + b, 4, 8, 1), '#ece4d4'); }
       else { P(rr(23, 12 + b, 18, 2, 1), hc);
         if (v.flaps) { P(rr(23, 13 + b, 3, 9, 1), '#ece4d4'); P(rr(38, 13 + b, 3, 9, 1), '#ece4d4'); }
         if (back) B(31, 10 + b, 2, 1, GOLD); else if (v.lamp) { P(rr(29, 6 + b, 6, 5, 1), '#5f666e'); B(30, 7 + b, 4, 3, [255, 236, 160]); px(30, 7 + b, [255, 255, 255]); } }
