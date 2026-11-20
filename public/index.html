@@ -8050,7 +8050,8 @@ const SKEL = [
 function skelVariant(o, zone) { const li = ['gravel', 'tunnel', 'deep'].indexOf(zone), r = Math.random(), k = li <= 0 ? 0 : li === 1 ? (r < 0.6 ? 0 : 1) : (r < 0.2 ? 0 : r < 0.65 ? 1 : 2), V = SKEL[k];
   o.var = k; o.name = V.name; o.hp = o.max = Math.round(o.hp * V.hp); o.dmgMul = V.dmg; o.coinMul = V.coin; if (V.guard) o.guard = V.guard; return o; }
 const CLIMATE_IDS = ['arm7', 'arm8', 'hat5', 'glv5', 'bt5', 'arm9', 'arm10', 'hat6', 'glv6', 'bt6']; /* ชุดกันหนาว/กันร้อน: ไม่เอามาแทนของดรอป */
-const SPAWN_SLOW = 10; // ศัตรูเกิดใหม่ช้าลง 5 เท่าจากค่าในตาราง (เดิมเกิดเร็วเกินไป)
+const MON_MORE = 1.5; /* มอนสเตอร์ในด่านเพิ่มอีก 50% (20 พ.ย. 2569) */
+const SPAWN_SLOW = 10 / MON_MORE; // ศัตรูเกิดใหม่ช้าลง 5 เท่าจากค่าในตาราง (เดิมเกิดเร็วเกินไป)
 // ปรับศัตรูตามระดับเหมือง: เลือด พลังตี เงิน EXP และเลเวลที่แสดง
 /* เลเวลศัตรูตามความลึก: ปากเหมือง = เลเวลต่ำสุดของเหมืองนั้น • ก้นเหมือง = เลเวลสูงสุด (เหมืองระดับ 1: Lv 2 → 20) ไม่มีตัวไหนเกินเพดานของเหมือง
    ชนิดศัตรูขยับได้เล็กน้อย: ตัวใหญ่/บอส +2 • โครงกระดูกระดับสูง +1 ต่อขั้น • งู/ค้างคาว −1 */
@@ -8067,7 +8068,7 @@ function monPower(lv) { return 6 + 0.9 * lv + 0.012 * lv * lv; }
 // ---------- กลุ่มศัตรูประจำจุดในเหมือง ----------
 // เหมืองแต่ละแห่งมีกลุ่มศัตรูวางไว้ทั่ว (ตำแหน่งคงที่ตามผังเหมือง) • ฆ่าหมดกลุ่มแล้วจุดนั้นว่างไป GROUP_RESPAWN_MIN นาที จึงเกิดใหม่
 // ตัวศัตรูถูกสร้างจริงเฉพาะกลุ่มที่อยู่ใกล้ผู้เล่น (ประหยัดเครื่อง) และเก็บกลับเมื่อผู้เล่นเดินห่างออกไป
-const GROUP_RESPAWN_MIN = 30, GROUP_CELL = 13, GROUP_FILL = 0.72, GROUP_NEAR = 300, GROUP_FAR = 560;
+const GROUP_RESPAWN_MIN = 5, /* กลุ่มศัตรูที่ฆ่าหมดเกิดใหม่ภายใน 5 นาที (เดิม 30) */ GROUP_CELL = 13, GROUP_FILL = 0.72, GROUP_NEAR = 300, GROUP_FAR = 560;
 function mkMon(m, type, x, y, zz, grp) { const def = MONS[type], ty = Math.floor(y / 16), hpMul = 1 + clamp(ty / m.h, 0, 1) * 0.5;
   const o = { type, x, y, hp: Math.round(def.hp * hpMul), max: Math.round(def.hp * hpMul), kx: 0, ky: 0, dir: 'down', t: Math.random() * 5, state: 'wander', wind: 0, cd: 1, flash: 0, wt: 0, wdx: 0, wdy: 0, path: null, pathT: 0, moving: false, stolen: 0, grp: grp || null };
   if (type === 'skeleton') skelVariant(o, zz); monTier(o, m.tier || 1); G.mons.push(o); return o; }
@@ -8093,7 +8094,7 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
     for (let tries = 0; tries < 30; tries++) { const tx = cx + Math.floor(rnd() * GROUP_CELL), ty = cy + Math.floor(rnd() * GROUP_CELL); if (tx < 2 || ty < 16 || tx >= m.w - 2 || ty >= m.endRoute.entranceY) continue; const i = MI(m, tx, ty);
       if (m.t[i] !== TILE.FLOOR || m.protect[i]) continue; if (m.t[i + 1] !== TILE.FLOOR && m.t[i - 1] !== TILE.FLOOR) continue;
       const zz = ZONE_KEYS[m.zone[i]], T2 = t2Mine(m), list = T2 ? T2.table[zz] : SPAWN_TABLE[zz].list; let acc = rnd() * list.reduce((t, e) => t + e[1], 0), type = list[0][0]; for (const e of list) { acc -= e[1]; if (acc <= 0) { type = e[0]; break; } }
-      const def = MONS[type], n = def.big || type === 'brute' || (T2 && zz === 'gravel') ? 1 : type === 'bandit' ? 3 + Math.floor(rnd() * 2) : 2 + Math.floor(rnd() * 3);
+      const def = MONS[type], n0 = def.big || type === 'brute' || (T2 && zz === 'gravel') ? 1 : type === 'bandit' ? 3 + Math.floor(rnd() * 2) : 2 + Math.floor(rnd() * 3), n = n0 > 1 ? Math.round(n0 * MON_MORE) : (T2 && zz === 'gravel' && !def.big && rnd() < 0.5 ? 2 : n0);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: n > 1 && rnd() < 0.34, champDead: false }); break; } } /* ราว 1 ใน 3 ของกลุ่มมีแม่ทัพนำ */
   const route = m.endRoute, tierSet = t2Mine(m);
   for (const [tx, ty] of m.routeEncounters) {
@@ -8101,7 +8102,7 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
     const list = tierSet ? tierSet.table[zz] : SPAWN_TABLE[zz].list;
     let draw = rnd() * list.reduce((sum, [, weight]) => sum + weight, 0);
     const [type] = list.find(([, weight]) => (draw -= weight) < 0) || list[0];
-    const n = MONS[type].big || type === 'brute' ? 1 : zz === 'gravel' ? 2 : 3;
+    const n = MONS[type].big || type === 'brute' ? 1 : Math.round((zz === 'gravel' ? 2 : 3) * MON_MORE);
     G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n,
       deadAt: 0, active: false, champ: false, champDead: false, chaseLimit: 110, routeEncounter: true });
   }
@@ -8113,6 +8114,15 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
   guard(route.guard, tierSet ? tierSet.mini : 'skeleton', 95);
   guard(route.lowerGuard, tierSet ? tierSet.table.deep.at(-1)[0] : 'zombie', 85);
   guard(route.boss, tierSet ? tierSet.boss : 'brute', 95);
+  { /* มอนสเตอร์ตามทางเดินหลัก: วางเป็นกลุ่มเล็ก ๆ ทุก ~6 แถวตลอดเส้นทาง (ไม่ต้องขุดเข้าไปหา) — ต่อท้ายรายการ ไม่ให้ลำดับกลุ่มเดิมที่บันทึกไว้เลื่อน */
+    const encY = m.routeEncounters.map(e => e[1]);
+    for (let ty = 20; ty < route.entranceY - 2; ty += 6) {
+      if (encY.some(y => Math.abs(y - ty) < 4)) continue;
+      const tx = m.pathX[ty]; if (!tx || m.t[MI(m, tx, ty)] !== TILE.FLOOR) continue;
+      const zz = ZONE_KEYS[mineZoneIdx(ty)], list = (tierSet ? tierSet.table[zz] : SPAWN_TABLE[zz].list).filter(a => !MONS[a[0]].big && a[0] !== 'brute' && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) continue;
+      let draw = rnd() * list.reduce((t, e) => t + e[1], 0); const [type] = list.find(([, w]) => (draw -= w) < 0) || list[0];
+      const n = Math.max(2, Math.round((zz === 'gravel' ? 2 : 2 + Math.floor(rnd() * 2)) * MON_MORE) - 1);
+      G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: zz !== 'gravel' && rnd() < 0.15, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true }); } }
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   m.groups = G2; }
 function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
@@ -8149,7 +8159,7 @@ function spawnMonsters(dt) {
   G.spawnT = (G.spawnT || 0) + dt;
   const depthBoost = clamp(PL.y / 16 / MINE_H, 0, 1);
   if (G.spawnT < tab.every * SPAWN_SLOW * (1.2 - depthBoost * 0.3)) return; G.spawnT = 0; /* SPAWN_SLOW: ยืดช่วงเวลาเกิดใหม่ของศัตรู */
-  if (G.mons.length >= tab.cap || PL.y < 14 * 16) return;
+  if (G.mons.length >= Math.round(tab.cap * MON_MORE) || PL.y < 14 * 16) return;
   for (let tries = 0; tries < 24; tries++) {
     const a = Math.random() * Math.PI * 2, d = 140 + Math.random() * 110;
     const x = PL.x + Math.cos(a) * d, y = PL.y + Math.sin(a) * d;
@@ -11698,7 +11708,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795174862";
+window.GAME_BUILD="1795175072";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
