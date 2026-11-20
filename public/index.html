@@ -343,6 +343,7 @@ tr.nonerow td{color:var(--muted)}
 /* ร้าน/อุปกรณ์ */
 .item{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border:2px solid rgba(20,10,5,.8);padding:6px 8px}
 .item>img{width:48px;height:48px;padding:6px;flex:none;border-radius:10px;background:radial-gradient(circle at 50% 38%,#4e3624,#170d06 78%);border:2px solid rgba(232,180,74,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.wcty{font-weight:500;font-size:.88em;color:#9fd8ff;white-space:nowrap}
 .lockbtn{min-width:30px;padding:3px 6px!important;font-size:14px!important;line-height:1;opacity:.75}.lockbtn.on{opacity:1;background:linear-gradient(180deg,#ffe9a0,#e0a830)!important;color:#3a2004!important;box-shadow:0 0 0 1px #3a2004}
 .item>.rsticon{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-size:28px;border-radius:10px;background:radial-gradient(circle at 50% 38%,#4e3624,#170d06 78%);border:2px solid rgba(255,176,64,.6)}
 .item.tier1>img{border-color:#8fe070}.item.tier2>img{border-color:#6ab8ff}.item.tier3>img{border-color:#c890ff;box-shadow:0 0 10px rgba(200,144,255,.35)}.item.tier4>img{border-color:#ffb040;box-shadow:0 0 12px rgba(255,176,64,.45)}
@@ -10581,20 +10582,21 @@ const UI = (() => {
       });
     api.onE = null;
   }
+  const boardGemName = g => { if (!g || !GEMS[g.type]) return ''; const C = COUNTRIES[g.origin || 'thai'] || COUNTRIES.thai; return `${GEMS[g.type].name} <span class="wcty">• ${C.short || C.name}</span>`; }; /* หน้าบอร์ด: ชื่อพลอยอย่างเดียว ไม่มีคำว่า เจียระไน/ก้อน */
   function board() {
     if (NET.boardStale()) NET.loadBoard().then(ch => { if (ch && openName === 'board') board(); }); /* ออนไลน์: ดึงอันดับจริงจากเซิร์ฟเวอร์ (ไม่ถี่กว่า 20 วิ) แล้ววาดใหม่ถ้าข้อมูลเปลี่ยน */
     const me = curPlayer(), B = worldBoardState(), rows = worldBoard(), mine = rows.find(r => r.me), offers = B.offers.filter(o => !o.skip).sort((a, b) => b.price - a.price), top = rows[0];
     const botName = id => (WORLD_BOTS.find(b => b.id === id) || {}).name || '?';
     const st = { wait: ['รอคำตอบ…', 'muted'], won: ['ซื้อสำเร็จ ✔ พลอยเข้ากระเป๋าแล้ว', 'good'], rejected: ['ถูกปฏิเสธ', 'bad'], gone: ['พลอยเม็ดนั้นไม่อยู่แล้ว', 'muted'], nofunds: ['เจ้าของตกลง แต่เงินคุณไม่พอ', 'bad'] };
     const row = r => { const hi = r.me ? (offers[0] && offers[0].price) : null, myo = !r.me && B.my.find(o => o.bot === r.bot.id && o.gemId === r.gem.id);
-      return `<div class="wrow wclick ${r.me ? 'me' : ''} ${r.rank === 1 ? 'top' : ''}" data-a="wview" data-k="${r.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้"><div class="wrk">${r.rank === 1 ? '👑' : '#' + r.rank}</div>${wGem(r.gem)}<div class="winfo"><b>${gemName(r.gem)}</b><small>${wLine(r.gem)}</small><small class="wown">เจ้าของ: <b class="plink" data-a="viewsc" data-n="${esc(r.owner)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(r.owner)} 💎</b>${r.me ? ' (คุณ)' : ''}${r.fromMe ? ' • ซื้อไปจากคุณ' : ''}</small></div>
+      return `<div class="wrow wclick ${r.me ? 'me' : ''} ${r.rank === 1 ? 'top' : ''}" data-a="wview" data-k="${r.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้"><div class="wrk">${r.rank === 1 ? '👑' : '#' + r.rank}</div>${wGem(r.gem)}<div class="winfo"><b>${boardGemName(r.gem)}</b><small>${wLine(r.gem)}</small><small class="wown">เจ้าของ: <b class="plink" data-a="viewsc" data-n="${esc(r.owner)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(r.owner)} 💎</b>${r.me ? ' (คุณ)' : ''}${r.fromMe ? ' • ซื้อไปจากคุณ' : ''}</small></div>
         <div class="wval"><small>มูลค่าประเมิน</small><b>${money(r.value)}</b>${BOARD_OFFERS && r.open ? '<span class="wtag open">รับข้อเสนอราคา</span>' : '<span class="wtag">โชว์อย่างเดียว</span>'}${hi ? `<small>ข้อเสนอสูงสุด ${money(hi)}</small>` : ''}${myo ? `<small class="${st[myo.status][1]}">คุณเสนอ ${money(myo.price)} — ${st[myo.status][0]}</small>` : ''}
         ${BOARD_OFFERS && !r.me && r.open && me ? `<button class="btn small gold" data-a="bid" data-k="${r.key}">เสนอราคา</button>` : ''}</div></div>`; };
     show('board', `<h3>🏆 บอร์ดโชว์พลอยทั้งเกม</h3>
       ${!me ? `<div class="wme warn"><b>ยังไม่ได้ลงทะเบียน</b><small>ลงทะเบียนชื่อผู้เล่นก่อน พลอยของคุณถึงจะขึ้นบอร์ด</small><button class="btn gold small" data-a="player">ลงทะเบียนผู้เล่น</button></div>`
         : `<div class="wme"><div class="wmeh"><b>👤 ${esc(me.name)}</b><button class="btn small" data-a="player">${NET.online ? 'บัญชี' : 'ผู้เล่น / สลับ'}</button></div>
           ${mine ? `<small>พลอยที่ดีที่สุดของคุณ (ในกระเป๋าหรือตู้เซฟ) ขึ้นบอร์ดอัตโนมัติ</small>
-            <div class="wmine wclick" data-a="wview" data-k="${mine.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้">${wGem(mine.gem)}<div class="winfo"><b>${gemName(mine.gem)}</b><small>${wLine(mine.gem)}</small><small>${COUNTRIES[mine.gem.origin || 'thai'].name} • ${RARITY_NAMES[gemRarity(mine.gem)]}</small></div><div class="wval"><small>อันดับ <b>#${mine.rank}</b> จาก ${rows.length}</small><b>${money(mine.value)}</b><span class="wmore">ดูรายละเอียด ›</span></div></div>
+            <div class="wmine wclick" data-a="wview" data-k="${mine.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้">${wGem(mine.gem)}<div class="winfo"><b>${boardGemName(mine.gem)}</b><small>${wLine(mine.gem)}</small><small>${COUNTRIES[mine.gem.origin || 'thai'].name} • ${RARITY_NAMES[gemRarity(mine.gem)]}</small></div><div class="wval"><small>อันดับ <b>#${mine.rank}</b> จาก ${rows.length}</small><b>${money(mine.value)}</b><span class="wmore">ดูรายละเอียด ›</span></div></div>
             <div class="wopen" ${BOARD_OFFERS ? '' : 'style="display:none"'}><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b> — ผู้เล่นอื่นเสนอราคาเข้ามาได้' : '<b>ไม่รับข้อเสนอราคา</b> — โชว์บนบอร์ดอย่างเดียว'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div>
             ${B.open && offers.length ? `<small class="good">🔔 มีข้อเสนอเข้ามา ${offers.length} รายการ — กดกระดิ่งเหนือรูปโปรไฟล์เพื่อดูและตอบรับ</small>` : ''}`
             : '<small class="muted">ยังไม่มีพลอยในกระเป๋าหรือตู้เซฟ ขุดหรือเจียพลอยมาก่อน แล้วเม็ดที่ดีที่สุดจะขึ้นบอร์ดเอง</small>'}</div>`}
@@ -11756,7 +11758,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795186735";
+window.GAME_BUILD="1795186966";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
