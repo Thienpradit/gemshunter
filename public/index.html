@@ -305,6 +305,7 @@ tr.nonerow td{color:var(--muted)}
 .gcard .gstats{flex-wrap:nowrap;overflow:hidden;white-space:nowrap}.gcard .gstats>span{flex:none}.gcard .gstats>span.orig{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .gcard .clean{white-space:nowrap;overflow:hidden}.gcard .clean .cbar{min-width:36px}.gcard .clean .scnew{flex:none}
 .cl-s{display:none}
+.gcard[data-a=sccur],.gcard[data-a=sccand]{cursor:pointer}.gcard[data-a=sccur]:hover,.gcard[data-a=sccand]:hover{border-color:#e8c070}
 .tinfo-intro{margin:6px 0 10px;font-size:13.5px;line-height:1.55;color:#2a2418}.tinfo-more{width:100%;margin-top:8px}.tinfo-more th{width:24%}
 .tinfo-head .talias{font-size:12px;letter-spacing:0}
 @media (max-width:640px){.tinfo-head{flex-direction:column;align-items:stretch;gap:2px}.tinfo-head b{font-size:15px!important;letter-spacing:1px!important;white-space:nowrap}.tinfo-head .tsub,.tinfo-head .labno small{display:none}.tinfo-head .labno{text-align:left}.tinfo-head .talias{font-size:12.5px!important;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;letter-spacing:0!important}}
@@ -10354,13 +10355,15 @@ const UI = (() => {
       const c = m[1], t = m[2], col = +m[3], key = scSlot, cur = SC[key], cand = mine(c, t, col), CN = GEMS[t].colors[col];
       show('showcase', `${head}<div class="sccrumb"><button class="btn small" data-a="scback">◀ กลับ</button>${GEM_INFO[t] ? `<button class="btn small" data-a="tinfo">📖 ข้อมูลพลอยชนิดนี้</button>` : ''}<span><b>${nm(GEMS[t].name)[0]}</b> › ขุดจาก${COUNTRIES[c].short} › <i class="sw" style="background:${CN[1]}"></i> ${CN[0]}</span></div>
         <h4 class="sch4">ในกล่องตอนนี้</h4>
-        ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}${RO ? '' : '<br><button class="btn small" data-a="scout">เอาออก</button>'}`, true, 'none')}</div>` : '<div class="empty">กล่องนี้ยังว่าง</div>'}
+        ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}${RO ? '' : '<br><button class="btn small" data-a="scout">เอาออก</button>'}`, true, 'sccur')}</div>` : '<div class="empty">กล่องนี้ยังว่าง</div>'}
         ${RO ? '' : `<h4 class="sch4">พลอยของคุณที่ใส่กล่องนี้ได้ ${cand.length ? `(${cand.length} เม็ด)` : ''}</h4>`}
-        <div class="list" ${RO ? 'style="display:none"' : ''}>${cand.length ? cand.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>${money(estValue(g))}<br><button class="btn small gold" data-a="scput" data-id="${g.id}" data-s="${src}">${cur ? 'สลับ' : 'ใส่'}</button>`, false, 'none')).join('') : `<div class="empty">ยังไม่มี${nm(GEMS[t].name)[0]}สีนี้ที่ขุดจาก${COUNTRIES[c].short} — กล่องนี้รับเฉพาะพลอยที่ขุดจากประเทศนี้</div>`}</div>
+        <div class="list" ${RO ? 'style="display:none"' : ''}>${cand.length ? cand.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>${money(estValue(g))}<br><button class="btn small gold" data-a="scput" data-id="${g.id}" data-s="${src}">${cur ? 'สลับ' : 'ใส่'}</button>`, false, 'sccand')).join('') : `<div class="empty">ยังไม่มี${nm(GEMS[t].name)[0]}สีนี้ที่ขุดจาก${COUNTRIES[c].short} — กล่องนี้รับเฉพาะพลอยที่ขุดจากประเทศนี้</div>`}</div>
         <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
         (a, b) => { if (common(a, b)) return;
           if (a === 'scback') { scSlot = null; SFX.play('click'); return showcase(); }
           if (a === 'tinfo') { SFX.play('click'); return gemTypeInfo(t, showcase); }
+          if (a === 'sccur' && cur) { SFX.play('click'); return gemDetail(cur, showcase); } /* กดที่พลอยในกล่อง → ดูรายละเอียดพลอยเม็ดนั้น */
+          if (a === 'sccand') { const id = +b.dataset.id, f = cand.find(x => x.g.id === id); if (f) { SFX.play('click'); return gemDetail(f.g, showcase); } }
           if (RO) return;
           if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t && (g.color | 0) === col && org(g) === c); if (i < 0) return; const g = arr[i]; if (SC[key]) arr[i] = SC[key]; else arr.splice(i, 1); SC[key] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> สี${CN[0]} ${scCase ? 'ลงกระเป๋าสะสมแล้ว' : 'ลงตู้โชว์แล้ว'} • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
           if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากคอลเลกชันไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
