@@ -7027,7 +7027,7 @@ function buildVillage() {
   m.interact.push({ kind: 'mint', x: CTX + 22, y: CTY + 10, r: 22, label: 'น้องมิ้นท์ขายน้ำ', verb: 'ซื้อ', npc: mint });
   m.interact.push({ kind: 'craft', x: WSX, y: WSY + 8, r: 24, label: 'โรงเจียระไน (จ้างช่างเจีย / เจียเอง)', verb: 'เข้าร้าน', hit: { x: WSX - 60, y: WSY - 96, w: 120, h: 100 } });
   m.interact.push({ kind: 'elder', x: elder.x, y: elder.y + 6, r: 20, label: 'คุยกับผู้ใหญ่ชาญ', verb: 'คุย', npc: elder });
-  m.interact.push({ kind: 'aunt', x: FDX, y: FDY + 10, r: 24, label: 'ร้านข้าวป้าแดง', verb: 'ซื้อ', hit: { x: FDX - 24, y: FDY - 46, w: 48, h: 52 } });
+  m.interact.push({ kind: 'aunt', x: FDX, y: FDY + 10, r: 24, label: 'ร้านข้าวน้องมิ้นท์', verb: 'ซื้อ', hit: { x: FDX - 24, y: FDY - 46, w: 48, h: 52 } });
   m.interact.push({ kind: 'smith', x: SMX, y: SMY + 10, r: 26, label: 'ร้านอุปกรณ์ลุงเหล็ก', verb: 'เข้าร้าน', hit: { x: SMX - 46, y: SMY - 66, w: 92, h: 72 } });
   m.interact.push({ kind: 'enterHouse', x: HX - HW2 + 22, y: HY - 6, r: 24, label: 'บ้านของคุณ (เตียงนอนพักฟื้น)', verb: 'เข้าบ้าน', hit: { x: HX - HW2, y: HY - 90, w: ART.bi.house.width, h: 92 } });
   /* เจ้าของร้านออกมายืนรอบลานวงกลม (ร้านละหนึ่งคน) หันหน้าเข้าลาน • กดคุยแล้วเปิดร้านนั้น */
@@ -7035,10 +7035,10 @@ function buildVillage() {
   const faceIn = (x, y) => { const dx = PCX * 16 - x, dy = PCY * 16 - y; return Math.abs(dx) > Math.abs(dy) * 1.3 ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); };
   const NM = (typeof LOCAL_NAMES !== 'undefined' && LOCAL_NAMES.thai) || {};
   for (const [key, name, kind, label, verb, sx, sy] of [
-    ['aunt', 'ป้าแดง', 'aunt', 'ร้านข้าวป้าแดง', 'ซื้อ', FDX, FDY], ['smith', 'ลุงเหล็ก', 'smith', 'ร้านอุปกรณ์ลุงเหล็ก', 'เข้าร้าน', SMX, SMY],
+    ['mint', 'น้องมิ้นท์', 'aunt', 'ร้านข้าวน้องมิ้นท์', 'ซื้อ', FDX, FDY], ['smith', 'ลุงเหล็ก', 'smith', 'ร้านอุปกรณ์ลุงเหล็ก', 'เข้าร้าน', SMX, SMY],
     ['craft', NM.craft || 'ช่างเจีย', 'craft', 'โรงเจียระไน (จ้างช่างเจีย / เจียเอง)', 'คุย', WSX, WSY], ['rawdealer', 'เฮียซี', 'rawdealer', 'คุยกับเฮียซี (รับซื้อพลอยก้อน)', 'คุย', RWX, STY],
     ['pon', 'คุณปอน', 'cutdealer', 'ร้านรับซื้อพลอยเจียระไน (คุณปอน)', 'คุย', CTX, CTY]]) {
-    const [x, y] = ringAt(sx, sy - 10), n = npc(key, name, Math.round(x), Math.round(y), faceIn(x, y)); n.out = true;
+    const [x, y] = ringAt(sx, sy - 10), n = npc(key, name, Math.round(x), Math.round(y), faceIn(x, y)); n.out = true; if (kind === 'aunt') n.role = 'ขายอาหาร';
     m.interact.push({ kind, x: n.x, y: n.y + 8, r: 22, label, verb, npc: n }); }
   m.interact.push({ kind: 'enterMine', to: 'mine', x: CX * 16, y: 4 * 16 + 4, r: 18, label: 'ลงเหมือง', verb: 'เข้า' });
   m.triggers.push({ kind: 'enterMine', to: 'mine', x: (CX - 1) * 16 + 2, y: 2 * 16, w: 28, h: 26 });
@@ -7874,7 +7874,7 @@ const TOWN_ART = {
       smith: [1330, 230], smithHit: [1188, 40, 1612, 214], raw: [1450, 400], cutPak: [1228, 540], cutWater: [1630, 515],
       jewelHit: [405, 10, 718, 262],
       npc: { jena: [560, 274, 'down'], elder: [790, 455, 'right'] },
-      own: { aunt: [295, 308, 'down'], smith: [1168, 248, 'down'], craft: [690, 470, 'right'], rawdealer: [1148, 372, 'left'], pon: [1160, 462, 'left'] },
+      own: { mint: [295, 308, 'down'], smith: [1168, 248, 'down'], craft: [690, 470, 'right'], rawdealer: [1148, 372, 'left'], pon: [1160, 462, 'left'] },
       warpIn: [935, 545], warpDoor: [935, 245], warpTo: [-58, 70], lights: [[878, 95], [995, 95]],
     } },
   srilanka: { walk: '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000111110000000000000000000000000000000000000000000000000000001101111110000000000000000000000000000000000000000000000000000101101000000000000000000000000000000000000000000111111111111111111111010111111000000000000000000000000011111111111111100001100001111111100000000010000000000000000011000000100111101111111111111000000000000010000000000000011100000000000011110111111101100000000000000011000000000000011100000000000001111111111111100000000000000011000000000000001000000000000011111111111111111000000000000011000000000000001000000000000011111111111111111100000000000011111100000000001000000000000111111111111111111000111111110011111111000000001000000000000111111111111111111111111111111111111111000000001000000000000111111111111111111111111111111111110000000000011000000000000011111111111111111100000000001111000000000000001000000000000011111111111111110000000000000011000000000000001000000000000111111111111111111000000000000011000000000000011110100111110011110111111101111000000000000011000000000000001111111111111111110111111101100000000000000011000000000000000001111111110011111101100100110000000000000011000000000000000000001111100001111111111111111100000000000011000000000000000000111000000000001011111001111111111111000010000000000000000000111000000000000001110001000000010001000111000000000000000000000000000000000001110001000000000001000110000000000000000000000000000000000001110001000000000000000100000000000000000000000000000000000001100011000000000000001111000000000000000000000000000000000001100001000000000000001110000000000000000000000000000000011101100000000000000000111100000000000000000000000000000000111101100000011110000000001100000000000000000000000000001111111111111111000100000001111000000000000011111111111111111111111111111111111111111111111110000000011111111111111111111111111111111111111111111111111111000000011111111111111111111111111111111111111111111111111111111000011111111111111111111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', src: 'towns/srilanka.webp', W: 1862, H: 845,
@@ -9049,7 +9049,7 @@ function fountainDrops(g, S, T, cx, by, t) {
 }
 /* ป้ายชื่อ NPC: ชื่อ + หน้าที่ เช่น "นิมัล รับซื้อพลอยก้อน" (ถ้าชื่อบอกหน้าที่อยู่แล้วก็ไม่เติมซ้ำ) */
 const NPC_ROLE = { rawdealer: 'รับซื้อพลอยก้อน', pon: 'รับซื้อพลอยเจียระไน', pak: 'รับซื้อพลอยเจียระไน', craft: 'รับเจียระไนพลอย', aunt: 'ขายอาหาร', smith: 'ขายอุปกรณ์', jena: 'ร้านจิวเวลรี่', elder: 'ผู้ใหญ่บ้าน', mint: 'ขายน้ำดื่ม' };
-function npcLabel(n) { if (n._lbl && n._lblN === n.name) return n._lbl; const nm = String(n.name || '').replace(/\s*\(.*?\)\s*/g, '').trim(), r = NPC_ROLE[n.key]; n._lblN = n.name;
+function npcLabel(n) { if (n._lbl && n._lblN === n.name) return n._lbl; const nm = String(n.name || '').replace(/\s*\(.*?\)\s*/g, '').trim(), r = n.role || NPC_ROLE[n.key]; n._lblN = n.name;
   return (n._lbl = !r || /ร้าน|ขาย|รับซื้อ|เจ้าของ|แม่ค้า/.test(nm) ? nm : `${nm} ${r}`); }
 function floatText(x, y, text, col, dur = 1.4, big = 0, oy = 0) { const f = { x, y, text, col, t: 0, dur, big, oy }; G.floats.push(f); return f; } /* big: ข้อความเด่น (เจอพลอย) — เด้งขยายตอนโผล่ ลอยขึ้นแล้วค้างให้อ่าน ค่อยจางตอนท้าย */
 
@@ -9084,7 +9084,7 @@ function faint(who) {
     setTimeout(() => {
       G.map = getMap(town); syncWarpDoor(); syncDeathBags(); setTheme(); const sp = G.map.spawn_warpIn || G.map.spawnStart; /* ฟื้นที่กลางเมืองของเหมืองนั้น จะได้กลับไปเก็บกระเป๋าได้ */ PL.state = 'idle'; PL.path = null; PL.act = null; PL.kx = 0; PL.ky = 0; PL.moving = false; G.zone = null; G.motes = []; PL.x = sp.x; PL.y = sp.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.mons = []; G.drops = []; G.zone = null;
       const ps = pstats(); STATE.hp = Math.round(ps.maxHp * 0.6); STATE.sta = ps.maxSta; G.down = false;
-      saveGame(); NET.syncTravel();
+      saveGame(); NET.syncTravel(); setTimeout(() => { try { NET.ping && NET.ping(); } catch (e) {} }, 400);
       fade.classList.remove('on');
       UI.show('faint', `<h3>หมดสติ…</h3><p>${who === 'cold' ? 'คุณหนาวจัดจนหมดสติ เพราะใส่ชุดไม่อุ่นพอ' : who === 'hot' ? 'คุณร้อนจนเป็นลมแดด เพราะใส่ชุดหนาเกินไป' : `คุณถูก${who || 'สัตว์ร้าย'}โจมตีจนหมดสติ`} — ฟื้นขึ้นมาที่กลางเมือง</p>${who === 'cold' || who === 'hot' ? `<p class="muted">${who === 'cold' ? 'ก่อนไปเมืองหนาว ซื้อเสื้อโค้ท/ชุดกันหนาว หมวกขนสัตว์ ถุงมือขนแกะ รองเท้าบุขน ที่ร้านอุปกรณ์ (แท็บ ชุดตามภูมิอากาศ)' : 'ก่อนไปเมืองร้อน ถอดเสื้อเกราะหนา ใส่ชุดระบายอากาศ หมวกสานกันแดด รองเท้าตาข่าย (แท็บ ชุดตามภูมิอากาศ)'}</p>` : ''}${bag ? `<p class="bad">🎒 กระเป๋าของคุณตกอยู่ตรงจุดที่หมดสติในเหมือง ข้างในมี${bag.items.length ? ` ชุดที่สวมอยู่ ${bag.items.length} ชิ้น` : ''}${bag.items.length && bag.gems.length ? ' และ' : ''}${bag.gems.length ? ` พลอยก้อนที่ขุดได้รอบนี้ ${bag.gems.length} เม็ด` : ''}</p><p>กลับลงไปที่จุดนั้นแล้วเก็บกระเป๋า จะได้ของคืนทั้งหมด (ดูไอคอน 🎒 บนแผนที่มุมจอ) • พลอยเจียระไน พลอยที่มีมาก่อนลงเหมือง พลั่ว และอาวุธ ยังอยู่กับตัว</p>` : '<p class="muted">ไม่มีของตกหาย</p>'}<p class="muted">เคล็ดลับ: ซื้อเสื้อ หมวก โล่ ที่ร้านลุงเหล็ก และพกยาสมุนไพร (กด 1) ไว้ฟื้น HP</p><div class="row end"><button class="btn gold" data-a="close">ลุกขึ้น</button></div>`, () => {});
     }, 320);
@@ -9117,12 +9117,12 @@ function gainXp(n, monLv) {
 }
 function useSlot(cat) {
   const ps = pstats(), hpCat = cat === 'hp', missing = hpCat ? ps.maxHp - STATE.hp : ps.maxSta - STATE.sta;
-  if (consCount(cat) <= 0) { toast(`ไม่มี${hpCat ? 'ของฟื้นเลือด' : cat === 'drink' ? 'เครื่องดื่ม' : 'อาหาร'}เหลือ — ซื้อได้ที่ร้านข้าวป้าแดง`, 'muted'); SFX.play('deny'); return; }
+  if (consCount(cat) <= 0) { toast(`ไม่มี${hpCat ? 'ของฟื้นเลือด' : cat === 'drink' ? 'เครื่องดื่ม' : 'อาหาร'}เหลือ — ซื้อได้ที่ร้านข้าวน้องมิ้นท์`, 'muted'); SFX.play('deny'); return; }
   if (missing <= 0) { toast(hpCat ? 'HP ยังเต็มอยู่' : 'สเตมินายังเต็มอยู่', 'muted'); return; }
   const id = consPick(cat, missing); if (id) useCons(id);
 }
 function useCons(id) {
-  if ((STATE.cons[id] || 0) <= 0) { toast(`ไม่มี${CONSUMABLES[id].name} — ซื้อได้ที่ร้านข้าวป้าแดง`, 'muted'); SFX.play('deny'); return; }
+  if ((STATE.cons[id] || 0) <= 0) { toast(`ไม่มี${CONSUMABLES[id].name} — ซื้อได้ที่ร้านข้าวน้องมิ้นท์`, 'muted'); SFX.play('deny'); return; }
   const ps = pstats(), c = CONSUMABLES[id];
   if (c.stamina && STATE.sta >= ps.maxSta) { toast('สเตมินายังเต็มอยู่', 'muted'); return; }
   if (c.hp && STATE.hp >= ps.maxHp) { toast('HP ยังเต็มอยู่', 'muted'); return; }
@@ -9208,7 +9208,7 @@ function goMap(id, spawnKey) {
     syncWarpDoor(); // ประตูขากลับที่เมืองตั้งอยู่เลย ไม่ต้องมีแอนิเมชันโผล่
     if (G.warpGone) { const o = addObj(G.map, ART.warpDoor, G.warpGone.x, G.warpGone.y - 3, { kind: 'warpdoor' }); o.fade = true; o.t0 = G.time + 0.9; G.warpGone = null; } // กลับถึงจุดเดิมแล้ว ประตูค่อย ๆ จางหาย
     G.flightDestination = null;
-    saveGame(); NET.syncTravel();
+    saveGame(); NET.syncTravel(); setTimeout(() => { try { NET.ping && NET.ping(); } catch (e) {} }, 400);
     if (spawnKey === 'warpIn') toast(`ถึงเมืองแล้ว • ประตูวาร์ปเปิดรออยู่ข้าง ๆ ใช้กลับไปจุดเดิมได้ 1 ครั้ง ไม่จำกัดเวลา`, 'good'); else if (spawnKey === 'warpBack') toast('กลับมาที่จุดเดิมในเหมืองแล้ว • ประตูวาร์ปหายไป', 'good');
     if (id === 'house') banner('บ้านของคุณ'); else if (id === 'village') banner(spawnKey === 'airport' ? 'กลับถึงจันทบุรีแล้ว' : 'หมู่บ้านนักล่าอัญมณี'); else if (id.startsWith('out_') && spawnKey === 'airport') banner('✈ ' + COUNTRIES[countryOfMap(id)].name);
     setTimeout(() => { fade.classList.remove('on'); G.trans = false; G.transCool = 0.5; }, 120);
@@ -9228,7 +9228,7 @@ function flyTo(destCountry) {
   // เซฟตำแหน่งปลายทางทันที (ปิดเกมกลางทางก็ยังไปถึง)
   const sp = getMap(destMap).spawnAirport;
   G.flightDestination = { map: destMap, x: sp.x, y: sp.y, dir: sp.dir };
-  saveGame(); NET.syncTravel();
+  saveGame(); NET.syncTravel(); setTimeout(() => { try { NET.ping && NET.ping(); } catch (e) {} }, 400);
   const ov = $('#flight'); ov.classList.remove('hidden');
   $('#flTitle').textContent = `กำลังบินไป ${destCountry === 'thai' ? 'จันทบุรี ประเทศไทย' : C.name}`;
   $('#flFrom').textContent = from === 'thai' ? 'ไทย' : COUNTRIES[from].short; $('#flTo').textContent = destCountry === 'thai' ? 'ไทย' : C.short;
@@ -10147,7 +10147,7 @@ const NET = (() => {
     const chip = document.getElementById('onchip'); if (!chip) return;
     box = document.createElement('div'); box.id = 'onlist'; box.innerHTML = '<div class="olh">ผู้เล่นออนไลน์</div><div class="olb">กำลังโหลด…</div>'; document.body.appendChild(box);
     const place = () => { const r = chip.getBoundingClientRect(), w = Math.min(200, innerWidth - 12); box.style.width = w + 'px'; box.style.top = (r.bottom + 6) + 'px'; box.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px'; }; place();
-    const d = await N.onlineList(); if (!document.getElementById('onlist')) return;
+    try { await N.ping(); } catch (e) {} const d = await N.onlineList(); if (!document.getElementById('onlist')) return;
     const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : '-');
     if (d) { N.onlineN = d.online | 0; chip.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; }
     box.querySelector('.olh').textContent = `ผู้เล่นออนไลน์ ${list.length.toLocaleString('th-TH')} คน`;
@@ -10624,7 +10624,7 @@ const UI = (() => {
     const conRows = (cat, title) => `<h4 class="conh">${title} <small class="muted">ปุ่ม ${CONS_KEY[cat]} — เกมเลือกชิ้นที่พอดีกับที่ขาดให้เอง</small></h4>` + CONS_CAT[cat].map(id => { const c = CONSUMABLES[id]; return `<div class="item"><img src="${itemIconURL(id)}"><div class="gi"><b>${c.name}</b><small>${c.stamina ? `เติมสเตมินา +${c.stamina}` : `ฟื้น HP +${c.hp}`} • มีอยู่ ${STATE.cons[id] || 0}</small></div><div class="gp">${money(c.price)}<div class="row"><button class="btn small" data-a="b1" data-id="${id}" ${STATE.coins < c.price ? 'disabled' : ''}>ซื้อ 1</button><button class="btn small" data-a="b5" data-id="${id}" ${STATE.coins < c.price * 5 ? 'disabled' : ''}>ซื้อ 5</button></div></div></div>`; }).join('');
     const abroad = !!(G.map && G.map.outpost);
     if (who === 'mint') return show('aunt', dlgHead('mint', abroad ? 'ร้านน้ำดื่ม' : 'น้องมิ้นท์', 'น้ำเย็น ๆ ค่ะ ดื่มก่อนลงเหมืองนะคะ เติมแรงขุดได้เยอะเลย 😊') + `<div class="list">${conRows('drink', '⚡ เครื่องดื่มฟื้นสเตมินา')}</div>`, (a, b) => { if (a === 'b1') buy(b.dataset.id, 1); else if (a === 'b5') buy(b.dataset.id, 5); });
-    show('aunt', dlgHead('aunt', abroad ? 'ร้านอาหาร' : 'ป้าแดง', abroad ? 'น้ำ อาหาร ยา ครบ! (ร้านนี้ไม่รับซื้อพลอยนะ)' : 'กินข้าวก่อนลงเหมืองนะลูก น้ำดื่มกับข้าวเหนียวหมูปิ้งเติมแรงขุด ยาสมุนไพรไว้ทาแผลเวลาโดนพวกนั้นกัด') +
+    show('aunt', dlgHead(abroad ? 'aunt' : 'mint', abroad ? 'ร้านอาหาร' : 'น้องมิ้นท์', abroad ? 'น้ำ อาหาร ยา ครบ! (ร้านนี้ไม่รับซื้อพลอยนะ)' : 'กินข้าวก่อนลงเหมืองนะคะ น้ำดื่มกับข้าวเหนียวหมูปิ้งเติมแรงขุด ยาสมุนไพรไว้ทาแผลเวลาโดนพวกนั้นกัดค่ะ') +
       `<div class="list">${[['hp', '♥ ของฟื้นเลือด'], ['drink', '⚡ เครื่องดื่มฟื้นสเตมินา'], ['food', '⚡ อาหารฟื้นสเตมินา']].map(([cat, title]) => conRows(cat, title)).join('')}</div>`,
       (a, b) => { if (a === 'b1') buy(b.dataset.id, 1); else if (a === 'b5') buy(b.dataset.id, 5); });
   }
@@ -11679,7 +11679,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795172842";
+window.GAME_BUILD="1795173126";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
