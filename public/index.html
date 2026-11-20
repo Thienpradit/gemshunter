@@ -10696,7 +10696,7 @@ const UI = (() => {
     const canT = t => !RO && cs(t).some(c => GEMS[t].colors.some((_, col) => !SC[K(c, t, col)] && mine(c, t, col).length)), nm = x => { const i = x.indexOf(' ('); return i > 0 ? [x.slice(0, i), x.slice(i + 2).replace(/\)$/, '')] : [x, '']; };
     const dots = t => `<div class="scdots">${GEMS[t].colors.map((C, col) => `<i class="${hasCol(t, col) ? 'on' : ''}" style="--dc:${C[1]}"></i>`).join('')}</div>`;
     const head = `<h3>${!V && scCase ? '🧳' : '💎'} ${V ? `ตู้โชว์ของ ${esc(V.name)}${V.me ? ' (คุณ)' : ''} • Lv ${V.lv}` : scCase ? 'กระเป๋าเดินทางใส่พลอย' : 'ตู้โชว์คอลเลกชันพลอย'}</h3><div class="schead"><div class="scprog"><div class="scprog-t"><span>ชนิดพลอย <b>${haveT}</b>/${allTypes.length}</span><span>กล่องที่ใส่แล้ว <b>${haveC}</b>/${slotTotal}</span></div><div class="scbar"><i style="width:${(haveC / slotTotal * 100).toFixed(1)}%"></i></div></div><div class="sctot"><small>ราคาประเมินรวมทั้งคอลเลกชัน</small><b>${money(total)}</b></div></div>`;
-    const tool = extra => `<div class="sctool"><div class="scseg">${[[1, '💎 ชนิดพลอย'], [2, '🎨 ทุกสี']].map(([k, t]) => `<button class="${scPage === k ? 'on' : ''}" data-a="scpage" data-p="${k}">${t}</button>`).join('')}</div><label>ประเทศที่ขุด <select class="sel" id="sccty"><option value="">ทุกประเทศ</option>${COUNTRY_KEYS.map(k => `<option value="${k}" ${scCty === k ? 'selected' : ''}>${COUNTRIES[k].short} (${allTypes.filter(t => originKeys(t).includes(k)).length})</option>`).join('')}</select></label>${extra}${RO ? '' : '<button class="btn small gold scauto" data-a="scauto" title="ไล่ทุกกล่อง: เอาเม็ดที่ราคาประเมินสูงที่สุดจากกระเป๋าและตู้เซฟขึ้นโชว์ (เม็ดเดิมที่ถูกแทนจะกลับไปที่เดิม)">✨ เอาเม็ดที่แพงที่สุดขึ้นโชว์</button>'}</div>`;
+    const tool = extra => `<div class="sctool"><div class="scseg">${[[1, '💎 ชนิดพลอย'], [2, '🎨 ทุกสี']].map(([k, t]) => `<button class="${scPage === k ? 'on' : ''}" data-a="scpage" data-p="${k}">${t}</button>`).join('')}</div><label>ประเทศที่ขุด <select class="sel" id="sccty"><option value="">ทุกประเทศ</option>${COUNTRY_KEYS.map(k => `<option value="${k}" ${scCty === k ? 'selected' : ''}>${COUNTRIES[k].short}</option>`).join('')}</select></label>${extra}${RO ? '' : '<button class="btn small gold scauto" data-a="scauto" title="ไล่ทุกกล่อง: เอาเม็ดที่ราคาประเมินสูงที่สุดจากกระเป๋าและตู้เซฟขึ้นโชว์ (เม็ดเดิมที่ถูกแทนจะกลับไปที่เดิม)">✨ เอาเม็ดที่แพงที่สุดขึ้นโชว์</button>'}</div>`;
     const bindSel = () => { for (const [id, fn] of [['#sccty', v => { scCty = v; }], ['#scsel', v => { scSel = v; }], ['#scflt', v => { scFilter = v; }]]) { const el = $(id); if (el) el.addEventListener('change', e => { fn(e.target.value); SFX.play('click'); showcase(); }); } };
     const backB = V ? '<button class="btn" data-a="scboard">◀ กลับไปบอร์ด</button>' : '';
     const autoBest = () => { let put = 0, swap = 0, gain = 0; /* ทุกกล่อง: ถ้ามีเม็ดที่ตรงกล่อง (ประเทศ+ชนิด+สี) และแพงกว่าเม็ดที่โชว์อยู่ ให้สลับขึ้นโชว์ */
@@ -11678,7 +11678,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795172608";
+window.GAME_BUILD="1795172804";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
