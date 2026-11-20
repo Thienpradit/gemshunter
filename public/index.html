@@ -10702,9 +10702,10 @@ const UI = (() => {
     const colBox = (c, t, col) => { const g = SC[K(c, t, col)], n = g ? 0 : mine(c, t, col).length, CN = GEMS[t].colors[col], [th, en] = nm(CN[0]); return `<div class="scbox ${g ? 'on' : n ? 'can' : 'off'}" data-a="scslot" data-k="${K(c, t, col)}" style="--gc:${CN[1]}">${n ? `<span class="scbadge">ใส่ได้ ${n}</span>` : ''}<div class="scimg">${g ? `<img src="${gemBigURL(g)}" alt="">` : ''}</div><b>${th}</b><em>${en || '&nbsp;'}</em><span class="scp ${g ? '' : 'muted'}">${g ? money(estValue(g)) : 'ว่าง'}</span></div>`; };
     if (scPage === 2) { const pick = scSel && GEMS[scSel] ? [scSel] : byAZ(types);
       show('showcase', `${head}${tool(`<label>ชนิด <select class="sel" id="scsel"><option value="">ทั้งหมด (${types.length})</option>${byAZ(types).map(t => `<option value="${t}" ${scSel === t ? 'selected' : ''}>${nm(GEMS[t].name)[1] || ''} • ${nm(GEMS[t].name)[0]} ${colN(t)}/${NC}</option>`).join('')}</select></label>`)}
+        ${scSel && GEMS[scSel] && GEM_INFO[scSel] ? `<div class="sccrumb"><button class="btn small gold" data-a="tinfo">📖 ข้อมูลพลอยชนิดนี้</button><span><b>${nm(GEMS[scSel].name)[0]}</b> ${nm(GEMS[scSel].name)[1] || ''}</span></div>` : ''}
         <div class="scgrid scall">${pick.map(t => { const [th, en] = nm(GEMS[t].name); return cs(t).map(c => { const sl = GEMS[t].colors.map((_, col) => SC[K(c, t, col)]).filter(Boolean); return `<div class="schd"><b>${th} <em>${en}</em> <span class="sccty">⛏ ${COUNTRIES[c].short}</span></b><span>${sl.length}/${NC} สี${sl.length ? ' • ' + money(sl.reduce((v, g) => v + estValue(g), 0)) : ''}</span></div>${GEMS[t].colors.map((_, col) => colBox(c, t, col)).join('')}`; }).join(''); }).join('')}</div>
         <div class="row end"><span class="muted small scnote">${RO ? 'แตะกล่องที่มีพลอยเพื่อดูรายละเอียด' : 'แต่ละกล่องรับเฉพาะพลอยที่ขุดจากประเทศนั้น • สีละ 1 เม็ด'}</span>${backB}<button class="btn" data-a="close">ปิด</button></div>`,
-        (a, b) => { if (common(a, b)) return; if (a === 'scslot') { if (RO && !SC[b.dataset.k]) return; scSlot = b.dataset.k; SFX.play('click'); return showcase(); } }, { xwide: true });
+        (a, b) => { if (common(a, b)) return; if (a === 'tinfo') { SFX.play('click'); return gemTypeInfo(scSel, showcase); } if (a === 'scslot') { if (RO && !SC[b.dataset.k]) return; scSlot = b.dataset.k; SFX.play('click'); return showcase(); } }, { xwide: true });
       bindSel(); api.onE = null; return; }
     const cnt = k => types.filter(t => { const n = colN(t); return k === 'have' ? n : k === 'miss' ? !n : k === 'full' ? n === NC : k === 'can' ? canT(t) : true; });
     const list = byAZ(cnt(scFilter));
@@ -11654,7 +11655,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795167312";
+window.GAME_BUILD="1795168405";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
