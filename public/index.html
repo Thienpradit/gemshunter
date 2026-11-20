@@ -10562,6 +10562,9 @@ const UI = (() => {
   }
   const area = pts => Math.abs(pts.reduce((s2, p, i) => { const q = pts[(i + 1) % pts.length]; return s2 + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
   function inShape(v, out, az) { if (Math.abs(v[2]) >= az) return false; const k = Math.sqrt(1 - (v[2] / az) ** 2); return pip(v[0] / k, v[1] / k, out); }
+  /* ขนาดวงเจียใหญ่สุดที่ยังอยู่ในเนื้อพลอยทั้งวง (ตามมุมหมุน/ตำแหน่งตอนนี้) — ใช้เป็นปลายหลอดเลื่อน จะได้ขยายได้จนสุดเนื้อจริง */
+  function cutFitMax() { const s0 = CUT.size; let lo = 0.35, hi = 2.2; CUT.size = lo; if (cutStats().fit < 0.97) { CUT.size = s0; return null; } /* วางตรงไหนก็ล้นเนื้อ → ไม่มีขนาดที่พอดี */
+    for (let i = 0; i < 9; i++) { const mid = (lo + hi) / 2; CUT.size = mid; if (cutStats().fit >= 0.97) lo = mid; else hi = mid; } CUT.size = s0; return Math.floor(lo * 100) / 100; }
   function cutStats() {
     const R = curM(), out = shapeOutline(CUT.shape, CUT.size), az = AZ * CUT.size;
     let inW = 0; const flags = CUT.rough.inc.map(k => { const ins = k.pts.some(p => inShape(vw(p), out, az)); if (ins) inW += k.w; return ins; });
@@ -10635,7 +10638,7 @@ const UI = (() => {
         <div class="kv"><span>น้ำหนักที่จะได้</span><b id="s_ct"></b></div>
         <div class="kv"><span>วงเจียพอดีเนื้อ</span><b id="s_fit"></b></div>
         <div class="row wrap"><button class="btn small" data-a="small">ตัดตำหนิออก (วงเล็ก)</button><button class="btn small" data-a="big">เก็บเม็ดใหญ่ (วงใหญ่)</button></div>
-        <label class="small">ขนาดวงเจีย <span id="s_sz"></span></label><input type="range" id="size" min="35" max="100" value="${Math.round(CUT.size * 100)}">
+        <label class="small">ขนาดวงเจีย <span id="s_sz"></span></label><input type="range" id="size" min="35" max="${Math.max(100, Math.round((cutFitMax() || 0) * 100))}" value="${Math.round(CUT.size * 100)}">
         <div class="row wrap"><button class="btn small" data-a="l" title="หมุนซ้าย">◀</button><button class="btn small" data-a="r" title="หมุนขวา">▶</button><button class="btn small" data-a="u" title="ตีลังกาขึ้น">▲</button><button class="btn small" data-a="d" title="ตีลังกาลง">▼</button><button class="btn small" data-a="ccw" title="หมุนทวนเข็ม">⟲</button><button class="btn small" data-a="cw" title="หมุนตามเข็ม">⟳</button><button class="btn small" data-a="flip" title="พลิกกลับด้าน">พลิก 180°</button></div>
         <div class="row wrap panrow"><span class="small muted">เลื่อนพลอยก้อน:</span><button class="btn small" data-a="pu" title="เลื่อนขึ้น">⇧ ขึ้น</button><button class="btn small" data-a="pd" title="เลื่อนลง">⇩ ลง</button><button class="btn small" data-a="pl" title="เลื่อนซ้าย">⇦ ซ้าย</button><button class="btn small" data-a="pr" title="เลื่อนขวา">⇨ ขวา</button><button class="btn small" data-a="pc" title="กลับกึ่งกลาง">กึ่งกลาง</button></div>
         <p class="small muted">ลากด้วยนิ้ว/เมาส์ = หมุน • คลิกขวาลาก หรือ Ctrl+ลาก / ลากสองนิ้ว = เลื่อนพลอย • ลูกศรบนคีย์บอร์ด = เลื่อน</p>
@@ -10645,7 +10648,7 @@ const UI = (() => {
       (a, b) => {
         if (a === 'input' && b.id === 'size') { CUT.size = +b.value / 100; upd(); }
         else if (a === 'input' && b.id === 'shape') { CUT.shape = b.value; upd(); }
-        else if (a === 'small') { CUT.size = 0.5; upd(); } else if (a === 'big') { CUT.size = 0.95; upd(); }
+        else if (a === 'small') { CUT.size = 0.5; upd(); } else if (a === 'big') { CUT.size = cutFitMax() || 0.95; upd(); } /* วงใหญ่ = ใหญ่สุดที่ยังพอดีเนื้อพลอย */
         else if (a === 'l') { turn('y', -0.26); upd(); } else if (a === 'r') { turn('y', 0.26); upd(); } else if (a === 'u') { turn('x', 0.26); upd(); } else if (a === 'd') { turn('x', -0.26); upd(); }
         else if (a === 'pu') { pan(0, -0.06); upd(); } else if (a === 'pd') { pan(0, 0.06); upd(); } else if (a === 'pl') { pan(-0.06, 0); upd(); } else if (a === 'pr') { pan(0.06, 0); upd(); } else if (a === 'pc') { CUT.off = [0, 0]; upd(); }
         else if (a === 'ccw') { turn('z', -0.26); upd(); } else if (a === 'cw') { turn('z', 0.26); upd(); } else if (a === 'flip') { turn('y', Math.PI); upd(); }
@@ -10654,7 +10657,7 @@ const UI = (() => {
       }, { wide: true });
     const cv = $('#cv3d');
     $('#shape').addEventListener('change', e => { CUT.shape = e.target.value; upd(); });
-    const upd = () => { const st = draw3D(cv); $('#s_note').textContent = SHAPES[CUT.shape].note; { const t = g.type, m = shapeFitMul(t, CUT.shape), f = shapeFit(t), bn = (isStar(t) || isOpal(t) || isOpaq(t) ? ['cabochon'] : f.best).map(k => SHAPES[k].name.split(' ')[0]).join(' / '); $('#s_fit').innerHTML = (m > 1.1 ? '<b style="color:#8fe070">⭐ ทรงที่ตลาดให้ราคาดีที่สุดของพลอยชนิดนี้ (+12%)</b>' : m > 1 ? '<b style="color:#d8e870">👍 ทรงที่นิยมรองลงมา (+3%)</b>' : m < 1 ? `<b style="color:#f0a060">ทรงนี้ไม่ค่อยนิยมกับพลอยชนิดนี้ (ราคาลด ${Math.round((1 - m) * 100)}%)</b>` : '') + `<br><span class="muted">ทรงแนะนำ: <b>${bn}</b>${isStar(t) || isOpal(t) || isOpaq(t) ? ' — พลอยชนิดนี้ต้องเจียหลังเบี้ยจึงจะโชว์ความงาม' : ' — ' + f.why}</span>`; } $('#size').value = Math.round(CUT.size * 100); $('#s_sz').textContent = CUT.size < 0.6 ? 'เล็ก' : CUT.size < 0.82 ? 'กลาง' : 'ใหญ่';
+    const upd = () => { { const sl = $('#size'); if (sl) { const mx = Math.max(100, Math.round((cutFitMax() || 0) * 100)); if (+sl.max !== mx) sl.max = mx; if (+sl.value !== Math.round(CUT.size * 100)) sl.value = Math.round(CUT.size * 100); } } const st = draw3D(cv); $('#s_note').textContent = SHAPES[CUT.shape].note; { const t = g.type, m = shapeFitMul(t, CUT.shape), f = shapeFit(t), bn = (isStar(t) || isOpal(t) || isOpaq(t) ? ['cabochon'] : f.best).map(k => SHAPES[k].name.split(' ')[0]).join(' / '); $('#s_fit').innerHTML = (m > 1.1 ? '<b style="color:#8fe070">⭐ ทรงที่ตลาดให้ราคาดีที่สุดของพลอยชนิดนี้ (+12%)</b>' : m > 1 ? '<b style="color:#d8e870">👍 ทรงที่นิยมรองลงมา (+3%)</b>' : m < 1 ? `<b style="color:#f0a060">ทรงนี้ไม่ค่อยนิยมกับพลอยชนิดนี้ (ราคาลด ${Math.round((1 - m) * 100)}%)</b>` : '') + `<br><span class="muted">ทรงแนะนำ: <b>${bn}</b>${isStar(t) || isOpal(t) || isOpaq(t) ? ' — พลอยชนิดนี้ต้องเจียหลังเบี้ยจึงจะโชว์ความงาม' : ' — ' + f.why}</span>`; } $('#size').value = Math.round(CUT.size * 100); $('#s_sz').textContent = CUT.size < 0.6 ? 'เล็ก' : CUT.size < 0.82 ? 'กลาง' : 'ใหญ่';
     cv._upd = upd;
       $('#s_inc').innerHTML = st.inW ? `<span class="bad">${st.flags.filter(Boolean).length} จุด จาก ${CUT.rough.inc.length} (ความรุนแรง ${st.inW.toFixed(1)}/${CUT.rough.totalW.toFixed(1)})</span>` : '<span style="color:#8fe070">ไม่มีเลย!</span>';
       $('#s_ct').textContent = `~${st.carat.toFixed(2)} กะรัต (เหลือ ${Math.round(st.yieldR * 100)}% • เสียเนื้อ ${Math.round((1 - st.yieldR) * 100)}% จาก ${g.carat.toFixed(2)})`;
@@ -10871,7 +10874,7 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: (cty) => { scCase = !!(cty && COUNTRIES[cty]); scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutState: () => CUT });
+  Object.assign(api, { cps, mineSelect, character, editHero, safe, showcase: (cty) => { scCase = !!(cty && COUNTRIES[cty]); scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutFitMax: () => cutFitMax(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
