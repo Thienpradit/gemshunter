@@ -6537,28 +6537,28 @@ function buildVillage() {
   for (const x of [CX - 1, CX]) for (const y of [2, 3]) m.t[MI(m, x, y)] = TILE.DARK; // ทางเข้าเหมืองเจาะเข้าหน้าผา
   const path = (x0, y0, x1, y1, t = TILE.PATH) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) m.t[MI(m, x, y)] = t; };
   /* ลานวงกลมกลางหมู่บ้าน (ร้านทุกร้านล้อมรอบขอบลาน เดินถึงกันใกล้ ๆ) • ปากเหมืองอยู่บนสุด • ถนนลงล่างไปสนามบิน */
-  const PCX = 30, PCY = 20, PRX = 9.5, PRY = 7.5;
-  path(CX - 1, 4, CX, 13); path(CX - 1, 26, CX, 35);  // ถนนจากเหมืองเข้าลาน • ถนนออกจากลานไปสนามบิน
-  for (let y = 9; y <= 31; y++) for (let x = 15; x <= 45; x++) { const e = ((x + 0.5 - PCX) / PRX) ** 2 + ((y + 0.5 - PCY) / PRY) ** 2, e2 = ((x + 0.5 - PCX) / (PRX + 1.3)) ** 2 + ((y + 0.5 - PCY) / (PRY + 1.3)) ** 2;
+  const PCX = 30, PCY = 18, PRX = 7.5, PRY = 5.5; /* ลานวงกลมขนาดกะทัดรัด ร้านล้อมรอบใกล้กัน */
+  path(CX - 1, 4, CX, 13); path(CX - 1, 23, CX, 35);  // ถนนจากเหมืองเข้าลาน • ถนนออกจากลานไปสนามบิน
+  for (let y = 9; y <= 28; y++) for (let x = 18; x <= 42; x++) { const e = ((x + 0.5 - PCX) / PRX) ** 2 + ((y + 0.5 - PCY) / PRY) ** 2, e2 = ((x + 0.5 - PCX) / (PRX + 1.3)) ** 2 + ((y + 0.5 - PCY) / (PRY + 1.3)) ** 2;
     if (e <= 1) m.t[MI(m, x, y)] = TILE.PLAZA; else if (e2 <= 1) m.t[MI(m, x, y)] = TILE.PATH; } // ลานอิฐ + ทางเท้ารอบวง
-  /* ทางเดินหน้าร้านแต่ละร้าน → ต่อเข้าทางเท้ารอบลาน (ร้านเว้นระยะเท่า ๆ กันรอบวง ไม่ทับ ไม่ชิดกันเกินไป) */
-  path(18, 12, 24, 12);                          // ร้านจิวเวลรี่เจ๊นา (บนซ้าย)
-  path(35, 12, 40, 12);                          // ร้านอุปกรณ์ (บนขวา)
-  path(16, 17, 21, 17);                          // ร้านอาหาร (ซ้ายบน)
-  path(10, 25, 20, 26);                          // โรงเจียระไน (ซ้าย)
-  path(40, 17, 48, 18);                          // รับซื้อพลอยก้อน (ขวาบน)
-  path(40, 24, 48, 25);                          // รับซื้อพลอยเจียระไน (ขวา)
-  path(37, 28, 39, 32); path(37, 31, 42, 32);    // บ้านของคุณ (ขวาล่าง)
+  /* ทางเดินหน้าร้านแต่ละร้าน → ต่อเข้าลาน/ถนน (ร้านเว้นระยะกันราว 2 ช่อง ไม่ทับ ไม่ชิดเกินไป) */
+  path(19, 11, 28, 11);                          // ร้านจิวเวลรี่เจ๊นา (บนซ้าย)
+  path(31, 11, 38, 11);                          // ร้านอุปกรณ์ (บนขวา)
+  path(18, 16, 23, 16);                          // ร้านอาหาร (ซ้ายบน)
+  path(13, 24, 28, 24);                          // โรงเจียระไน (ซ้ายล่าง) → ถนนลง
+  path(39, 17, 46, 17);                          // รับซื้อพลอยก้อน (ขวาบน)
+  path(38, 24, 46, 24);                          // รับซื้อพลอยเจียระไน (ขวาล่าง)
+  path(31, 29, 38, 30);                          // บ้านของคุณ (ล่างขวา) จากถนนลง
   for (let i = 0; i < W * H; i++) m.solidT[i] = (m.t[i] === TILE.CLIFF) ? 1 : 0;
   for (let x = 0; x < W; x++) { m.solidT[MI(m, x, H - 1)] = 1; }
   for (let y = 0; y < H; y++) { m.solidT[MI(m, 0, y)] = 1; m.solidT[MI(m, W - 1, y)] = 1; }
 
   // ---- อาคาร (ไล่ตามแนวโค้งจากซ้ายไปขวา) ----
-  const WSX = 14.5 * 16, WSY = 24 * 16 + 2;      // โรงเจียระไน (ซ้าย)
-  const FDX = 18.5 * 16, FDY = 16 * 16 + 8;      // ร้านอาหาร (ซ้ายบน)
-  const RWX = 45.5 * 16, CTX = 45.5 * 16, STY = 16 * 16 + 4, CTY = 23 * 16 + 4; // แผงรับซื้อพลอยก้อน (ขวาบน) / พลอยเจียระไน (ขวา)
-  const SMX = 37.5 * 16, SMY = 11 * 16 + 4;      // ร้านอุปกรณ์ (บนขวา)
-  const HX = 44.5 * 16, HY = 31 * 16 + 8, HW2 = ART.bi.house.width / 2; // บ้าน (ขวาล่าง • ประตูอยู่ผนังข้างด้านซ้าย)
+  const WSX = 17 * 16, WSY = 23 * 16 + 2;        // โรงเจียระไน (ซ้ายล่าง)
+  const FDX = 19 * 16, FDY = 15 * 16 + 8;        // ร้านอาหาร (ซ้ายบน)
+  const RWX = 44 * 16, CTX = 44 * 16, STY = 16 * 16 + 4, CTY = 23 * 16 + 4; // แผงรับซื้อพลอยก้อน (ขวาบน) / พลอยเจียระไน (ขวาล่าง)
+  const SMX = 36 * 16, SMY = 10 * 16 + 4;        // ร้านอุปกรณ์ (บนขวา)
+  const HX = 41 * 16, HY = 30 * 16, HW2 = ART.bi.house.width / 2; // บ้าน (ล่างขวา • ประตูอยู่ผนังข้างด้านซ้าย)
   addObj(m, ART.bi.workshop, WSX, WSY, { solid: [ART.bi.workshop.width - 8, 34], kind: 'building' });
   buildAirport(m, 14 * 16, H0);
   path(CX - 1, 36, CX, 38); path(21, 37, CX, 38); // ถนนกลางลงมาเลี้ยวซ้ายเข้าลานจอดหน้าประตูสนามบิน (ไม่ชนหลังอาคาร)
@@ -6567,11 +6567,11 @@ function buildVillage() {
   addObj(m, ART.stallCutImg, CTX, CTY + 2, { solid: [90, 24], kind: 'building' });
   addObj(m, ART.bi.house, HX, HY, { solid: [ART.bi.house.width - 56, 40, 0], kind: 'building', sortY: HY - 38 }); m.solids[m.solids.length - 1].x += 22;
   for (let k = 0; k < 4; k++) { const bot = HY - (1 - (k + 0.5) / 4) * 37; m.solids.push({ x: HX - HW2 + 6 + k * 11, y: HY - 44, w: 11, h: bot - (HY - 44) }); } // ผนังข้างเฉียง
-  addObj(m, ART.well, CX * 16, 20 * 16 + 4, { solid: [24, 10] }); /* บ่อน้ำกลางลานวงกลม */
-  addObj(m, ART.sign, (CX - 3) * 16 + 8, 5 * 16 + 4, { solid: [6, 4] });
+  addObj(m, ART.well, CX * 16, 18 * 16 + 6, { solid: [24, 10] }); /* บ่อน้ำกลางลานวงกลม */
+  addObj(m, ART.sign, (CX + 1) * 16 + 10, 6 * 16 + 4, { solid: [6, 4] });
   addObj(m, ART.bi.foodCart, FDX, FDY, { solid: [36, 10], kind: 'building' });
   addObj(m, ART.bi.smith, SMX, SMY, { solid: [ART.bi.smith.width - 8, 30], kind: 'building' });
-  const JWX = 21 * 16, JWY = 11 * 16 + 4; // ร้านจิวเวลรี่เจ๊นา (ซ้ายบน)
+  const JWX = 23 * 16, JWY = 10 * 16 + 4; // ร้านจิวเวลรี่เจ๊นา (ซ้ายบน)
   addObj(m, ART.bi.jewel, JWX, JWY, { solid: [ART.bi.jewel.width - 8, 30], kind: 'building' });
   addSign(m, 'jewel', 'ร้านจิวเวลรี่เจ๊นา', '', JWX, JWY - 84);
   addSign(m, 'craft', 'โรงเจียระไน', '', WSX, WSY - 114);
@@ -6589,8 +6589,8 @@ function buildVillage() {
   const pak = npc('pak', 'ตาแป๊ก', CTX - 22, CTY - 21);
   const pon = npc('pon', 'คุณปอน', CTX + 22, CTY - 21);
   rawd.hidden = pak.hidden = pon.hidden = true; /* อยู่ในภาพแผงแล้ว */
-  const mint = npc('mint', 'มิ้นท์ (แฟนคุณปอน)', CTX - 62, CTY + 12, 'right');
-  const elder = npc('elder', 'ผู้ใหญ่ชาญ', 26 * 16, 23 * 16);
+  const mint = npc('mint', 'มิ้นท์ (แฟนคุณปอน)', CTX + 60, CTY + 2, 'left'); /* ยืนข้างแผงพลอยเจียระไน ฝั่งคุณปอน (หันหาแฟน) */
+  const elder = npc('elder', 'ผู้ใหญ่ชาญ', 26 * 16, 20 * 16);
   const jena = npc('jena', 'เจ๊นา', JWX + 34, JWY + 16);
   m.interact.push({ kind: 'jeweler', x: jena.x, y: jena.y + 8, r: 26, label: 'ร้านจิวเวลรี่เจ๊นา (รับซื้อพลอยตามแบบ ราคาพิเศษ)', verb: 'คุย', npc: jena, hit: { x: JWX - 50, y: JWY - 70, w: 100, h: 74 } });
 
@@ -6601,10 +6601,21 @@ function buildVillage() {
   m.interact.push({ kind: 'aunt', x: FDX, y: FDY + 10, r: 24, label: 'ร้านข้าวป้าแดง', verb: 'ซื้อ', hit: { x: FDX - 24, y: FDY - 46, w: 48, h: 52 } });
   m.interact.push({ kind: 'smith', x: SMX, y: SMY + 10, r: 26, label: 'ร้านอุปกรณ์ลุงเหล็ก', verb: 'เข้าร้าน', hit: { x: SMX - 46, y: SMY - 66, w: 92, h: 72 } });
   m.interact.push({ kind: 'enterHouse', x: HX - HW2 + 22, y: HY - 6, r: 24, label: 'บ้านของคุณ (เตียงนอนพักฟื้น)', verb: 'เข้าบ้าน', hit: { x: HX - HW2, y: HY - 90, w: ART.bi.house.width, h: 92 } });
+  /* เจ้าของร้านออกมายืนรอบลานวงกลม (ร้านละหนึ่งคน) หันหน้าเข้าลาน • กดคุยแล้วเปิดร้านนั้น */
+  const ringAt = (sx, sy) => { const dx = sx - PCX * 16, dy = (sy - PCY * 16) * (PRX / PRY), d = Math.hypot(dx, dy) || 1; return [PCX * 16 + dx / d * (PRX + 0.7) * 16, PCY * 16 + dy / d * (PRX + 0.7) * 16 * (PRY / PRX) + 10]; };
+  const faceIn = (x, y) => { const dx = PCX * 16 - x, dy = PCY * 16 - y; return Math.abs(dx) > Math.abs(dy) * 1.3 ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); };
+  const NM = (typeof LOCAL_NAMES !== 'undefined' && LOCAL_NAMES.thai) || {};
+  for (const [key, name, kind, label, verb, sx, sy] of [
+    ['aunt', 'ป้าแดง', 'aunt', 'ร้านข้าวป้าแดง', 'ซื้อ', FDX, FDY], ['smith', 'ลุงเหล็ก', 'smith', 'ร้านอุปกรณ์ลุงเหล็ก', 'เข้าร้าน', SMX, SMY],
+    ['craft', NM.craft || 'ช่างเจีย', 'craft', 'โรงเจียระไน (จ้างช่างเจีย / เจียเอง)', 'คุย', WSX, WSY], ['rawdealer', 'เฮียซี', 'rawdealer', 'คุยกับเฮียซี (รับซื้อพลอยก้อน)', 'คุย', RWX, STY],
+    ['pon', 'คุณปอน', 'cutdealer', 'ร้านรับซื้อพลอยเจียระไน (คุณปอน)', 'คุย', CTX, CTY]]) {
+    const [x, y] = ringAt(sx, sy - 10), n = npc(key, name, Math.round(x), Math.round(y), faceIn(x, y)); n.out = true;
+    m.interact.push({ kind, x: n.x, y: n.y + 8, r: 22, label, verb, npc: n }); }
+  { const p = m.npcs.find(n => n.out && n.key === 'pon'); if (p) { mint.x = p.x + 24; mint.y = p.y + 10; mint.dir = mint.baseDir = 'left'; const sm = m.solids.find(s => s.ref === mint); if (sm) { sm.x = mint.x - 5; sm.y = mint.y - 5; } } } /* มิ้นท์ยืนข้างแฟน */
   m.interact.push({ kind: 'enterMine', to: 'mine', x: CX * 16, y: 4 * 16 + 4, r: 18, label: 'ลงเหมือง', verb: 'เข้า' });
   m.triggers.push({ kind: 'enterMine', to: 'mine', x: (CX - 1) * 16 + 2, y: 2 * 16, w: 28, h: 26 });
   m.portalX = CX;
-  m.spawn_warpIn = { x: CX * 16, y: 22 * 16 + 8, dir: 'down' }; // ออกจากประตูวาร์ป → โผล่กลางลานหมู่บ้าน
+  m.spawn_warpIn = { x: CX * 16, y: 20 * 16 + 8, dir: 'down' }; // ออกจากประตูวาร์ป → โผล่กลางลานหมู่บ้าน
   m.lights.push({ x: CX * 16 - 20, y: 4 * 16 - 44, r: 26, col: '#ffcc66', flick: 1 }, { x: CX * 16 + 18, y: 4 * 16 - 44, r: 26, col: '#ffcc66', flick: 1 });
 
   // ---- ของตกแต่ง + ต้นไม้ ----
@@ -6623,14 +6634,14 @@ function buildVillage() {
   [[18, 28], [12, 12], [42, 12], [48, 21], [22, 12], [56, 9], [4, 34], [41, 22], [18, 20]].forEach(([tx, ty], i) => { if (!busy(tx, ty)) addObj(m, ART.bush[i % 4], tx * 16 + 8, ty * 16 + 12, { solid: [14, 5] }); });
   addObj(m, ART.barrel, RWX + 50, STY - 2, { solid: [10, 5] });
   addObj(m, ART.crate, RWX + 52, STY + 10, { solid: [12, 6] });
-  addObj(m, ART.crate, CTX + 56, CTY - 2, { solid: [12, 6] });
-  addObj(m, ART.barrel, 20 * 16 + 4, 24 * 16, { solid: [10, 5] });
-  addObj(m, ART.cart, (CX - 4) * 16, 6 * 16 + 8, { solid: [24, 8] });
-  addObj(m, ART.pots[0], 27 * 16 + 8, 11 * 16 + 4, { solid: [8, 4] }); addObj(m, ART.pots[1], 32 * 16 + 8, 11 * 16 + 4, { solid: [8, 4] });
-  addObj(m, ART.pots[2], 33 * 16 + 8, 28 * 16 + 8, { solid: [8, 4] }); addObj(m, ART.pots[3], 26 * 16 + 8, 28 * 16 + 8, { solid: [8, 4] }); /* กระถางสองข้างทางออกล่างของลาน */
+  addObj(m, ART.crate, CTX - 58, CTY - 2, { solid: [12, 6] });
+  addObj(m, ART.barrel, 11 * 16 + 4, 25 * 16 + 8, { solid: [10, 5] });
+  addObj(m, ART.cart, 10 * 16, 17 * 16 + 8, { solid: [24, 8] });
+  addObj(m, ART.pots[0], 27 * 16 + 8, 12 * 16 + 12, { solid: [8, 4] }); addObj(m, ART.pots[1], 32 * 16 + 8, 12 * 16 + 12, { solid: [8, 4] });
+  addObj(m, ART.pots[2], 31 * 16 + 12, 26 * 16 + 8, { solid: [8, 4] }); addObj(m, ART.pots[3], 28 * 16 + 4, 26 * 16 + 8, { solid: [8, 4] }); /* กระถางสองข้างทางออกล่างของลาน */
   addObj(m, ART.fence, 21 * 16, 33 * 16, { solid: [48, 4] }); addObj(m, ART.fence, 24 * 16, 33 * 16, { solid: [48, 4] });
   m.spawnFromMine = { x: CX * 16, y: 5 * 16 + 4, dir: 'down' };
-  m.spawnStart = { x: (CX + 1) * 16 + 8, y: 24 * 16, dir: 'down' };
+  m.spawnStart = { x: (CX + 1) * 16 + 8, y: 21 * 16 + 8, dir: 'down' };
   m.spawn_house = { x: HX - HW2 + 14, y: HY - 2, dir: 'down' };
   snapSigns(m);
   m.bg = paintMapBG(m);
