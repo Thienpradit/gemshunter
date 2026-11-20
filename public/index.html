@@ -305,6 +305,9 @@ tr.nonerow td{color:var(--muted)}
 .gcard .gstats{flex-wrap:nowrap;overflow:hidden;white-space:nowrap}.gcard .gstats>span{flex:none}.gcard .gstats>span.orig{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .gcard .clean{white-space:nowrap;overflow:hidden}.gcard .clean .cbar{min-width:36px}.gcard .clean .scnew{flex:none}
 .cl-s{display:none}
+.tinfo-intro{margin:6px 0 10px;font-size:13.5px;line-height:1.55;color:#2a2418}.tinfo-more{width:100%;margin-top:8px}.tinfo-more th{width:24%}
+.lab .tinfo-h{margin:12px 0 4px;color:#7a2a1a!important;font-size:15px}.tinfo-h small{font-weight:400;color:#7a6c50;font-size:11px}.tinfo-ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.55;color:#2a2418}.tinfo-ul li{margin:2px 0}
+.tinfo-fun{background:#f4e8c8;border-left:4px solid #c89a3a;padding:6px 10px;font-size:13px;color:#3a2a10;border-radius:4px}
 .labimg .scbtn{margin-top:8px;display:flex;justify-content:center}.labimg .scbtn .btn{white-space:normal;font-size:13px}
 .gcard .gtitle>span.grade{flex:none}.jumbo .jt{font-style:normal}
 .gcard .gtitle b{flex:0 0 auto;max-width:62%}.gcard .gtitle>span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -2223,6 +2226,39 @@ const SFX = (() => {
     },
   };
 })();
+
+/* ข้อมูลพลอยแต่ละชนิด (สารานุกรมในเกม) — ค้นจาก GIA, The Gemology Project, International Gem Society ฯลฯ • เริ่มที่ทับทิมเป็นตัวอย่าง */
+const GEM_INFO = {
+  ruby: {
+    en: 'Ruby', alias: 'ราชาแห่งอัญมณี (รัตนราช — Ratnaraj)', intro: 'ทับทิมคือคอรันดัมสีแดง ส่วนคอรันดัมสีอื่นทั้งหมดเรียกว่าแซฟไฟร์ สีแดงเกิดจากธาตุโครเมียมที่แทรกอยู่ในผลึก ทับทิมเนื้อดีให้ราคาต่อกะรัตสูงที่สุดในบรรดาพลอยสีทั้งหมด',
+    props: [
+      ['ตระกูลแร่', 'คอรันดัม (Corundum) — ตระกูลเดียวกับแซฟไฟร์', 'Species'],
+      ['สูตรเคมี', 'Al₂O₃ (อะลูมิเนียมออกไซด์) + โครเมียม (Cr)', 'Composition'],
+      ['ต้นเหตุของสี', 'โครเมียม — ยิ่งมากยิ่งแดง และเรืองแสงแดงใต้แสงยูวี • เหล็กทำให้สีเข้มอมน้ำตาล (แบบทับทิมสยาม/จันทบุรี)', 'Color cause'],
+      ['ระบบผลึก', 'ไตรโกนัล (Trigonal) • ผลึกแท่งหกเหลี่ยม/แผ่นแบน', 'Crystal system'],
+      ['ความแข็ง (โมส์)', '<b>9</b> — แข็งเป็นอันดับสองรองจากเพชร ไม่มีแนวแตกเรียบ', 'Mohs hardness'],
+      ['ความถ่วงจำเพาะ', '4.00 (±0.05) — หนักกว่าพลอยแดงส่วนใหญ่ที่หน้าตาคล้ายกัน', 'Specific gravity'],
+      ['ดัชนีหักเหแสง', '1.762 – 1.770', 'Refractive index'],
+      ['ค่าหักเหคู่', '0.008 – 0.010 (แสงหักเหสองทาง)', 'Birefringence'],
+      ['ไดโครอิซึม', 'ชัด — มองต่างมุมเห็นแดงอมม่วงกับแดงอมส้ม', 'Pleochroism'],
+      ['ความวาว', 'วาวแบบแก้ว ถึงเกือบวาวแบบเพชร', 'Lustre'],
+    ],
+    colors: 'ชมพูอมแดง → แดงอมม่วง → แดงเข้ม • สุดยอดคือ <b>"สีเลือดนกพิราบ" (Pigeon Blood)</b> แดงสดจัด เรืองแสงในตัว',
+    sources: 'เมียนมา (หุบเขาโมกก — แหล่งในตำนาน), โมซัมบิก, ไทย (จันทบุรี–ตราด), กัมพูชา (ไพลิน), ศรีลังกา, เคนยา, แทนซาเนีย, มาดากัสการ์',
+    treat: 'เผาเพิ่มสีและความใส (พบบ่อยที่สุด ยอมรับในตลาด) • อุดรอยแตกด้วยแก้วตะกั่ว (Lead-glass filled — ราคาต่ำกว่ามาก ต้องแจ้งผู้ซื้อ) • ทับทิมสังเคราะห์ทำได้ตั้งแต่ปี 1902',
+    lookalike: 'สปิเนลแดง (มงกุฎอังกฤษเคยเข้าใจผิดว่าเป็นทับทิม), โกเมน, ทัวร์มาลีนรูเบลไลต์, แก้ว',
+    month: 'พลอยประจำเดือน <b>กรกฎาคม</b> • ของขวัญครบรอบแต่งงานปีที่ 15 และ 40',
+    nine: 'อัญมณีลำดับที่ 2 ใน <b>นพรัตน์ (นพเก้า)</b> — ประจำ <b>พระอาทิตย์</b>',
+    beliefs: [
+      'ในอินเดียโบราณเรียกทับทิมว่า "รัตนราช" (ราชาแห่งอัญมณี) เชื่อว่าช่วยให้ผู้ครอบครองอยู่อย่างสงบแม้มีศัตรู',
+      'นักรบพม่าพกทับทิม บางคนถึงกับฝังไว้ใต้ผิวหนัง เชื่อว่าจะคงกระพันในสนามรบ',
+      'ยุโรปยุคกลางเชื่อว่าสวมไว้ข้างซ้ายใกล้หัวใจจะคุ้มครองบ้านและทรัพย์สินจากภัยพิบัติ',
+      'ความเชื่อด้านการเยียวยา: ตำราโบราณว่าช่วยห้ามเลือด ลดการอักเสบ ให้ร่างกายอบอุ่น • สายคริสตัลเชื่อว่าเพิ่มพลังชีวิต ความกล้า และความมั่นใจ',
+    ],
+    fun: 'เลเซอร์เครื่องแรกของโลก (ปี 1960) ใช้แท่งทับทิมสังเคราะห์ เพราะทับทิมเรืองแสงแดง',
+    refs: 'GIA, The Gemology Project, International Gem Society, American Gem Society',
+  },
+};
 // ================= ภาพ 3 มิติ (SVG) ของอุปกรณ์และตัวละคร — ใช้ทั้งใน Claude Design และในเกม =================
 const I3D = (() => {
   // ---------- สี ----------
@@ -9952,7 +9988,7 @@ const UI = (() => {
     const common = (a, b) => { if (a === 'scauto') { if (!RO) { autoBest(); showcase(); } return true; } if (a === 'scboard') { scView = null; scSlot = null; SFX.play('click'); board(); return true; } if (a === 'scpage') { scPage = +b.dataset.p; scSlot = null; SFX.play('click'); showcase(); return true; } return false; };
     if (scSlot) { const m = /^([a-z]+)\|([a-z]+):([0-4])$/.exec(scSlot); if (!m || !COUNTRIES[m[1]] || !GEMS[m[2]]) { scSlot = null; return showcase(); }
       const c = m[1], t = m[2], col = +m[3], key = scSlot, cur = SC[key], cand = mine(c, t, col), CN = GEMS[t].colors[col];
-      show('showcase', `${head}<div class="sccrumb"><button class="btn small" data-a="scback">◀ กลับ</button><span><b>${nm(GEMS[t].name)[0]}</b> › ขุดจาก${COUNTRIES[c].short} › <i class="sw" style="background:${CN[1]}"></i> ${CN[0]}</span></div>
+      show('showcase', `${head}<div class="sccrumb"><button class="btn small" data-a="scback">◀ กลับ</button>${GEM_INFO[t] ? `<button class="btn small" data-a="tinfo">📖 ข้อมูลพลอยชนิดนี้</button>` : ''}<span><b>${nm(GEMS[t].name)[0]}</b> › ขุดจาก${COUNTRIES[c].short} › <i class="sw" style="background:${CN[1]}"></i> ${CN[0]}</span></div>
         <h4 class="sch4">ในกล่องตอนนี้</h4>
         ${cur ? `<div class="list">${gemRow(cur, `<small class="muted">ประเมิน</small><br>${money(estValue(cur))}${RO ? '' : '<br><button class="btn small" data-a="scout">เอาออก</button>'}`, true, 'none')}</div>` : '<div class="empty">กล่องนี้ยังว่าง</div>'}
         ${RO ? '' : `<h4 class="sch4">พลอยของคุณที่ใส่กล่องนี้ได้ ${cand.length ? `(${cand.length} เม็ด)` : ''}</h4>`}
@@ -9960,6 +9996,7 @@ const UI = (() => {
         <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
         (a, b) => { if (common(a, b)) return;
           if (a === 'scback') { scSlot = null; SFX.play('click'); return showcase(); }
+          if (a === 'tinfo') { SFX.play('click'); return gemTypeInfo(t, showcase); }
           if (RO) return;
           if (a === 'scput') { const id = +b.dataset.id, src = b.dataset.s, arr = src === 'bag' ? STATE.inv : S.gems, i = arr.findIndex(g => g.id === id && g.type === t && (g.color | 0) === col && org(g) === c); if (i < 0) return; const g = arr[i]; if (SC[key]) arr[i] = SC[key]; else arr.splice(i, 1); SC[key] = g; SFX.play('done'); toast(`ใส่ <b>${gemName(g)}</b> สี${CN[0]} ${scCase ? 'ลงกระเป๋าสะสมแล้ว' : 'ลงตู้โชว์แล้ว'} • ประเมิน ${money(estValue(g))}`, 'good'); saveGame(); hud(); return showcase(); }
           if (a === 'scout') { const g = SC[key]; if (!g) return; if (bagUsed() < bagCap()) STATE.inv.push(g); else if (S.gems.length < SAFES[S.lv].cap) S.gems.push(g); else { toast('กระเป๋าและตู้เซฟเต็ม เอาพลอยออกจากคอลเลกชันไม่ได้', 'bad'); SFX.play('deny'); return; } delete SC[key]; SFX.play('click'); saveGame(); hud(); return showcase(); } }, { wide: true });
@@ -10302,6 +10339,31 @@ const UI = (() => {
   const CLARITY_EN = ['Eye-clean, no inclusions seen (FL-like)', 'Very slightly included (VVS)', 'Slightly included (VS)', 'Included (SI)', 'Heavily included (I1)', 'Very heavily included (I2-I3)'];
   function transparency(g) { if (g.type === 'blackspinel' || g.type === 'augite') return 'ทึบแสง เงาวาว (Opaque, adamantine luster)'; if (['lapis', 'amazonite', 'cabcorundum'].includes(g.type)) return 'ทึบแสง (Opaque)'; if (isOpaq(g.type)) return 'โปร่งแสง (Translucent)'; if (isOpal(g.type) || isStar(g.type)) return g.type === 'crystalopal' ? 'โปร่งใส-โปร่งแสง (Transparent-Translucent)' : 'โปร่งแสง-ทึบแสง (Translucent-Opaque)'; return g.flaw <= 2 ? 'โปร่งใส (Transparent)' : g.flaw <= 4 ? 'โปร่งใสบางส่วน (Semi-transparent)' : 'โปร่งแสง (Translucent)'; }
   function reportNo(g) { return 'NLA-' + (2600000000 + (((g.seed || 1) >>> 0) % 900000000)); }
+  /* สารานุกรมพลอย: ข้อมูลของ "พลอยชนิดนี้" (ไม่ใช่เม็ดใดเม็ดหนึ่ง) • ตารางแบบเดียวกับใบรายงานพลอย */
+  function gemTypeInfo(t, back) {
+    const I = GEM_INFO[t]; if (!I) return; const G0 = GEMS[t], r = Math.min(3, GEM_RARITY[t] || 0), n = [G0.name.split(' (')[0]];
+    const row = (k, v, en) => `<tr><th>${k}${en ? `<small>${en}</small>` : ''}</th><td>${v}</td></tr>`;
+    const ladder = G0.colors.map((c, i) => `<span title="${c[0]}"><i style="background:${c[1]}"></i><small>${baht(GEM_PRICE_DB[t][i])}</small></span>`).join('');
+    const img = gemBigURL({ type: t, color: G0.colors.length - 1, state: 'cut', shape: 'oval', carat: 2, flaw: 0, seed: 3, polish: 3, id: 0 });
+    show('gem', `<div class="lab">
+      <div class="labhead"><div><b>ข้อมูลพลอยชนิดนี้</b><span>สารานุกรมอัญมณี • ${n[0]} (${I.en})</span></div><div class="labno"><small>ชื่อเรียกอื่น</small><b style="font-size:12px;letter-spacing:0">${I.alias}</b></div></div>
+      <div class="labrare r${r}"><span class="rl">ความหายากของชนิดพลอย</span><b>${TYPE_RARITY_NAMES[r]}</b><span class="rt">${I.en}</span></div>
+      <p class="tinfo-intro">${I.intro}</p>
+      <div class="labbody">
+        <div class="labimg"><div class="bigimg" style="--gc:${G0.colors[G0.colors.length - 1][1]}"><img src="${img}" alt=""></div><small>ตัวอย่างเฉดสีที่ดีที่สุดในเกม</small></div>
+        <table class="labtbl">${I.props.map(p => row(p[0], p[1], p[2])).join('')}</table>
+      </div>
+      <table class="labtbl tinfo-more">
+        ${row('เฉดสี', I.colors, 'Colors')}${row('แหล่งกำเนิด', I.sources, 'Sources')}${row('การปรับปรุงคุณภาพ', I.treat, 'Treatments')}${row('พลอยที่หน้าตาคล้ายกัน', I.lookalike, 'Look-alikes')}${row('พลอยประจำเดือน', I.month, 'Birthstone')}${I.nine ? row('นพรัตน์ (นพเก้า)', I.nine, 'Navaratna') : ''}
+      </table>
+      <h4 class="tinfo-h">✨ ความเชื่อและการเยียวยา <small>(ความเชื่อตามตำนาน ไม่ใช่ข้อเท็จจริงทางการแพทย์)</small></h4>
+      <ul class="tinfo-ul">${I.beliefs.map(b => `<li>${b}</li>`).join('')}</ul>
+      ${I.fun ? `<p class="tinfo-fun">💡 รู้หรือไม่? ${I.fun}</p>` : ''}
+      <div class="labladder"><b>เฉดสีของ${n[0]}ในเกม</b> <small class="muted">(ราคาตลาดต่อกะรัต เม็ด 1 กะรัตสะอาด)</small><div>${ladder}</div></div>
+      <p class="muted small" style="margin-top:8px">อ้างอิง: ${I.refs}</p>
+    </div>
+    <div class="row end"><button class="btn" data-a="back">ย้อนกลับ</button></div>`, a => { if (a === 'back') (back || showcase)(); }, { wide: true });
+  }
   function gemDetail(g, back, note) {
     const o = g.state === 'cut' ? cutOffers(g) : null, r = gemRarity(g), sh = shadeInfo(g), fam = GEM_FAMILY[g.type] || '';
     /* ปุ่มใส่ที่สะสม (ตู้โชว์ที่บ้าน / กระเป๋าสะสมในต่างประเทศ = คอลเลกชันเดียวกัน) — เฉพาะพลอยของเราในกระเป๋า/ตู้เซฟ */
