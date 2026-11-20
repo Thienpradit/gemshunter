@@ -8850,6 +8850,10 @@ function fountainDrops(g, S, T, cx, by, t) {
     if (ph > 0.9) { const k = (ph - 0.9) * 10; g.globalAlpha = 0.6 * (1 - k); g.strokeStyle = '#d8fbff'; g.lineWidth = 0.6; g.beginPath(); g.ellipse(S(cx + Math.cos(a) * R), T(land + Math.sin(a) * R * 0.32 + 2), 1 + k * 2.5, 0.5 + k, 0, 0, 7); g.stroke(); } } // กระเซ็นเป็นวงตอนตกถึงน้ำ
   g.restore();
 }
+/* ป้ายชื่อ NPC: ชื่อ + หน้าที่ เช่น "นิมัล รับซื้อพลอยก้อน" (ถ้าชื่อบอกหน้าที่อยู่แล้วก็ไม่เติมซ้ำ) */
+const NPC_ROLE = { rawdealer: 'รับซื้อพลอยก้อน', pon: 'รับซื้อพลอยเจียระไน', pak: 'รับซื้อพลอยเจียระไน', craft: 'รับเจียระไนพลอย', aunt: 'ขายอาหาร', smith: 'ขายอุปกรณ์', jena: 'ร้านจิวเวลรี่', elder: 'ผู้ใหญ่บ้าน', mint: 'ขายน้ำดื่ม' };
+function npcLabel(n) { if (n._lbl && n._lblN === n.name) return n._lbl; const nm = String(n.name || '').replace(/\s*\(.*?\)\s*/g, '').trim(), r = NPC_ROLE[n.key]; n._lblN = n.name;
+  return (n._lbl = !r || /ร้าน|ขาย|รับซื้อ|เจ้าของ|แม่ค้า/.test(nm) ? nm : `${nm} ${r}`); }
 function floatText(x, y, text, col, dur = 1.4, big = 0, oy = 0) { const f = { x, y, text, col, t: 0, dur, big, oy }; G.floats.push(f); return f; } /* big: ข้อความเด่น (เจอพลอย) — เด้งขยายตอนโผล่ ลอยขึ้นแล้วค้างให้อ่าน ค่อยจางตอนท้าย */
 
 // ---------- HP / หมดสติ ----------
@@ -9519,10 +9523,10 @@ function drawOverlayText(camX, camY, shx, shy) {
   if (m.npcs) for (const n of m.npcs) { if (n.hidden) continue; /* คนขายที่อยู่ในภาพแผง: ชื่ออยู่บนเคาน์เตอร์ในภาพแล้ว */
     if (RO) { // ชื่อ NPC ใต้เท้า ตัวขาวขอบดำ แสดงตลอด
       const [x, y] = W2S(n.x, n.y + 7); if (x < -100 || y < -30 || x > screenC.width + 100 || y > screenC.height + 30) continue;
-      const sz = Math.round(fs * 0.78); c.font = `bold ${sz}px Tahoma, 'Noto Sans Thai', sans-serif`; c.lineJoin = 'round'; c.lineWidth = Math.max(2, sz * 0.22); c.strokeStyle = 'rgba(0,0,0,0.85)'; c.strokeText(n.name, x, y); c.fillStyle = '#ffffff'; c.fillText(n.name, x, y);
+      const sz = Math.round(fs * 0.78); c.font = `bold ${sz}px Tahoma, 'Noto Sans Thai', sans-serif`; c.lineJoin = 'round'; c.lineWidth = Math.max(2, sz * 0.22); c.strokeStyle = 'rgba(0,0,0,0.85)'; const L = npcLabel(n); c.strokeText(L, x, y); c.fillStyle = '#ffffff'; c.fillText(L, x, y);
       continue;
     }
-    const d = Math.hypot(n.x - PL.x, n.y - PL.y); if (d < 72 && !n.hidden) { const [x, y] = W2S(n.x, n.y - 54); tag(x, y, n.name, '#fff2d0', Math.round(fs * 0.82)); }
+    const d = Math.hypot(n.x - PL.x, n.y - PL.y); if (d < 72 && !n.hidden) { const [x, y] = W2S(n.x, n.y - 54); tag(x, y, npcLabel(n), '#fff2d0', Math.round(fs * 0.82)); }
   }
   if (!UI.isOpen() && PL.state !== 'swing' && !G.floats.length) {
     if (G.target) {
