@@ -7925,9 +7925,11 @@ function applyTownArt(m, key) {
   const SR = A.solids.map(R); m.solids = SR.map(r => ({ ...r }));
   for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) { const cx = tx * 16 + 8, cy = ty * 16 + 8; if (SR.some(r => cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h)) m.solidT[MI(m, tx, ty)] = 1; }
   // บ่อน้ำกลางลาน (ponds.js) — ชนได้ เดินอ้อม
-  m.pond = null; if (typeof PONDS !== 'undefined' && PONDS[key]) { const Pd = PONDS[key], px = WX((Pd.at || POND_AT)[0]), py = WY((Pd.at || POND_AT)[1]); m.pond = { key, x: px, y: py };
-    m.solids.push({ x: px - Pd.w / 2 + 2, y: py - Pd.h / 2 + 2, w: Pd.w - 4, h: Pd.h - 2 });
-    for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) { const dx = (tx * 16 + 8 - px) / (Pd.w / 2 + 4), dy = (ty * 16 + 8 - py) / (Pd.h / 2 + 4); if (dx * dx + dy * dy < 1) m.solidT[MI(m, tx, ty)] = 1; } }
+  m.pond = null; if (typeof PONDS !== 'undefined' && PONDS[key]) { const Pd = PONDS[key], px = WX(POND_CENTER[0]), py = WY(POND_CENTER[1]), cpx = Math.round(px / 16), cpy = Math.round(py / 16);
+    m.pond = { key, x: px, y: py, sortY: py + Pd.fh / 2 - 2 };
+    let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+    for (const [dx, dy] of Pd.cells) { const tx = cpx + dx, ty = cpy + dy; if (tx < 0 || ty < 0 || tx >= m.w || ty >= m.h) continue; m.solidT[MI(m, tx, ty)] = 1; minx = Math.min(minx, tx); maxx = Math.max(maxx, tx); miny = Math.min(miny, ty); maxy = Math.max(maxy, ty); }
+    if (maxx >= minx) m.solids.push({ x: minx * 16 + 3, y: miny * 16 + 3, w: (maxx - minx + 1) * 16 - 6, h: (maxy - miny + 1) * 16 - 6 }); }
   if (A.walk) for (let i = 0; i < m.w * m.h && i < A.walk.length; i++) if (A.walk[i] !== '1') m.solidT[i] = 1; /* เดินได้เฉพาะทางเดิน/ลาน (คำนวณจากสีทางเดินในภาพ) — ต้นไม้ สนามหญ้า สวน เดินข้ามไม่ได้ */
   for (let x = 0; x < m.w; x++) { m.solidT[MI(m, x, 0)] = 1; m.solidT[MI(m, x, m.h - 1)] = 1; } for (let y = 0; y < m.h; y++) { m.solidT[MI(m, 0, y)] = 1; m.solidT[MI(m, m.w - 1, y)] = 1; }
   // ตัวละคร
@@ -8507,96 +8509,17 @@ function animalDraw(g, S, T, a) {
   const K = G.TILT || 1, tr = g.getTransform(), up = K !== 1 && Math.abs(tr.d - Math.abs(tr.a)) > 1e-6;
   g.save(); g.translate(S(a.x), T(a.y) + 1); if (up) g.scale(1, 1 / K); g.imageSmoothingEnabled = true; g.drawImage(im, c * A.fw, r * A.fh, A.fw, A.fh, -w / 2, -h, w, h); g.restore();
 }
-// ================= บ่อน้ำกลางลานเมืองต่างประเทศ (แม่แบบจากสระน้ำหมู่บ้านไทย) =================
-// แต่ละประเทศรูปทรง/สีหิน/ปลา/พืชน้ำไม่ซ้ำกัน • วาดสดทุกเฟรม (น้ำกระเพื่อม ปลาว่าย) • ขนาดใกล้สระไทย (62×33)
-// shape: oval | circle | square | octagon | hexagon | rock • rim: [หินด้านบน, ขอบเข้ม, ด้านข้าง] • water: [ตื้น, ลึก]
-// fish: [[สีตัว, สีลาย], ...] • plants: lily (ใบบัว) lotus (ดอกบัว) reed (ต้นกก) rock (หิน) papyrus
-const PONDS = {
-  srilanka:   { shape: 'octagon', w: 76, h: 44, at: [930, 386], rim: ['#e8d6b0', '#8a6a3a', '#c9ad7e'], trim: '#c89a4a', water: ['#3aa8c8', '#14648e'], fish: [['#ff7a2a', '#ffffff'], ['#ffd23a', '#ff6a1a'], ['#ffffff', '#ff3a3a']], plants: { lily: 4, lotus: 3 } },
-  vietnam:    { shape: 'oval',    w: 89, h: 46, rim: ['#b9b3a6', '#5f5a50', '#8a8274'], water: ['#4fb3c4', '#1f6f86'], fish: [['#ff8a2a', '#fff2dd'], ['#ffffff', '#ff5a2a'], ['#ffb43a', '#ff7a1a']], plants: { lily: 5, lotus: 2 } },
-  cambodia:   { shape: 'square',  w: 78, h: 46, rim: ['#d8b98a', '#7a5a34', '#a8865a'], water: ['#5cb7a8', '#22706a'], fish: [['#e8e0c8', '#8a7a5a'], ['#ffb05a', '#ffffff']], plants: { lily: 4, lotus: 3 } },
-  myanmar:    { shape: 'octagon', w: 81, h: 46, rim: ['#f2ead6', '#9a7a32', '#d9c79a'], trim: '#e2b23a', water: ['#58b0d8', '#1d5f96'], fish: [['#ffcf3a', '#ffffff'], ['#ffcf3a', '#ff7a1a'], ['#ff6a3a', '#ffe0a0']], plants: { lily: 3, lotus: 1 } },
-  madagascar: { shape: 'circle',  w: 65, h: 46, rim: ['#c76a42', '#6a2e1a', '#99503a'], water: ['#6ab8b0', '#2a6c6a'], fish: [['#8a96a0', '#c8d2d8'], ['#8a96a0', '#c8d2d8'], ['#6e7a84', '#b0bcc4']], plants: { reed: 5, rock: 2 } },
-  brazil:     { shape: 'oval',    w: 94, h: 43, rim: ['#f4f4f0', '#2a4e9a', '#c9d4ea'], tiles: '#3a66c2', water: ['#46c2d8', '#14709a'], fish: [['#2a7aff', '#ffe23a'], ['#ffe23a', '#2a2a2a'], ['#ff4a5a', '#ffffff']], plants: { lily: 3, reed: 2 } },
-  russia:     { shape: 'circle',  w: 68, h: 46, rim: ['#a8acb2', '#4a4e56', '#7a7e86'], snow: true, water: ['#6a9cb8', '#244a66'], fish: [['#6a7a62', '#b8c0a0'], ['#8a7a5a', '#d0c49a']], plants: { reed: 4, rock: 1 } },
-  ethiopia:   { shape: 'hexagon', w: 81, h: 46, rim: ['#5e5852', '#24201c', '#3e3a34'], water: ['#5ab0a0', '#1e6658'], fish: [['#9aa88a', '#d8e0c0'], ['#9aa88a', '#d8e0c0']], plants: { papyrus: 4, lily: 2 } },
-  mozambique: { shape: 'square',  w: 89, h: 40, rim: ['#f2e6d0', '#a0745a', '#d4bfa0'], coral: true, water: ['#3ad0d0', '#0f8aa0'], fish: [['#ff7a2a', '#ffffff'], ['#3a8aff', '#ffe03a'], ['#ffe03a', '#2a2a2a'], ['#ff4a8a', '#ffffff']], plants: { rock: 2, lily: 2 } },
-  tanzania:   { shape: 'oval',    w: 84, h: 49, rim: ['#d6a85a', '#7a5228', '#ad7e42'], water: ['#62b0bc', '#24647a'], fish: [['#b0a080', '#e8dcc0'], ['#a89474', '#e0d4b4']], plants: { lily: 4, lotusBlue: 3 } },
-  colombia:   { shape: 'square',  w: 76, h: 49, rim: ['#c8744a', '#6a3018', '#9a5434'], tilesWarm: true, water: ['#54bcc8', '#1a6e8a'], fish: [['#ff8a1a', '#ffffff'], ['#ffd21a', '#ff6a1a'], ['#ff3a3a', '#ffffff']], plants: { lily: 3, reed: 2 } },
-  australia:  { shape: 'rock',    w: 86, h: 46, rim: ['#c8783e', '#5e2c12', '#93522a'], water: ['#62a8b4', '#245c6e'], fish: [['#9a8a6a', '#d8c8a0'], ['#9a8a6a', '#d8c8a0']], plants: { reed: 5, rock: 3 } },
-  zambia:     { shape: 'hexagon', w: 78, h: 49, rim: ['#a8804e', '#4e3418', '#7a5a34'], water: ['#5ab8b0', '#1e6c66'], fish: [['#c0b090', '#f0e6c8'], ['#ff8a3a', '#ffe0b0']], plants: { lily: 3, papyrus: 3 } },
-};
-const POND_AT = [925, 400]; // กลางลานวงกลม (พิกัดภาพเมือง 1862×845)
-function pondRand(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
-function pondPath(g, P, cx, cy, sx, sy) { // วาดเส้นรูปทรงบ่อ (sx,sy = ครึ่งกว้าง/ครึ่งสูง)
-  g.beginPath();
-  if (P.shape === 'oval' || P.shape === 'circle') g.ellipse(cx, cy, sx, sy, 0, 0, Math.PI * 2);
-  else if (P.shape === 'square') { const r = Math.min(sx, sy) * 0.35; g.moveTo(cx - sx + r, cy - sy); g.lineTo(cx + sx - r, cy - sy); g.quadraticCurveTo(cx + sx, cy - sy, cx + sx, cy - sy + r); g.lineTo(cx + sx, cy + sy - r); g.quadraticCurveTo(cx + sx, cy + sy, cx + sx - r, cy + sy); g.lineTo(cx - sx + r, cy + sy); g.quadraticCurveTo(cx - sx, cy + sy, cx - sx, cy + sy - r); g.lineTo(cx - sx, cy - sy + r); g.quadraticCurveTo(cx - sx, cy - sy, cx - sx + r, cy - sy); }
-  else if (P.shape === 'octagon' || P.shape === 'hexagon') { const n = P.shape === 'octagon' ? 8 : 6, o = P.shape === 'octagon' ? Math.PI / 8 : Math.PI / 6; for (let i = 0; i < n; i++) { const a = o + i * Math.PI * 2 / n; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * sx * (n === 6 ? 1.04 : 1.03), cy + Math.sin(a) * sy * (n === 6 ? 1.1 : 1.03)); } }
-  else { const n = 40; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2, k = 0.95 + 0.05 * Math.sin(a * 3 + 1) + 0.03 * Math.cos(a * 5 + 2); g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * sx * k, cy + Math.sin(a) * sy * k); } }
-  g.closePath();
-}
-function pondInside(P, x, y, sx, sy) { return ((x / sx) ** 2 + (y / sy) ** 2) < 1; }
+// ================= บ่อน้ำกลางลานเมืองต่างประเทศ (ภาพจากผู้เล่น) =================
+// รูปบ่อของแต่ละประเทศ (ponds/<key>.webp) วางกลางลานวงกลม • คนเดินข้ามไม่ได้ (บล็อกตามรูปจริง) ต้องเดินอ้อม
+const POND_META = {"cx": 925, "cy": 400, "ponds": {"cambodia": {"fw": 150.0, "fh": 98.3, "cells": [[-4, -3], [-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [3, -3], [-5, -2], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-4, 2], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2]]}, "vietnam": {"fw": 150.0, "fh": 59.4, "cells": [[-5, -2], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]}, "myanmar": {"fw": 150.0, "fh": 109.6, "cells": [[-2, -4], [-1, -4], [0, -4], [-4, -3], [-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [3, -3], [-5, -2], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-4, 2], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2]]}, "srilanka": {"fw": 150.0, "fh": 88.1, "cells": [[-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [-5, -2], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2]]}, "ethiopia": {"fw": 150.0, "fh": 85.0, "cells": [[-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]}, "madagascar": {"fw": 150.0, "fh": 72.5, "cells": [[-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1]]}, "mozambique": {"fw": 150.0, "fh": 73.1, "cells": [[-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]}, "tanzania": {"fw": 150.0, "fh": 86.2, "cells": [[-1, -3], [0, -3], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "zambia": {"fw": 150.0, "fh": 113.4, "cells": [[-4, -4], [-3, -4], [-2, -4], [-1, -4], [0, -4], [1, -4], [2, -4], [-4, -3], [-3, -3], [-2, -3], [-1, -3], [0, -3], [1, -3], [2, -3], [3, -3], [-5, -2], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-5, 2], [-4, 2], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2], [3, 2]]}, "australia": {"fw": 150.0, "fh": 65.6, "cells": [[-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [3, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]]}, "russia": {"fw": 150.0, "fh": 91.0, "cells": [[-2, -3], [-1, -3], [0, -3], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-4, 2], [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2]]}, "brazil": {"fw": 150.0, "fh": 92.5, "cells": [[-2, -3], [-1, -3], [0, -3], [1, -3], [-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-5, -1], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [-4, 2], [-3, 2], [-2, 2], [0, 2], [1, 2], [2, 2]]}, "colombia": {"fw": 150.0, "fh": 72.5, "cells": [[-4, -2], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-4, -1], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [3, -1], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0], [-5, 1], [-4, 1], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]}}};
+const POND_CENTER = [POND_META.cx, POND_META.cy]; // พิกัดกลางลานในภาพเมือง (1862x845)
+const PONDS = POND_META.ponds; // { key: { fw, fh, cells:[[dx,dy],...] } } — fw/fh = ขนาดวาดจริง (world px), cells = ช่องที่บล็อก (offset จากช่องกลาง)
+const POND_IMG = {};
+const pondImg = key => { let im = POND_IMG[key]; if (!im) { im = POND_IMG[key] = new Image(); im.src = 'ponds/' + key + '.webp'; } return im.complete && im.naturalWidth ? im : null; };
 function drawPond(g, S, T, key, wx, wy, t) {
-  const P = PONDS[key]; if (!P) return;
-  let cx = S(wx), cy = T(wy); const hw = P.w / 2, hh = P.h / 2, rimW = 4.5, wsx = hw - rimW, wsy = hh - rimW * 0.8;
-  if (!P._r) { const R = pondRand(key.length * 977 + key.charCodeAt(0) * 31); P._r = { fish: P.fish.map((f, i) => ({ c: f, a: R() * 6.28, sp: 0.35 + R() * 0.35, rx: 0.35 + R() * 0.45, ry: 0.3 + R() * 0.45, ph: R() * 6.28, sz: 0.85 + R() * 0.4, dir: R() < 0.5 ? 1 : -1 })), items: [] };
-    const add = (kind, n, edge) => { for (let i = 0; i < (n || 0); i++) { let x, y, k = 0; do { const a = R() * 6.28, rr = edge ? 0.72 + R() * 0.2 : 0.2 + R() * 0.6; x = Math.cos(a) * wsx * rr; y = Math.sin(a) * wsy * rr; k++; } while (k < 20 && P._r.items.some(o => Math.hypot(o.x - x, (o.y - y) * 1.6) < 6)); P._r.items.push({ kind, x, y, s: 0.8 + R() * 0.5, ph: R() * 6.28 }); } };
-    const pl = P.plants; add('lily', pl.lily); add('lotus', pl.lotus); add('lotusBlue', pl.lotusBlue); add('reed', pl.reed, true); add('papyrus', pl.papyrus, true); add('rock', pl.rock, true); }
-  // เงาใต้บ่อ + ผนังด้านข้าง (ให้ดูมีความสูง) + ขอบหินด้านบน
-  g.save();
-  const WH = P.wall || 13; // ความสูงผนังบ่อ (ยกขอบให้สูงจากพื้น)
-  g.fillStyle = 'rgba(0,0,0,0.25)'; pondPath(g, P, cx + 2, cy + 2, hw + 2.5, hh + 1.8); g.fill();
-  for (let k = 0; k <= WH; k += 0.5) { g.fillStyle = k < 1 ? P.rim[1] : P.rim[2]; pondPath(g, P, cx, cy - k, hw, hh); g.fill(); }
-  // ลายก้อนหินบนผนังด้านหน้า (แนวนอน + รอยต่อแนวตั้งสลับกัน)
-  g.save(); g.beginPath(); g.rect(cx - hw - 3, cy - WH, hw * 2 + 6, hh + WH + 4); pondPath(g, P, cx, cy - WH, hw, hh); g.clip('evenodd');
-  g.strokeStyle = P.rim[1]; g.globalAlpha = 0.55; g.lineWidth = 0.5;
-  for (let r = 1; r < 3; r++) { pondPath(g, P, cx, cy - WH * r / 3, hw, hh); g.stroke(); }
-  for (let r = 0; r < 3; r++) for (let i = 0; i < 16; i++) { const a = (i + (r % 2) * 0.5) / 16 * Math.PI * 2; if (Math.sin(a) < 0.05) continue; const x = cx + Math.cos(a) * hw * 1.02, y = cy + Math.sin(a) * hh; g.beginPath(); g.moveTo(x, y - WH * r / 3); g.lineTo(x, y - WH * (r + 1) / 3); g.stroke(); }
-  g.globalAlpha = 0.18; g.fillStyle = '#000'; g.fillRect(cx - hw - 3, cy - WH * 0.35, hw * 2 + 6, hh + WH); g.restore();
-  cy -= WH;
-  g.fillStyle = P.rim[0]; pondPath(g, P, cx, cy, hw, hh); g.fill();
-  g.lineWidth = 0.7; g.strokeStyle = P.rim[1]; pondPath(g, P, cx, cy, hw, hh); g.stroke();
-  // ลายหินขอบ (เส้นแบ่งก้อนหิน/กระเบื้อง)
-  g.save(); pondPath(g, P, cx, cy, hw, hh); g.clip(); g.strokeStyle = P.tiles || (P.tilesWarm ? '#f0c08a' : P.rim[1]); g.globalAlpha = P.tiles ? 0.9 : 0.45; g.lineWidth = P.tiles ? 1.1 : 0.5;
-  const segs = P.shape === 'square' ? 14 : 18; for (let i = 0; i < segs; i++) { const a = i / segs * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * (hw - rimW - 0.5), cy + Math.sin(a) * (hh - rimW)); g.lineTo(cx + Math.cos(a) * (hw + 2), cy + Math.sin(a) * (hh + 2)); g.stroke(); }
-  g.restore();
-  if (P.trim) { g.strokeStyle = P.trim; g.lineWidth = 0.9; pondPath(g, P, cx, cy, hw - 1.3, hh - 1.1); g.stroke(); }
-  if (P.snow) { g.fillStyle = 'rgba(255,255,255,0.85)'; for (const a of [3.6, 4.2, 5.1, 5.9, 0.6]) { g.beginPath(); g.ellipse(cx + Math.cos(a) * (hw - 2.2), cy + Math.sin(a) * (hh - 1.8), 3.2, 1.1, 0, 0, 7); g.fill(); } }
-  if (P.coral) { g.fillStyle = '#ff9a8a'; for (const a of [0.4, 2.6, 3.8, 5.3]) { g.beginPath(); g.arc(cx + Math.cos(a) * (hw - 2.2), cy + Math.sin(a) * (hh - 2), 1.1, 0, 7); g.fill(); } }
-  // ผิวน้ำ
-  pondPath(g, P, cx, cy, wsx, wsy); g.clip();
-  const gr = g.createLinearGradient(cx, cy - wsy, cx, cy + wsy); gr.addColorStop(0, P.water[1]); gr.addColorStop(0.55, P.water[0]); gr.addColorStop(1, P.water[0]); g.fillStyle = gr; g.fillRect(cx - wsx - 2, cy - wsy - 2, wsx * 2 + 4, wsy * 2 + 4);
-  g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(cx - wsx - 2, cy - wsy - 2, wsx * 2 + 4, 2.4); // เงาขอบด้านในบน
-  // ปลาว่าย (ใต้ผิวน้ำ)
-  for (const f of P._r.fish) {
-    const a = f.a + t * f.sp * f.dir, x = Math.cos(a) * wsx * f.rx + Math.sin(a * 2 + f.ph) * 2, y = Math.sin(a) * wsy * f.ry;
-    const vx = -Math.sin(a) * f.dir * wsx * f.rx, vy = Math.cos(a) * f.dir * wsy * f.ry, ang = Math.atan2(vy, vx), wig = Math.sin(t * 9 + f.ph) * 0.45, L = 3.6 * f.sz;
-    g.save(); g.translate(cx + x, cy + y); g.rotate(ang); g.globalAlpha = 0.9;
-    g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(0.4, 0.9, L, L * 0.38, 0, 0, 7); g.fill();
-    g.fillStyle = f.c[0]; g.beginPath(); g.ellipse(0, 0, L, L * 0.36, 0, 0, 7); g.fill();
-    g.beginPath(); g.moveTo(-L * 0.8, 0); g.lineTo(-L * 1.55, -L * 0.5 + wig); g.lineTo(-L * 1.45, L * 0.5 + wig); g.closePath(); g.fill();
-    g.fillStyle = f.c[1]; g.beginPath(); g.ellipse(L * 0.15, -L * 0.05, L * 0.38, L * 0.18, 0, 0, 7); g.fill();
-    g.restore();
-  }
-  // คลื่นวงน้ำ + แสงระยิบ
-  g.lineWidth = 0.45; for (let i = 0; i < 3; i++) { const p = (t * 0.35 + i / 3) % 1, rx2 = (P._r.items[i] || { x: (i - 1) * 9 }).x * 0.5 + (i - 1) * 6, ry2 = (i - 1) * 3; g.strokeStyle = `rgba(255,255,255,${0.45 * (1 - p)})`; g.beginPath(); g.ellipse(cx + rx2, cy + ry2, 1.5 + p * 7, 0.6 + p * 2.6, 0, 0, 7); g.stroke(); }
-  g.fillStyle = 'rgba(255,255,255,0.75)'; for (let i = 0; i < 5; i++) { const s = (Math.sin(t * 2.3 + i * 1.7) + 1) / 2; if (s < 0.6) continue; g.globalAlpha = (s - 0.6) * 2.2; g.fillRect(cx - wsx * 0.7 + i * wsx * 0.33, cy - wsy * 0.45 + ((i * 37) % 7) * wsy * 0.12, 1.4, 0.45); } g.globalAlpha = 1;
-  // พืชน้ำ/หิน (บนผิวน้ำ)
-  for (const it of P._r.items) {
-    const x = cx + it.x + Math.sin(t * 0.8 + it.ph) * 0.35, y = cy + it.y, s = it.s;
-    if (it.kind === 'lily' || it.kind === 'lotus' || it.kind === 'lotusBlue') { g.fillStyle = '#3e8a3a'; g.beginPath(); g.ellipse(x, y, 3 * s, 1.5 * s, 0, 0.35, Math.PI * 2 - 0.1); g.lineTo(x, y); g.fill(); g.fillStyle = '#5cb04e'; g.beginPath(); g.ellipse(x - 0.4, y - 0.3, 2.2 * s, 1.0 * s, 0, 0.4, Math.PI * 2 - 0.2); g.lineTo(x - 0.4, y - 0.3); g.fill();
-      if (it.kind !== 'lily') { const c = it.kind === 'lotus' ? ['#ff8ab8', '#ffd3e6'] : ['#8a9aff', '#d6dcff']; g.fillStyle = c[0]; for (let k = 0; k < 5; k++) { const a = -Math.PI / 2 + (k - 2) * 0.55; g.beginPath(); g.ellipse(x + Math.cos(a) * 1.1 * s, y - 1.2 * s + Math.sin(a) * 0.9 * s, 0.75 * s, 1.5 * s, a + Math.PI / 2, 0, 7); g.fill(); } g.fillStyle = c[1]; g.beginPath(); g.arc(x, y - 1.3 * s, 0.8 * s, 0, 7); g.fill(); g.fillStyle = '#ffe24a'; g.fillRect(x - 0.3, y - 1.6 * s, 0.6, 0.6); } }
-    else if (it.kind === 'rock') { g.fillStyle = '#7a7670'; g.beginPath(); g.ellipse(x, y, 2.6 * s, 1.7 * s, 0, 0, 7); g.fill(); g.fillStyle = '#a8a49c'; g.beginPath(); g.ellipse(x - 0.5, y - 0.6, 1.5 * s, 0.9 * s, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 0.35; g.beginPath(); g.ellipse(x, y + 0.6, 3.2 * s, 1.2 * s, 0, 0, Math.PI); g.stroke(); }
-  }
-  g.restore();
-  // ต้นกก/ปาปิรัสตามขอบ (สูงพ้นน้ำ วาดนอก clip)
-  g.save(); for (const it of P._r.items) { if (it.kind !== 'reed' && it.kind !== 'papyrus') continue; const x = cx + it.x, y = cy + it.y, s = it.s, sway = Math.sin(t * 1.4 + it.ph) * 0.8;
-    g.strokeStyle = it.kind === 'reed' ? '#4e8a32' : '#3e7a2a'; g.lineWidth = 0.6;
-    for (let k = -1; k <= 1; k++) { g.beginPath(); g.moveTo(x + k * 0.8, y); g.quadraticCurveTo(x + k * 1.2 + sway * 0.5, y - 4 * s, x + k * 1.6 + sway, y - 7.5 * s - (k === 0 ? 1.5 : 0)); g.stroke(); }
-    if (it.kind === 'reed') { g.fillStyle = '#7a4e26'; g.beginPath(); g.ellipse(x + sway, y - 8 * s, 0.55, 1.4, 0, 0, 7); g.fill(); }
-    else { g.fillStyle = '#6ab84a'; for (let k = 0; k < 7; k++) { const a = -Math.PI + k * Math.PI / 6; g.beginPath(); g.moveTo(x + sway, y - 9 * s); g.lineTo(x + sway + Math.cos(a) * 2.6, y - 9 * s + Math.sin(a) * 1.6); g.lineTo(x + sway + Math.cos(a + 0.2) * 2.6, y - 9 * s + Math.sin(a + 0.2) * 1.6); g.fill(); } } }
-  g.restore();
+  const P = PONDS[key], im = pondImg(key); if (!P || !im) return;
+  const w = P.fw, h = P.fh, x = S(wx) - w / 2, y = T(wy) - h / 2;
+  g.save(); g.imageSmoothingEnabled = true; g.drawImage(im, x, y, w, h); g.restore();
 }
 /* =====================================================================
    game: เอนจิน — อินพุต, การชน, การขุดหินทุกก้อน, สเตมินา, การต่อสู้, แสง, กล้อง
@@ -9574,7 +9497,7 @@ function render() {
   if (G.tap) { const a = 1 - G.tap.t / 0.8, r = 3 + G.tap.t * 8; g.strokeStyle = `rgba(255,230,150,${a})`; g.lineWidth = 1; g.strokeRect(S(G.tap.x - r), T(G.tap.y - r * 0.5), r * 2, r); }
   for (const d of G.drops) { if (!inView(d.x, d.y)) continue; const bob = Math.round(Math.sin(t * 4 + d.x) * 1.5) - d.z; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(S(d.x - 4), T(d.y), 8, 2); const ic = d.kind === 'coin' ? ART.coin : d.kind === 'cons' ? itemIconCanvas(d.id) : itemIconCanvas(d.id); g.drawImage(ic, S(d.x - ic.width / 2), T(d.y - ic.height + bob)); if (d.kind === 'item' && Math.sin(t * 5 + d.x) > 0.6) { g.fillStyle = TIER_COLORS[ITEMS[d.id].tier]; g.fillRect(S(d.x + 5), T(d.y - 14 + bob), 1, 1); } if (d.kind === 'item' && d.q) { const col = LOOT_Q[d.q].col, k = 0.5 + 0.5 * Math.sin(t * 6 + d.x); { const bx = S(d.x), by = T(d.y), hgt = d.q === 2 ? 34 : 24, gr = g.createLinearGradient(0, by - hgt, 0, by); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, col); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.3 + 0.25 * k; g.fillStyle = gr; g.fillRect(bx - (d.q === 2 ? 3 : 2), by - hgt, d.q === 2 ? 6 : 4, hgt); g.globalAlpha = 0.5 + 0.3 * k; g.fillRect(bx - 1, by - hgt, 2, hgt); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; } /* ลำแสงสีตามระดับ */ g.globalAlpha = 0.35 + 0.35 * k; g.fillStyle = col; g.fillRect(S(d.x - 6), T(d.y) + 1, 12, 1); g.fillRect(S(d.x - 4), T(d.y) + 2, 8, 1); g.globalAlpha = 1; for (let i = 0; i < (d.q === 2 ? 3 : 2); i++) { const a2 = t * 2.4 + i * 2.1 + d.x; g.fillRect(S(d.x + Math.cos(a2) * 7), T(d.y - 8 + bob + Math.sin(a2 * 1.3) * 5), 1, 1); } } /* ของหายาก (ฟ้า) / ทอง: มีแสงที่พื้นและประกายวนรอบ */ }
   const list = [];
-  if (m.pond && inView(m.pond.x, m.pond.y, 60)) list.push({ y: m.pond.y, d: () => drawPond(g, S, T, m.pond.key, m.pond.x, m.pond.y + 8, t) }); // บ่อน้ำกลางลานเมืองต่างประเทศ (มีผนังสูง เรียงลำดับตามแนวลึก)
+  if (m.pond && inView(m.pond.x, m.pond.y, 120)) list.push({ y: m.pond.sortY, d: () => drawPond(g, S, T, m.pond.key, m.pond.x, m.pond.y, t) }); // บ่อน้ำกลางลานเมืองต่างประเทศ (รูปจริง เรียงลำดับตามฐานบ่อ)
   if (m.objects.some(o => o.dead)) m.objects = m.objects.filter(o => !o.dead);
   for (const o of m.objects) if (inView(o.x, o.y, Math.max(80, o.spr.width / 2 + 16))) list.push({ y: o.sortY, d: () => { let spr = o.spr; if (o.kind === 'fountain' && ART.fountain) spr = ART.fountain[Math.floor(t * 9) % ART.fountain.length]; if (o.kind === 'grinder') spr = ART.grinder[UI.grinding ? Math.floor(t * 12) % 3 : 0]; if (o.kind === 'warpdoor' && ART.warpAnim) { const A = ART.warpAnim, el = G.time - (o.t0 == null ? -9 : o.t0); if (o.fade) { if (el >= 0.72) { o.dead = true; return; } spr = el < 0 ? A.idle[Math.floor(t * 14) % 8] : A.fade[Math.min(15, Math.floor(el / 0.045))]; } else if (el < 0) return; else spr = el < 0.72 ? A.rise[Math.min(15, Math.floor(el / 0.045))] : A.idle[Math.floor(t * 14) % 8]; } if (o.kind === 'ground') spr.flat = true; const oy = o.by != null ? o.by - (o.by - o.y) / G.TILT : o.y; g.drawImage(spr, S(o.x - spr.width / 2), T(oy - spr.height)); } });
   if (m.npcs) for (const n of m.npcs) if (!n.hidden && inView(n.x, n.y)) list.push({ y: n.y, d: () => { if (CHARS[n.key]) { if (PIXEL) {
@@ -11656,7 +11579,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795169441";
+window.GAME_BUILD="1795170453";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
