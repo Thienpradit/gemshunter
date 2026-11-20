@@ -1891,7 +1891,7 @@ function newState() {
     items: [{ uid: 1, id: 'pick1', dur: 100 }, { uid: 2, id: 'wpn1' }, { uid: 3, id: 'arm1' }], equip: { pick: 1, weapon: 2, armor: 3, helmet: 0, gloves: 0, boots: 0, shield: 0 }, nextUid: 4,
     cons: { water: 3, rice: 2, herb: 1, warp: 2 }, mine: { ver: 4, dug: '' }, mines: {},
     pos: { map: 'village', x: 21 * 16, y: 22 * 16, dir: 'down' },
-    nextId: 1, savedAt: 0, muted: false, seenIntro: false, gift5: false, bossGold: {},
+    nextId: 1, savedAt: 0, muted: false, seenIntro: false, gift5: false, ammoGift: true, bossGold: {},
   };
 }
 function normGem(g, st) {
@@ -1966,7 +1966,7 @@ function migrateSave(s) {
   st.grp = {}; if (s.grp && typeof s.grp === 'object') for (const id in s.grp) { const L = s.grp[id], o = {}; if (L && typeof L === 'object') for (const k in L) { const v = L[k]; if (/^\d+$/.test(k) && v && typeof v === 'object') o[k] = { l: Math.max(0, v.l | 0), d: Number(v.d) || 0, c: v.c ? 1 : 0 }; } st.grp[id] = o; }
   st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
-  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5; st.bossGold = {}; if (s.bossGold && typeof s.bossGold === 'object') for (const k in s.bossGold) if (/^[a-z0-9]{1,16}$/.test(k)) st.bossGold[k] = 1;
+  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5; st.ammoGift = !!s.ammoGift; st.bossGold = {}; if (s.bossGold && typeof s.bossGold === 'object') for (const k in s.bossGold) if (/^[a-z0-9]{1,16}$/.test(k)) st.bossGold[k] = 1;
   st.savedAt = Number(s.savedAt) || 0;
   const maxId = Math.max(0, ...st.inv.map(g => g.id), ...st.queue.jobs.map(j => j.gem.id));
   st.nextId = Math.max(st.nextId, maxId + 1);
@@ -8314,6 +8314,8 @@ function killMonster(e) {
       lootBoost = (pstats().luck || 0) * 1.5; }
     dropAt(e.x + 4 + di * 9, e.y + di * 3, CONSUMABLES[id] ? { kind: 'cons', id, amount: CONSUMABLES[id].pack || 1 } : { kind: 'item', id, g: dg, lv: dLv, ...rollLoot(id, (def.chance >= 1 ? (e.champ ? 1.5 : 1) : e.champ ? 1.2 : (e.var || 0) * 0.25) + lootBoost, Math.random, dLv ? dLv / 10 : dg, def.boss2 ? 1.5 : 1) }); /* บอสใหญ่ประจำชั้น: โอกาสได้ของทอง (และชิ้นระดับยอดเยี่ยม/ตำนาน) ×1.5 */ /* โอกาสได้ของหายาก/ทองเท่ากันทุกเลเวลและทุกระดับเหมือง (หายาก ~24% ทอง ~6% • บอสและโครงกระดูกระดับสูงมีโบนัสตามชนิด) — ต่างกันที่ค่าของออปชัน ซึ่งโตตามขั้นของชิ้น */ /* ของทอง: ไม่มีก่อน Lv 3 • Lv 3–49 ออกยาก (ราว 1 ใน 3 ของอัตราปกติ) • Lv 50 ขึ้นไปอัตราปกติ */ /* ต่ำกว่า Lv 12: ส่วนใหญ่เป็นคุณภาพปกติ แต่ยังมีหายาก (~21%) และทอง (~2%) ได้ — ออปชันของชิ้นเลเวลต่ำบวกน้อยตามขั้นอยู่แล้ว */ /* อุปกรณ์ที่ดรอป: สุ่มระดับ ปกติ/หายาก/ทอง + ค่าบวก (บอสและโครงกระดูกระดับสูงมีโอกาสดีกว่า) */
   }
+  { /* กระสุนดรอป: มีปืนอยู่ ~12% (บอส 45%) ได้กระสุนของปืนที่มี • ไม่มีปืน 3% */ const own = [...new Set(STATE.items.map(x => ITEMS[x.id] && ITEMS[x.id].ammo).filter(Boolean))], boss = isBossType(e.type) || e.champ, ch = own.length ? (boss ? 0.45 : 0.12) : 0.03;
+    if (Math.random() < ch) { const k = own.length ? own[Math.floor(Math.random() * own.length)] : (Math.random() < 0.6 ? 'a9' : 'a762'), base = CONSUMABLES[k].pack, n = Math.max(3, Math.round(base * (0.3 + Math.random() * 0.5) * (boss ? 2 : 1))); dropAt(e.x - 10, e.y + 4, { kind: 'cons', id: k, amount: n }); } }
   if (isBossType(e.type) && !(STATE.bossGold && STATE.bossGold[e.type])) { (STATE.bossGold || (STATE.bossGold = {}))[e.type] = 1; bossGoldDrop(e); } /* ฆ่าบอสตัวนี้ครั้งแรก: การันตีของทอง 1 ชิ้น (ครั้งเดียวต่อบอส) */
   questEvent('kill', 1); markDirty();
 }
@@ -8849,7 +8851,8 @@ function wearWeapon() {
 function fireGun() {
   const w = pstats().weapon; G.holdAct = G.holdAct && w.auto; // ปืนสั้น: กดหนึ่งครั้งยิงหนึ่งนัด
   if (G.time - (G.lastShot || -9) < w.rate) { if (w.auto) G.holdAct = true; return; }
-  G.lastShot = G.time; /* ปืนกระสุนไม่จำกัด: ไม่ต้องซื้อกระสุนแล้ว (ยังสึกหรอตามความทนทานเหมือนเดิม) */
+  if (w.ammo && !((STATE.cons[w.ammo] || 0) > 0)) { G.holdAct = false; if (G.time - (G.noAmmoT || -9) > 1.2) { G.noAmmoT = G.time; SFX.play('deny'); floatText(PL.x, PL.y - 40, 'กระสุนหมด!', '#ff8a7a', 1.2); toast(`ไม่มี${CONSUMABLES[w.ammo].name}แล้ว — ซื้อได้ที่ร้านอุปกรณ์ (หมวดของใช้) หรือเก็บจากมอนสเตอร์`, 'bad'); } return; }
+  G.lastShot = G.time; if (w.ammo) { STATE.cons[w.ammo]--; if (STATE.cons[w.ammo] === 5) toast(`กระสุนใกล้หมด เหลือ 5 นัด`, 'bad'); } /* ยิง 1 นัดใช้กระสุน 1 นัด */
   wearWeapon();
   const a = (G.mouseAct && PL.aim != null ? PL.aim : gunAim(w.range)) + (Math.random() - 0.5) * w.spread * 2;
   const ca = Math.cos(a), sa = Math.sin(a);
@@ -9953,6 +9956,7 @@ function boot() {
   const ps = pstats(); STATE.hp = clamp(STATE.hp, 1, ps.maxHp); STATE.sta = clamp(STATE.sta, 0, ps.maxSta);
   resize(); setupInput(); UI.init(); setTheme();
   saveGame();
+  if (!STATE.ammoGift) { STATE.ammoGift = true; const own = [...new Set(STATE.items.map(x => ITEMS[x.id] && ITEMS[x.id].ammo).filter(Boolean))]; const got = own.map(k => { const n = CONSUMABLES[k].pack * 4; STATE.cons[k] = (STATE.cons[k] || 0) + n; return `${CONSUMABLES[k].name} ${n} นัด`; }); if (got.length) setTimeout(() => toast(`🔫 ตอนนี้ปืนต้องใช้กระสุนแล้ว — แจกฟรี ${got.join(' • ')} (ซื้อเพิ่มที่ร้านอุปกรณ์ หมวดของใช้)`, 'quest'), 2500); saveGame(); } /* ผู้เล่นเดิมที่มีปืน (เคยยิงไม่จำกัด) ได้กระสุนเริ่มต้นครั้งเดียว */
   if (!STATE.seenIntro) UI.intro();
   else {
     const id = G.map.id;
@@ -10307,7 +10311,7 @@ const UI = (() => {
       $('#pcRank').textContent = RANKS[Math.min(4, tier)]; $('#pcGem').className = 'pc-gem t' + Math.min(4, tier); $('#pcGem').title = 'ยศ: ' + RANKS[Math.min(4, tier)];
       $('#pcName').textContent = STATE.name || 'นักล่าอัญมณี';
       $('#bagcount').textContent = `${bagUsed()}/${bagCap()}`; $('#bagcount').classList.toggle('full', bagUsed() >= bagCap() - 5);
-      $('#handicon').src = itemIconURL(held); $('#handname').textContent = ITEMS[held].name + (gunIt ? ' • กระสุน ∞' : '');
+      $('#handicon').src = itemIconURL(held); $('#handname').textContent = ITEMS[held].name + (gunIt ? ` • กระสุน ${STATE.cons[gunIt.ammo] || 0}` : '');
       const cc = $('#climchip'); cc.textContent = `${clim.C.icon} ${clim.C.temp} • ${clim.kind === 'ok' ? 'ชุดพอดี' : (clim.d >= 3 ? 'เลือดลด! ' : '') + (clim.kind === 'cold' ? 'หนาวไป ใส่ชุดอุ่นขึ้น' : 'ร้อนไป ใส่ชุดระบายอากาศ')}`; cc.title = 'แตะเพื่อดูวิธีแก้'; cc.className = 'chip frame clim ' + clim.kind;
       $('#swapicon').src = itemIconURL(held); /* ปุ่มกลมเล็กบนโทรศัพท์: โชว์ของที่ถืออยู่ตอนนี้ (เหมือนปุ่ม Q บนคอม) แตะเพื่อสลับ */
       { const first = cat => CONS_CAT[cat].find(id => (STATE.cons[id] || 0) > 0) || CONS_CAT[cat][0]; /* ปุ่มลัดรวมของทั้งหมวด: ตัวเลข = จำนวนรวม • รูป = ชิ้นเล็กสุดที่มี */
@@ -10929,7 +10933,8 @@ const UI = (() => {
     let body;
     const buyBtn = id => { const it = effItem(shopX(id)), n = owned(id); return itemRow(shopX(id), `${money(it.price)}<br><button class="btn small ${STATE.coins >= it.price ? 'gold' : ''}" data-a="buy" data-id="${id}" ${STATE.coins >= it.price ? '' : 'disabled'}>ซื้อ</button>`, n ? ` • มีแล้ว ${n}` : ''); };
     const warpRow = () => { const c = CONSUMABLES.warp; return `<div class="item"><img src="${itemIconURL('warp')}"><div class="gi"><b>${c.name}</b><small>ใช้ครั้งเดียว • มีอยู่ ${STATE.cons.warp || 0} บาน</small><small class="stat">กด T ในเหมือง → ประตูโผล่ขึ้นมา เดินเข้าไปถึงเมืองทันที • ที่เมืองมีประตูเปิดรอให้กลับไปจุดเดิมได้ 1 ครั้ง</small></div><div class="gp">${money(c.price)}<br><button class="btn small gold" data-a="ammo" data-id="warp" data-n="1">ซื้อ 1 บาน</button><button class="btn small" data-a="ammo" data-id="warp" data-n="5">ซื้อ 5 บาน</button></div></div>`; };
-    const ammoRows = () => warpRow(); /* ไม่ขายกระสุนแล้ว: ปืนกระสุนไม่จำกัด */
+    const ammoRow = k => { const c = CONSUMABLES[k], gn = Object.values(ITEMS).find(x => x.ammo === k); return `<div class="item"><img src="${itemIconURL(k)}"><div class="gi"><b>${c.name}</b><small>สำหรับ${gn ? gn.name : 'ปืน'} • กล่องละ ${c.pack} นัด • มีอยู่ ${STATE.cons[k] || 0} นัด</small></div><div class="gp">${money(c.price)}<br><button class="btn small gold" data-a="ammo" data-id="${k}" data-n="1">ซื้อ 1 กล่อง</button><button class="btn small" data-a="ammo" data-id="${k}" data-n="5">ซื้อ 5 กล่อง</button></div></div>`; };
+    const ammoRows = () => `<h4 style="margin:4px 0">🔫 กระสุนปืน</h4>` + ammoRow('a9') + ammoRow('a762') + `<h4 style="margin:10px 0 4px">🌀 ประตูวาร์ป</h4>` + warpRow(); /* กระสุน: ยิงนัดละ 1 ต้องซื้อหรือเก็บจากมอนสเตอร์ */
     if (shopTab === 'climate') {
       const k = climate(); const row = (t, ids) => `<h4>${t}</h4>` + ids.map(buyBtn).join('');
       body = `<div class="climbox ${k.kind}"><b>${k.C.icon} ตอนนี้อยู่: ${k.c === 'thai' ? 'ไทย' : COUNTRIES[k.c].short} — ${k.C.name} ${k.C.temp}</b><br>ความอบอุ่นของชุดคุณ <b>${k.w > 0 ? '+' : ''}${k.w}</b> • ที่นี่สบายตัวช่วง <b>${k.C.lo} ถึง +${k.C.hi}</b> → ${k.kind === 'ok' ? 'พอดีแล้ว' : k.kind === 'cold' ? 'หนาวไป ' + k.d + ' ระดับ' : 'ร้อนไป ' + k.d + ' ระดับ'}<br><span class="muted small">รวมค่าอบอุ่นจาก เสื้อ+หมวก+ถุงมือ+รองเท้า • รัสเซียต้อง +9 ขึ้นไป • ประเทศร้อนต้องไม่เกิน +1 ถึง +4</span></div>`
@@ -10973,7 +10978,7 @@ const UI = (() => {
           show('buyc', `<h3>ยืนยันการซื้อ</h3><div class="list">${itemRow(BX, money(it.price))}</div><div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อ ${baht(it.price)} บาท</button></div>`, a2 => {
             if (a2 === 'back') return shop();
             if (a2 !== 'ok' || STATE.coins < it.price) return; if (bagFull()) { SFX.play('deny'); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ซื้ออุปกรณ์เพิ่มไม่ได้ ขายของหรืออัปเกรดกระเป๋าก่อน`, 'bad'); return; }
-            STATE.coins -= it.price; const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g, BX.lv)); SFX.play('coin'); 
+            STATE.coins -= it.price; const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g, BX.lv)); SFX.play('coin'); if (ITEMS[id].ammo) { const A = ITEMS[id].ammo, n = CONSUMABLES[A].pack * 2; STATE.cons[A] = (STATE.cons[A] || 0) + n; setTimeout(() => toast(`แถม${CONSUMABLES[A].name} ${n} นัด`, 'good'), 400); } 
             saveGame(); hud();
             show('bought', `<h3>ได้รับ ${it.name}</h3><div class="list">${itemRow(BX, '')}</div><div class="row end"><button class="btn" data-a="back">กลับไปร้าน</button><button class="btn gold" data-a="eq">สวมใส่เลย</button></div>`, a3 => { if (a3 === 'eq') { equipUid(uid); shop(); toast(`สวมใส่ ${it.name} แล้ว`, 'good'); } else shop(); });
           }); }
@@ -11693,7 +11698,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795174135";
+window.GAME_BUILD="1795174862";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
