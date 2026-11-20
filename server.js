@@ -18,7 +18,7 @@ function fileEntry(fp) {
   if (e && e.mtime === st.mtimeMs) return e;
   const raw = fs.readFileSync(fp), ext = path.extname(fp), text = /\.(html|js|css|json|svg|txt|webmanifest)$/.test(ext);
   /* ไฟล์บีบอัดสำเร็จรูป (.br / .gz วางคู่ไฟล์จริง สร้างไว้ตอนอัปเดต) → ไม่ต้องบีบอัดตอนเปิดเซิร์ฟเวอร์ (หน้าเกมหลาย MB บีบอัดนานจนเซิร์ฟเวอร์ค้าง) */
-  const pre = x => { try { const s2 = fs.statSync(fp + x); return s2.mtimeMs >= st.mtimeMs - 5000 ? fs.readFileSync(fp + x) : null; } catch (er) { return null; } };
+  const pre = x => { try { const b = fs.readFileSync(fp + x), d = x === '.br' ? zlib.brotliDecompressSync(b) : zlib.gunzipSync(b); return d.equals(raw) ? b : null; /* ใช้เฉพาะเมื่อตรงกับหน้าเกมปัจจุบันเป๊ะ */ } catch (er) { return null; } };
   const big = raw.length > 300 * 1024, br = text ? (pre('.br') || zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: big ? 4 : 9 } })) : null, gz = text ? (pre('.gz') || zlib.gzipSync(raw, { level: big ? 5 : 9 })) : null;
   e = { mtime: st.mtimeMs, raw, gz, br, type: MIME[ext] || 'application/octet-stream', etag: '"' + crypto.createHash('sha1').update(raw).digest('hex').slice(0, 16) + '"' };
   cache.set(fp, e); return e;
