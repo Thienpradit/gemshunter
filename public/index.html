@@ -10148,7 +10148,7 @@ const NET = (() => {
     box = document.createElement('div'); box.id = 'onlist'; box.innerHTML = '<div class="olh">ผู้เล่นออนไลน์</div><div class="olb">กำลังโหลด…</div>'; document.body.appendChild(box);
     const place = () => { const r = chip.getBoundingClientRect(), w = Math.min(200, innerWidth - 12); box.style.width = w + 'px'; box.style.top = (r.bottom + 6) + 'px'; box.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px'; }; place();
     try { await N.ping(); } catch (e) {} const d = await N.onlineList(); if (!document.getElementById('onlist')) return;
-    const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : '-');
+    const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : 'ไม่ทราบ');
     if (d) { N.onlineN = d.online | 0; chip.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; }
     box.querySelector('.olh').textContent = `ผู้เล่นออนไลน์ ${list.length.toLocaleString('th-TH')} คน`;
     box.querySelector('.olb').innerHTML = !d ? '<div class="olr muted">โหลดรายชื่อไม่ได้ ลองใหม่อีกครั้ง</div>' : list.length ? list.map(p => `<div class="olr${p.name.toLowerCase() === me ? ' me' : ''}"><b>${esc(p.name)}</b><span>${p.cty === 'thai' ? '🇹🇭 ' : '✈ '}${esc(cn(p.cty))}</span></div>`).join('') : '<div class="olr muted">ยังไม่มีใครออนไลน์</div>';
@@ -11679,7 +11679,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795173256";
+window.GAME_BUILD="1795173849";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
