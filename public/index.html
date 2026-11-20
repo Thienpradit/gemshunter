@@ -1891,7 +1891,7 @@ function newState() {
     items: [{ uid: 1, id: 'pick1', dur: 100 }, { uid: 2, id: 'wpn1' }, { uid: 3, id: 'arm1' }], equip: { pick: 1, weapon: 2, armor: 3, helmet: 0, gloves: 0, boots: 0, shield: 0 }, nextUid: 4,
     cons: { water: 3, rice: 2, herb: 1, warp: 2 }, mine: { ver: 4, dug: '' }, mines: {},
     pos: { map: 'village', x: 21 * 16, y: 22 * 16, dir: 'down' },
-    nextId: 1, savedAt: 0, muted: false, seenIntro: false, gift5: false,
+    nextId: 1, savedAt: 0, muted: false, seenIntro: false, gift5: false, bossGold: {},
   };
 }
 function normGem(g, st) {
@@ -1966,7 +1966,7 @@ function migrateSave(s) {
   st.grp = {}; if (s.grp && typeof s.grp === 'object') for (const id in s.grp) { const L = s.grp[id], o = {}; if (L && typeof L === 'object') for (const k in L) { const v = L[k]; if (/^\d+$/.test(k) && v && typeof v === 'object') o[k] = { l: Math.max(0, v.l | 0), d: Number(v.d) || 0, c: v.c ? 1 : 0 }; } st.grp[id] = o; }
   st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
-  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5;
+  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5; st.bossGold = {}; if (s.bossGold && typeof s.bossGold === 'object') for (const k in s.bossGold) if (/^[a-z0-9]{1,16}$/.test(k)) st.bossGold[k] = 1;
   st.savedAt = Number(s.savedAt) || 0;
   const maxId = Math.max(0, ...st.inv.map(g => g.id), ...st.queue.jobs.map(j => j.gem.id));
   st.nextId = Math.max(st.nextId, maxId + 1);
@@ -8314,7 +8314,21 @@ function killMonster(e) {
       lootBoost = (pstats().luck || 0) * 1.5; }
     dropAt(e.x + 4 + di * 9, e.y + di * 3, CONSUMABLES[id] ? { kind: 'cons', id, amount: CONSUMABLES[id].pack || 1 } : { kind: 'item', id, g: dg, lv: dLv, ...rollLoot(id, (def.chance >= 1 ? (e.champ ? 1.5 : 1) : e.champ ? 1.2 : (e.var || 0) * 0.25) + lootBoost, Math.random, dLv ? dLv / 10 : dg, def.boss2 ? 1.5 : 1) }); /* บอสใหญ่ประจำชั้น: โอกาสได้ของทอง (และชิ้นระดับยอดเยี่ยม/ตำนาน) ×1.5 */ /* โอกาสได้ของหายาก/ทองเท่ากันทุกเลเวลและทุกระดับเหมือง (หายาก ~24% ทอง ~6% • บอสและโครงกระดูกระดับสูงมีโบนัสตามชนิด) — ต่างกันที่ค่าของออปชัน ซึ่งโตตามขั้นของชิ้น */ /* ของทอง: ไม่มีก่อน Lv 3 • Lv 3–49 ออกยาก (ราว 1 ใน 3 ของอัตราปกติ) • Lv 50 ขึ้นไปอัตราปกติ */ /* ต่ำกว่า Lv 12: ส่วนใหญ่เป็นคุณภาพปกติ แต่ยังมีหายาก (~21%) และทอง (~2%) ได้ — ออปชันของชิ้นเลเวลต่ำบวกน้อยตามขั้นอยู่แล้ว */ /* อุปกรณ์ที่ดรอป: สุ่มระดับ ปกติ/หายาก/ทอง + ค่าบวก (บอสและโครงกระดูกระดับสูงมีโอกาสดีกว่า) */
   }
+  if (isBossType(e.type) && !(STATE.bossGold && STATE.bossGold[e.type])) { (STATE.bossGold || (STATE.bossGold = {}))[e.type] = 1; bossGoldDrop(e); } /* ฆ่าบอสตัวนี้ครั้งแรก: การันตีของทอง 1 ชิ้น (ครั้งเดียวต่อบอส) */
   questEvent('kill', 1); markDirty();
+}
+/* บอส = บอสใหญ่ประจำชั้น + บอสรอง (มินิบอส) + นางพญาแมงมุม + หัวหน้าโจร */
+function isBossType(t) { const d = MONS[t]; return !!(d && (d.boss2 || d.mini || t === 'spider' || t === 'boss')); }
+function bossGoldDrop(e) {
+  const lv = STATE.lv || 1, slots = ['weapon', 'armor', 'helmet', 'gloves', 'boots', 'shield', 'pick'];
+  let ok = Object.keys(ITEMS).filter(k => slots.includes(ITEMS[k].slot) && ITEMS[k].price && k !== 'pick1' && !CLIMATE_IDS.includes(k) && !REGEN_ITEMS.includes(k) && itemReq(k) <= lv);
+  const top = Math.max(...ok.map(k => ITEMS[k].tier || 0)); ok = ok.filter(k => (ITEMS[k].tier || 0) === top); /* ชิ้นขั้นสูงสุดที่ใส่ได้ตามเลเวล */
+  const id = ok[Math.floor(Math.random() * ok.length)] || 'wpn1'; let r = null;
+  for (let i = 0; i < 80 && !(r && r.q === 2); i++) r = rollLoot(id, 60, Math.random, lv / 10, 1);
+  if (!r || r.q !== 2) r = { q: 2, mods: { hp: 20 } };
+  dropAt(e.x, e.y + 6, { kind: 'item', id, g: gradeOf(lv), lv, ...r });
+  floatText(e.x, e.y - 56, '★ ของทองจากบอสครั้งแรก! ★', '#ffc832', 3, 1); SFX.play('done');
+  toast(`★ <b>ฆ่า${MONS[e.type].name}ครั้งแรก!</b> ได้ <b style="color:${LOOT_Q[2].col}">${ITEMS[id].name}</b> ระดับทอง 1 ชิ้น (ได้ครั้งเดียวต่อบอสแต่ละตัว)`, 'quest');
 }
 function dropAt(x, y, it) { G.drops.push({ ...it, x, y, z: 6, vz: 50, t: 0 }); }
 function updateDrops(dt) {
@@ -11679,7 +11693,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795173849";
+window.GAME_BUILD="1795174135";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
