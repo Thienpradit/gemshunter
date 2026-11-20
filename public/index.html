@@ -6616,7 +6616,7 @@ function buildVillage() {
   m.interact.push({ kind: 'enterMine', to: 'mine', x: CX * 16, y: 4 * 16 + 4, r: 18, label: 'ลงเหมือง', verb: 'เข้า' });
   m.triggers.push({ kind: 'enterMine', to: 'mine', x: (CX - 1) * 16 + 2, y: 2 * 16, w: 28, h: 26 });
   m.portalX = CX;
-  m.spawn_warpIn = { x: CX * 16, y: 20 * 16 + 8, dir: 'down' }; // ออกจากประตูวาร์ป → โผล่กลางลานหมู่บ้าน
+  m.spawn_warpIn = { x: CX * 16, y: 20 * 16 + 8, dir: 'down' }; m.spawn_warpDoor = { x: 30 * 16, y: 12 * 16 + 12, dir: 'down' }; /* ใช้ประตูวาร์ปจากเหมือง → ประตูโผล่ด้านบนเกือบกลางเมือง (ขอบบนของลาน) */ // ออกจากประตูวาร์ป → โผล่กลางลานหมู่บ้าน
   m.lights.push({ x: CX * 16 - 20, y: 4 * 16 - 44, r: 26, col: '#ffcc66', flick: 1 }, { x: CX * 16 + 18, y: 4 * 16 - 44, r: 26, col: '#ffcc66', flick: 1 });
 
   // ---- ของตกแต่ง + ต้นไม้ ----
@@ -6813,7 +6813,7 @@ function buildOutpost(country) {
   m.outTrees = EV.trees.filter(k => k !== 'banana');
   m.spawnFromMine = { x: MX * 16, y: 5 * 16 + 4, dir: 'down' };
   m.spawnStart = m.spawnAirport;
-  m.spawn_warpIn = { x: PCX * 16, y: 20 * 16 + 8, dir: 'down' }; // ออกจากประตูวาร์ป → โผล่กลางลานตลาดของเมืองนั้น
+  m.spawn_warpIn = { x: PCX * 16, y: 20 * 16 + 8, dir: 'down' }; m.spawn_warpDoor = { x: 30 * 16, y: 12 * 16 + 12, dir: 'down' }; /* ใช้ประตูวาร์ปจากเหมือง → ประตูโผล่ด้านบนเกือบกลางเมือง (ขอบบนของลาน) */ // ออกจากประตูวาร์ป → โผล่กลางลานตลาดของเมืองนั้น
   snapSigns(m);
   m.bg = paintMapBG(m);
   buildWalkGrid(m);
@@ -8448,11 +8448,11 @@ function goMap(id, spawnKey) {
       if (!isMine(G.map) && prev && isMine(prev) && !G.down) { const mx = pstats().maxHp; if (STATE.hp < mx) { STATE.hp = mx; setTimeout(() => { floatText(PL.x, PL.y - 34, 'เลือดเต็ม ♥', '#ff9aa8', 1.8); UI.hud(); }, 700); } } /* ออกจากเหมืองเข้าเมือง (เดินออกหรือใช้ประตูวาร์ป): เลือดกลับมาเต็ม */ } // ลงเหมืองรอบใหม่
     syncDeathBags(); setTheme(); G.bullets = []; G.arrows = []; G.muzzle = []; setTimeout(climateWarn, 1600);
     G.ignore = new Set(Object.keys(G.keys).filter(k => G.keys[k])); G.keys = {}; G.dpad = {}; document.querySelectorAll('[data-dir].down').forEach(b => b.classList.remove('down'));
-    const sp = (spawnKey && G.map['spawn_' + spawnKey]) || (isMine(G.map) ? G.map.spawn : spawnKey === 'airport' ? G.map.spawnAirport : G.map.spawnFromMine);
+    const sp = (spawnKey === 'warpIn' && G.map.spawn_warpDoor) || (spawnKey && G.map['spawn_' + spawnKey]) || (isMine(G.map) ? G.map.spawn : spawnKey === 'airport' ? G.map.spawnAirport : G.map.spawnFromMine);
     PL.x = sp.x; PL.y = sp.y; PL.dir = sp.dir; PL.mvA = PL.faceA = null; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.zone = null; G.motes = []; G.mons = []; G.drops = [];
     if (spawnKey === 'warpBack') { const k = G.warpKeep; if (k && k.map === id) { G.mons = k.mons || []; G.drops = k.drops || []; } G.warpKeep = null; }
     if (STATE.warp) { const w = STATE.warp;
-      if (spawnKey === 'warpIn' && w.town === id) { w.used = true; w.usedAt = Date.now(); let dx = PL.x + 26, dy = PL.y + 2; w.tx = PL.x; w.ty = PL.y; /* ประตูอยู่ตรงจุดที่โผล่ แล้วตัวละครเดินออกมาจากประตูเองช่วงหนึ่งก่อนหยุด */ let wt = null; for (const [ox, oy] of [[0, 48], [40, 30], [-40, 30], [48, 0], [-48, 0], [0, 30]]) if (boxFree(G.map, PL.x + ox, PL.y + oy) && lineFree(G.map, PL.x, PL.y, PL.x + ox, PL.y + oy)) { wt = [PL.x + ox, PL.y + oy]; break; } PL.dir = 'down'; if (wt) setTimeout(() => { if (G.map && G.map.id === id && !UI.isOpen() && !PL.path) { PL.act = null; PL.path = [wt]; } }, 520); }
+      if (spawnKey === 'warpIn' && w.town === id) { w.used = true; w.usedAt = Date.now(); let dx = PL.x + 26, dy = PL.y + 2; w.tx = PL.x; w.ty = PL.y; /* ประตูอยู่ตรงจุดที่โผล่ แล้วตัวละครเดินออกมาจากประตูเองช่วงหนึ่งก่อนหยุด */ let wt = null; for (const [ox, oy] of [[-40, 68], [40, 68], [0, 80], [-26, 76], [26, 76], [0, 64], [-40, 64], [40, 64], [0, 48], [40, 30], [-40, 30], [0, 30]]) /* เดินออกจากประตูราว 5 ช่อง */ if (boxFree(G.map, PL.x + ox, PL.y + oy) && lineFree(G.map, PL.x, PL.y, PL.x + ox, PL.y + oy)) { wt = [PL.x + ox, PL.y + oy]; break; } PL.dir = 'down'; if (wt) setTimeout(() => { if (G.map && G.map.id === id && !UI.isOpen() && !PL.path) { PL.act = null; PL.path = [wt]; } }, 520); }
       else if (spawnKey === 'warpBack' && w.map === id) { PL.x = w.x; PL.y = w.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; STATE.warp = null; G.warpGone = { x: w.dx ?? w.x, y: w.dy ?? w.y }; } }
     if (spawnKey === 'cp' && G.map.cp) { PL.x = G.map.cp.x; PL.y = G.map.cp.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.mons = []; }
     syncWarpDoor(); // ประตูขากลับที่เมืองตั้งอยู่เลย ไม่ต้องมีแอนิเมชันโผล่
