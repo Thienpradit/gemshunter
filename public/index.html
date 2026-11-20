@@ -8068,7 +8068,7 @@ function monPower(lv) { return 6 + 0.9 * lv + 0.012 * lv * lv; }
 // ---------- กลุ่มศัตรูประจำจุดในเหมือง ----------
 // เหมืองแต่ละแห่งมีกลุ่มศัตรูวางไว้ทั่ว (ตำแหน่งคงที่ตามผังเหมือง) • ฆ่าหมดกลุ่มแล้วจุดนั้นว่างไป GROUP_RESPAWN_MIN นาที จึงเกิดใหม่
 // ตัวศัตรูถูกสร้างจริงเฉพาะกลุ่มที่อยู่ใกล้ผู้เล่น (ประหยัดเครื่อง) และเก็บกลับเมื่อผู้เล่นเดินห่างออกไป
-const GROUP_RESPAWN_MIN = 5, /* กลุ่มศัตรูที่ฆ่าหมดเกิดใหม่ภายใน 5 นาที (เดิม 30) */ GROUP_CELL = 13, GROUP_FILL = 0.72, GROUP_NEAR = 300, GROUP_FAR = 560;
+const GROUP_RESPAWN_MIN = 10, /* กลุ่มศัตรูที่ฆ่าหมดเกิดใหม่ภายใน 10 นาที (เดิม 30) */ GROUP_CELL = 13, GROUP_FILL = 0.72, GROUP_NEAR = 300, GROUP_FAR = 560;
 function mkMon(m, type, x, y, zz, grp) { const def = MONS[type], ty = Math.floor(y / 16), hpMul = 1 + clamp(ty / m.h, 0, 1) * 0.5;
   const o = { type, x, y, hp: Math.round(def.hp * hpMul), max: Math.round(def.hp * hpMul), kx: 0, ky: 0, dir: 'down', t: Math.random() * 5, state: 'wander', wind: 0, cd: 1, flash: 0, wt: 0, wdx: 0, wdy: 0, path: null, pathT: 0, moving: false, stolen: 0, grp: grp || null };
   if (type === 'skeleton') skelVariant(o, zz); monTier(o, m.tier || 1); G.mons.push(o); return o; }
@@ -11708,7 +11708,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795175072";
+window.GAME_BUILD="1795175239";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
