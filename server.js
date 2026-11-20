@@ -11,13 +11,16 @@ const PUB = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.mp3': 'audio/mpeg', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8' };
 const VERSION = (process.env.RENDER_GIT_COMMIT || crypto.createHash('sha1').update(fs.readFileSync(path.join(PUB, 'index.html'))).digest('hex')).slice(0, 10);
 
-// ไฟล์หน้าเกมใหญ่ (~1.2MB) → บีบอัดครั้งเดียวแล้วเก็บไว้ในหน่วยความจำ
+// ไฟล์หน้าเกม (หลาย MB) → ใช้ไฟล์บีบอัดสำเร็จรูปถ้ามี ไม่งั้นบีบอัดแบบเร็วครั้งเดียวแล้วเก็บในหน่วยความจำ
 const cache = new Map();
 function fileEntry(fp) {
   const st = fs.statSync(fp); let e = cache.get(fp);
   if (e && e.mtime === st.mtimeMs) return e;
   const raw = fs.readFileSync(fp), ext = path.extname(fp), text = /\.(html|js|css|json|svg|txt|webmanifest)$/.test(ext);
-  e = { mtime: st.mtimeMs, raw, gz: text ? zlib.gzipSync(raw, { level: 9 }) : null, br: text ? zlib.brotliCompressSync(raw) : null, type: MIME[ext] || 'application/octet-stream', etag: '"' + crypto.createHash('sha1').update(raw).digest('hex').slice(0, 16) + '"' };
+  /* ไฟล์บีบอัดสำเร็จรูป (.br / .gz วางคู่ไฟล์จริง สร้างไว้ตอนอัปเดต) → ไม่ต้องบีบอัดตอนเปิดเซิร์ฟเวอร์ (หน้าเกมหลาย MB บีบอัดนานจนเซิร์ฟเวอร์ค้าง) */
+  const pre = x => { try { const s2 = fs.statSync(fp + x); return s2.mtimeMs >= st.mtimeMs - 5000 ? fs.readFileSync(fp + x) : null; } catch (er) { return null; } };
+  const big = raw.length > 300 * 1024, br = text ? (pre('.br') || zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: big ? 4 : 9 } })) : null, gz = text ? (pre('.gz') || zlib.gzipSync(raw, { level: big ? 5 : 9 })) : null;
+  e = { mtime: st.mtimeMs, raw, gz, br, type: MIME[ext] || 'application/octet-stream', etag: '"' + crypto.createHash('sha1').update(raw).digest('hex').slice(0, 16) + '"' };
   cache.set(fp, e); return e;
 }
 
