@@ -8511,15 +8511,82 @@ function animalDraw(g, S, T, a) {
 }
 // ================= บ่อน้ำกลางลานเมืองต่างประเทศ (ภาพจากผู้เล่น) =================
 // รูปบ่อของแต่ละประเทศ (ponds/<key>.webp) วางกลางลานวงกลม • คนเดินข้ามไม่ได้ (บล็อกตามรูปจริง) ต้องเดินอ้อม
-const POND_META = {"cx": 925, "cy": 400, "ponds": {"cambodia": {"fw": 100.0, "fh": 65.5, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "vietnam": {"fw": 100.0, "fh": 39.6, "cells": [[-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]]}, "myanmar": {"fw": 100.0, "fh": 73.1, "cells": [[-1, -3], [0, -3], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "srilanka": {"fw": 100.0, "fh": 58.8, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "ethiopia": {"fw": 100.0, "fh": 56.7, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "madagascar": {"fw": 100.0, "fh": 48.3, "cells": [[-2, -2], [-1, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]]}, "mozambique": {"fw": 100.0, "fh": 48.8, "cells": [[-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]]}, "tanzania": {"fw": 100.0, "fh": 57.5, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [-1, 1]]}, "zambia": {"fw": 100.0, "fh": 75.6, "cells": [[-2, -3], [-1, -3], [0, -3], [1, -3], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]]}, "australia": {"fw": 100.0, "fh": 43.8, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]]}, "russia": {"fw": 100.0, "fh": 60.6, "cells": [[-2, -2], [-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]]}, "brazil": {"fw": 100.0, "fh": 61.7, "cells": [[-2, -2], [-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]]}, "colombia": {"fw": 100.0, "fh": 48.3, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]]}}};
+const POND_META = {"cx": 925, "cy": 400, "ponds": {"cambodia": {"fw": 100.0, "fh": 65.5, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]], "water": {"cx": -0.8, "cy": -4.1, "rx": 31.3, "ry": 13.5, "col": [4, 104, 101]}}, "vietnam": {"fw": 100.0, "fh": 39.6, "cells": [[-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], "water": {"cx": -0.4, "cy": -5.7, "rx": 50.7, "ry": 15.1, "col": [31, 127, 185]}}, "myanmar": {"fw": 100.0, "fh": 73.1, "cells": [[-1, -3], [0, -3], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]], "water": {"cx": 0.3, "cy": -10.5, "rx": 36.2, "ry": 16.6, "col": [3, 44, 135]}}, "srilanka": {"fw": 100.0, "fh": 58.8, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [-1, 1], [0, 1], [1, 1]], "water": {"cx": -0.3, "cy": -9.8, "rx": 38.7, "ry": 14.2, "col": [12, 157, 161]}}, "ethiopia": {"fw": 100.0, "fh": 56.7, "cells": [[-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [-1, 1], [0, 1], [1, 1]], "water": {"cx": -0.5, "cy": -7.4, "rx": 35.4, "ry": 13.5, "col": [28, 140, 188]}}, "madagascar": {"fw": 100.0, "fh": 48.3, "cells": [[-2, -2], [-1, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], "water": {"cx": -4.7, "cy": -6.5, "rx": 41.9, "ry": 10.2, "col": [16, 148, 143]}}, "mozambique": {"fw": 100.0, "fh": 48.8, "cells": [[-2, -2], [-1, -2], [0, -2], [1, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], "water": {"cx": -0.4, "cy": -5.8, "rx": 38.0, "ry": 11.6, "col": [26, 135, 183]}}, "tanzania": {"fw": 100.0, "fh": 57.5, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [-1, 1]], "water": {"cx": -0.5, "cy": -7.3, "rx": 37.7, "ry": 15.9, "col": [44, 130, 156]}}, "zambia": {"fw": 100.0, "fh": 75.6, "cells": [[-2, -3], [-1, -3], [0, -3], [1, -3], [-3, -2], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]], "water": {"cx": -0.4, "cy": -7.5, "rx": 39.6, "ry": 20.9, "col": [6, 87, 204]}}, "australia": {"fw": 100.0, "fh": 43.8, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], "water": {"cx": -0.2, "cy": -5.1, "rx": 39.6, "ry": 10.0, "col": [11, 55, 157]}}, "russia": {"fw": 100.0, "fh": 60.6, "cells": [[-2, -2], [-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1]], "water": {"cx": 0.6, "cy": 1.0, "rx": 38.8, "ry": 22.5, "col": [37, 148, 192]}}, "brazil": {"fw": 100.0, "fh": 61.7, "cells": [[-2, -2], [-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-3, 1], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1]], "water": {"cx": 0.0, "cy": -1.4, "rx": 40.9, "ry": 19.2, "col": [19, 139, 161]}}, "colombia": {"fw": 100.0, "fh": 48.3, "cells": [[-1, -2], [0, -2], [-3, -1], [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], "water": {"cx": -0.3, "cy": -1.2, "rx": 32.4, "ry": 7.5, "col": [7, 142, 107]}}}};
 const POND_CENTER = [POND_META.cx, POND_META.cy]; // พิกัดกลางลานในภาพเมือง (1862x845)
 const PONDS = POND_META.ponds; // { key: { fw, fh, cells:[[dx,dy],...] } } — fw/fh = ขนาดวาดจริง (world px), cells = ช่องที่บล็อก (offset จากช่องกลาง)
 const POND_IMG = {};
 const pondImg = key => { let im = POND_IMG[key]; if (!im) { im = POND_IMG[key] = new Image(); im.src = 'ponds/' + key + '.webp'; } return im.complete && im.naturalWidth ? im : null; };
+
+// สิ่งมีชีวิต/พืชในน้ำของแต่ละประเทศ (ไม่ซ้ำกัน): fish = [[สีตัว, สีท้อง],...] • lily/lotus/reed = จำนวน • jump = โอกาสปลากระโดด
+const POND_LIFE = {
+  vietnam:    { fish: [['#ff8a2a','#fff0d8'],['#ffffff','#ff5a2a'],['#ffb43a','#ff7a1a']], lily: 4, lotus: 2, reed: 0, jump: 0.5 },
+  cambodia:   { fish: [['#ffb05a','#fff2d0'],['#e8dcc0','#8a7a5a']], lily: 3, lotus: 2, reed: 0, jump: 0.3 },
+  myanmar:    { fish: [['#ffcf3a','#ffffff'],['#ff6a3a','#ffe0a0']], lily: 2, lotus: 2, reed: 0, jump: 0.4 },
+  srilanka:   { fish: [['#ff7a2a','#ffffff'],['#ffd23a','#ff6a1a'],['#ffffff','#ff3a3a']], lily: 3, lotus: 3, reed: 0, jump: 0.5 },
+  ethiopia:   { fish: [['#9aa88a','#dce4c6'],['#8a9a7a','#c8d4b0']], lily: 1, lotus: 0, reed: 4, jump: 0.3 },
+  madagascar: { fish: [['#8a96a0','#c8d2d8'],['#6e7a84','#b0bcc4']], lily: 0, lotus: 0, reed: 5, jump: 0.2 },
+  mozambique: { fish: [['#ff7a2a','#ffffff'],['#3a8aff','#ffe03a'],['#ffe03a','#2a2a2a'],['#ff4a8a','#fff']], lily: 2, lotus: 0, reed: 0, jump: 0.6 },
+  tanzania:   { fish: [['#b0a080','#e8dcc0'],['#a89474','#e0d4b4']], lily: 2, lotus: 2, reed: 0, jump: 0.3, lotusCol: ['#8a9aff','#d6dcff'] },
+  zambia:     { fish: [['#c0b090','#f0e6c8'],['#ff8a3a','#ffe0b0']], lily: 2, lotus: 0, reed: 4, jump: 0.4 },
+  australia:  { fish: [['#9a8a6a','#d8c8a0'],['#8a7a5a','#d0c49a']], lily: 0, lotus: 0, reed: 4, jump: 0.3 },
+  russia:     { fish: [['#6a7a62','#b8c0a0'],['#8a7a5a','#d0c49a']], lily: 1, lotus: 0, reed: 3, jump: 0.2 },
+  brazil:     { fish: [['#2a7aff','#ffe23a'],['#ffe23a','#2a2a2a'],['#ff4a5a','#ffffff']], lily: 3, lotus: 0, reed: 0, jump: 0.6 },
+  colombia:   { fish: [['#ff8a1a','#ffffff'],['#ffd21a','#ff6a1a'],['#ff3a3a','#ffffff']], lily: 3, lotus: 0, reed: 2, jump: 0.5 },
+};
+function pondRand(seed) { let s = (seed >>> 0) || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function pondInit(key, W) {
+  const L = POND_LIFE[key]; if (!L) return null;
+  const R = pondRand(key.length * 2654435761 + key.charCodeAt(0) * 40503 + (key.charCodeAt(1) || 7) * 97), rx = W.rx, ry = W.ry;
+  const fish = []; const nF = L.fish.length + 1;
+  for (let i = 0; i < nF; i++) { const c = L.fish[i % L.fish.length]; fish.push({ c, a: R() * 6.28, sp: 0.3 + R() * 0.4, orx: (0.45 + R() * 0.4), ory: (0.4 + R() * 0.45), ph: R() * 6.28, sz: 0.85 + R() * 0.45, dir: R() < 0.5 ? 1 : -1, wig: R() * 6.28 }); }
+  const items = [];
+  const place = (kind, n, edge) => { for (let i = 0; i < (n || 0); i++) { let x = 0, y = 0, k = 0; do { const a = R() * 6.28, rr = edge ? 0.68 + R() * 0.24 : 0.15 + R() * 0.62; x = Math.cos(a) * rx * rr; y = Math.sin(a) * ry * rr; k++; } while (k < 24 && items.some(o => Math.hypot(o.x - x, (o.y - y) * 1.7) < 7)); items.push({ kind, x, y, s: 0.8 + R() * 0.5, ph: R() * 6.28 }); } };
+  place('lotus', L.lotus, false); place('lily', L.lily, false); place('reed', L.reed, true);
+  return { fish, items, jump: L.jump || 0, lotusCol: L.lotusCol, jT: 2 + R() * 5, jump1: null, R };
+}
+function drawPondLife(g, S, T, key, wx, wy, t) {
+  const P = PONDS[key], W = P && P.water; if (!W) return;
+  const st = POND_LIFE[key] && (POND_LIFE[key]._s || (POND_LIFE[key]._s = pondInit(key, W))); if (!st) return;
+  const cx = S(wx) + W.cx, cy = T(wy) + W.cy, rx = W.rx, ry = W.ry;
+  g.save();
+  // คลิปเฉพาะผิวน้ำ (วงรีด้านในบ่อ)
+  g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, 6.2832); g.clip();
+  // ปลาว่าย (เงา + ตัว + ท้อง)
+  for (const f of st.fish) {
+    const a = f.a + t * f.sp * f.dir, x = cx + Math.cos(a) * rx * f.orx + Math.sin(a * 2 + f.ph) * 2, y = cy + Math.sin(a) * ry * f.ory;
+    const vx = -Math.sin(a) * f.dir, vy = Math.cos(a) * f.dir * (ry / rx), ang = Math.atan2(vy, vx), wig = Math.sin(t * 9 + f.wig) * 0.5, Lf = 3.4 * f.sz;
+    g.save(); g.translate(x, y); g.rotate(ang); g.globalAlpha = 0.9;
+    g.fillStyle = 'rgba(0,0,0,0.16)'; g.beginPath(); g.ellipse(0.4, 0.8, Lf, Lf * 0.36, 0, 0, 6.2832); g.fill();
+    g.fillStyle = f.c[0]; g.beginPath(); g.ellipse(0, 0, Lf, Lf * 0.36, 0, 0, 6.2832); g.fill();
+    g.beginPath(); g.moveTo(-Lf * 0.8, 0); g.lineTo(-Lf * 1.5, -Lf * 0.48 + wig); g.lineTo(-Lf * 1.4, Lf * 0.48 + wig); g.closePath(); g.fill();
+    g.fillStyle = f.c[1]; g.beginPath(); g.ellipse(Lf * 0.18, -Lf * 0.05, Lf * 0.36, Lf * 0.17, 0, 0, 6.2832); g.fill();
+    g.restore();
+  }
+  // คลื่นวงกลม + ประกายน้ำ
+  g.globalAlpha = 1; g.lineWidth = 0.5;
+  for (let i = 0; i < 3; i++) { const p = (t * 0.33 + i / 3) % 1, ix = (st.items[i] ? st.items[i].x : (i - 1) * 7); g.strokeStyle = `rgba(255,255,255,${0.4 * (1 - p)})`; g.beginPath(); g.ellipse(cx + ix * 0.5, cy + (i - 1) * 2, 1.4 + p * 6, 0.6 + p * 2.4, 0, 0, 6.2832); g.stroke(); }
+  // ใบบัว / ดอกบัว
+  for (const it of st.items) {
+    if (it.kind === 'reed') continue;
+    const x = cx + it.x + Math.sin(t * 0.7 + it.ph) * 0.4, y = cy + it.y, s = it.s;
+    g.fillStyle = '#3e8a3a'; g.beginPath(); g.ellipse(x, y, 3 * s, 1.5 * s, 0, 0.35, 6.18); g.lineTo(x, y); g.fill();
+    g.fillStyle = '#5cb04e'; g.beginPath(); g.ellipse(x - 0.4, y - 0.3, 2.1 * s, 1.0 * s, 0, 0.4, 6.1); g.lineTo(x - 0.4, y - 0.3); g.fill();
+    if (it.kind === 'lotus') { const col = st.lotusCol || ['#ff8ab8', '#ffd3e6']; g.fillStyle = col[0]; for (let kp = 0; kp < 5; kp++) { const a = -1.5708 + (kp - 2) * 0.55; g.beginPath(); g.ellipse(x + Math.cos(a) * 1.1 * s, y - 1.2 * s + Math.sin(a) * 0.9 * s, 0.75 * s, 1.5 * s, a + 1.5708, 0, 6.2832); g.fill(); } g.fillStyle = col[1]; g.beginPath(); g.arc(x, y - 1.3 * s, 0.8 * s, 0, 6.2832); g.fill(); g.fillStyle = '#ffe24a'; g.fillRect(x - 0.3, y - 1.6 * s, 0.6, 0.6); }
+  }
+  g.restore();
+  // ต้นกก/ปาปิรัสตามขอบ (วาดพ้นน้ำ)
+  for (const it of st.items) { if (it.kind !== 'reed') continue; const x = cx + it.x, y = cy + it.y, s = it.s, sway = Math.sin(t * 1.4 + it.ph) * 0.8; g.strokeStyle = '#4e8a32'; g.lineWidth = 0.6; for (let kp = -1; kp <= 1; kp++) { g.beginPath(); g.moveTo(x + kp * 0.8, y); g.quadraticCurveTo(x + kp * 1.2 + sway * 0.5, y - 4 * s, x + kp * 1.6 + sway, y - 7.5 * s - (kp === 0 ? 1.5 : 0)); g.stroke(); } g.fillStyle = '#7a4e26'; g.beginPath(); g.ellipse(x + sway, y - 8 * s, 0.55, 1.4, 0, 0, 6.2832); g.fill(); }
+  // ปลากระโดด (โค้งขึ้นพ้นน้ำเป็นครั้งคราว)
+  if (st.jump > 0) { st.jT -= 1 / 60; if (!st.jump1 && st.jT <= 0) { const f = st.fish[Math.floor(st.R() * st.fish.length)]; st.jump1 = { c: f.c, x0: (st.R() * 2 - 1) * rx * 0.5, t0: t, dur: 0.75 + st.R() * 0.3, dir: st.R() < 0.5 ? 1 : -1 }; st.jT = 3 + st.R() * 6 / Math.max(0.2, st.jump); }
+    const J = st.jump1; if (J) { const p = (t - J.t0) / J.dur; if (p >= 1) st.jump1 = null; else { const jx = cx + J.x0 + J.dir * p * rx * 0.5, jy = cy - Math.sin(p * Math.PI) * (ry * 0.9 + 6) + ry * 0.2, ang = (p - 0.5) * 2.2 * J.dir, Lf = 3.6; g.save(); g.translate(jx, jy); g.rotate(ang + (J.dir < 0 ? Math.PI : 0)); g.fillStyle = J.c[0]; g.beginPath(); g.ellipse(0, 0, Lf, Lf * 0.36, 0, 0, 6.2832); g.fill(); g.beginPath(); g.moveTo(-Lf * 0.8, 0); g.lineTo(-Lf * 1.5, -Lf * 0.5); g.lineTo(-Lf * 1.4, Lf * 0.5); g.closePath(); g.fill(); g.fillStyle = J.c[1]; g.beginPath(); g.ellipse(Lf * 0.18, -Lf * 0.05, Lf * 0.36, Lf * 0.17, 0, 0, 6.2832); g.fill(); g.restore(); if (p > 0.85) { g.fillStyle = 'rgba(255,255,255,0.6)'; g.beginPath(); g.ellipse(cx + J.x0 + J.dir * rx * 0.5, cy + ry * 0.2, 2.5, 1, 0, 0, 6.2832); g.fill(); } } }
+  }
+}
+
 function drawPond(g, S, T, key, wx, wy, t) {
   const P = PONDS[key], im = pondImg(key); if (!P || !im) return;
   const w = P.fw, h = P.fh, x = S(wx) - w / 2, y = T(wy) - h / 2;
   g.save(); g.imageSmoothingEnabled = true; g.drawImage(im, x, y, w, h); g.restore();
+  drawPondLife(g, S, T, key, wx, wy, t);
 }
 /* =====================================================================
    game: เอนจิน — อินพุต, การชน, การขุดหินทุกก้อน, สเตมินา, การต่อสู้, แสง, กล้อง
@@ -11591,7 +11658,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795171241";
+window.GAME_BUILD="1795171644";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
