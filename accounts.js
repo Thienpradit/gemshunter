@@ -192,7 +192,7 @@ async function handleApi(req, res, p) {
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
     { const o = seen.get(u.lname); touch(u.lname, u.name, o && o.cty ? '' : ctyOfMap(u.save && u.save.pos && u.save.pos.map)); }
-    if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } return out(200, { online: onlineCount() }); }
+    if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } let top = null; try { const B = await board(), t = B.gems && B.gems[0]; if (t && t.gem) top = { name: t.name, value: t.value, gem: t.gem }; } catch (e) {} return out(200, { online: onlineCount(), top }); } /* top = อันดับ 1 ของบอร์ด (แคช 15 วิ) → ทุกเครื่องรู้ทันทีเมื่ออันดับ 1 เปลี่ยน แล้วโชว์ป้ายประกาศ */
     if (p === '/api/online') return out(200, { online: onlineCount(), list: onlineList() });
     if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     if (p === '/api/save' && req.method === 'POST') {
