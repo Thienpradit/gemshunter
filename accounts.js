@@ -132,8 +132,9 @@ function pubOf(save, pub) {
 
 // ผู้เล่นออนไลน์: จดเวลาที่แต่ละบัญชีส่งสัญญาณล่าสุด (เก็บในหน่วยความจำ) — นับคนที่ส่งมาภายใน 70 วินาที
 const seen = new Map(), ONLINE_MS = 70000;
-function touch(l) { seen.set(l, Date.now()); }
-function onlineCount() { const now = Date.now(); let n = 0; for (const [l, t] of seen) { if (now - t > ONLINE_MS) seen.delete(l); else n++; } return n; }
+function touch(l, name, cty) { const o = seen.get(l) || {}; seen.set(l, { t: Date.now(), name: name || o.name || l, cty: cty || o.cty || '' }); }
+function onlineCount() { const now = Date.now(); let n = 0; for (const [l, o] of seen) { if (now - o.t > ONLINE_MS) seen.delete(l); else n++; } return n; }
+function onlineList() { onlineCount(); return [...seen.values()].map(o => ({ name: o.name, cty: o.cty })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 200); }
 let boardCache = null, boardAt = 0;   // อันดับ: คำนวณใหม่ไม่ถี่กว่า 15 วินาที
 async function board() { const now = Date.now(); if (boardCache && now - boardAt < 15000) return boardCache; boardCache = await store.board(50); boardAt = now; return boardCache; }
 
@@ -188,8 +189,9 @@ async function handleApi(req, res, p) {
 
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
-    touch(u.lname);
-    if (p === '/api/ping') return out(200, { online: onlineCount() });
+    touch(u.lname, u.name);
+    if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } return out(200, { online: onlineCount() }); }
+    if (p === '/api/online') return out(200, { online: onlineCount(), list: onlineList() });
     if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     if (p === '/api/save' && req.method === 'POST') {
       const b = await readBody(req); if (b.__tooBig) return out(413, { err: 'เซฟใหญ่เกินไป' });

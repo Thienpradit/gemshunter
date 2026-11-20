@@ -885,6 +885,10 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 .hero-picker .hero-card input{position:absolute;top:9px;right:9px;width:16px;height:16px;margin:0;accent-color:#63ded2}
 #panel{overflow-x:hidden}
 @media (max-width:640px){.gcard:has(.hctl){flex-wrap:wrap}.gcard:has(.hctl) .ginfo{flex:1 1 0}.gcard:has(.hctl) .gp{flex:1 1 100%;min-width:0}.gcard .hctl{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}.gcard .hctl .time{margin-right:auto}.gcard .hctl .sel{max-width:none;flex:1 1 160px}.gcard:has(.hctl) .gtitle b{max-width:none}}
+#onlist{position:fixed;z-index:9000;max-height:min(60vh,420px);overflow:auto;background:linear-gradient(180deg,#3a2414,#22140a);border-radius:10px;box-shadow:0 0 0 2px #140a04,inset 0 0 0 1px #8a6438,0 8px 24px rgba(0,0,0,.55);color:#f4dcae;font:13px Tahoma,'Noto Sans Thai',sans-serif;padding:6px}
+#onlist .olh{font-weight:700;color:#ffe6a8;padding:4px 8px 6px;border-bottom:1px solid rgba(200,154,74,.35);margin-bottom:4px}
+#onlist .olr{display:flex;justify-content:space-between;gap:10px;padding:5px 8px;border-radius:6px}#onlist .olr:nth-child(odd){background:rgba(255,255,255,.04)}
+#onlist .olr b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#onlist .olr span{white-space:nowrap;color:#c8e8b0}#onlist .olr.me b{color:#ffd86a}#onlist .muted{color:#a89070;justify-content:center}
 </style>
 </head>
 <body class="ro">
@@ -907,7 +911,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
   <div class="r">
     <div id="zonechip" class="chip frame"></div>
     <div id="climchip" class="chip frame clim ok" style="display:none!important"></div>
-    <div id="onchip" class="chip frame" style="display:none" title="ผู้เล่นที่ออนไลน์อยู่ตอนนี้"></div>
+    <div id="onchip" class="chip frame" style="display:none;cursor:pointer" title="กดเพื่อดูรายชื่อผู้เล่นที่ออนไลน์"></div>
     <button id="btnPin" class="hbtn frame" title="ปักหมุดตรงที่ยืนอยู่ — เห็นบนแผนที่ย่อ (P) • ยืนทับหมุดเดิมแล้วกดอีกครั้งเพื่อถอน">📍</button>
     <button id="btnCps" class="hbtn frame" title="คัมภีร์จุดเซฟ — วาร์ปไปจุดเซฟในเหมือง (M)">📜</button>
     <button id="btnBoard" class="hbtn frame" title="บอร์ดโชว์พลอยทั้งเกม">🏆</button>
@@ -10107,9 +10111,26 @@ const NET = (() => {
   // ---------- จำนวนผู้เล่นออนไลน์ (ส่งสัญญาณทุก 25 วิ ตอนเปิดหน้าเกมอยู่ → เซิร์ฟเวอร์นับคนที่ส่งมาใน 70 วิล่าสุด) ----------
   N.onlineN = 0;
   N.ping = async function () {
-    if (!N.online || !token || document.hidden) return; const r = await api('/api/ping', {}, { timeout: 8000 });
+    if (!N.online || !token || document.hidden) return; const r = await api('/api/ping', { cty: (typeof G !== 'undefined' && G.map && G.map.country) || 'thai' }, { timeout: 8000 });
     if (r.status === 200) { N.onlineN = r.data.online | 0; const el = document.getElementById('onchip'); if (el) { el.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; el.style.display = ''; } }
   };
+  // ---------- รายชื่อผู้เล่นออนไลน์ (กดป้าย "ออนไลน์ N คน" → เมนูชื่อ + ประเทศที่กำลังเล่นอยู่) ----------
+  N.onlineList = async function () { if (!N.online || !token) return null; const r = await api('/api/online', null, { timeout: 8000 }); return r.status === 200 ? r.data : null; };
+  N.toggleOnline = async function () {
+    let box = document.getElementById('onlist'); if (box) { box.remove(); return; }
+    const chip = document.getElementById('onchip'); if (!chip) return;
+    box = document.createElement('div'); box.id = 'onlist'; box.innerHTML = '<div class="olh">ผู้เล่นออนไลน์</div><div class="olb">กำลังโหลด…</div>'; document.body.appendChild(box);
+    const place = () => { const r = chip.getBoundingClientRect(), w = Math.min(260, innerWidth - 12); box.style.width = w + 'px'; box.style.top = (r.bottom + 6) + 'px'; box.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px'; }; place();
+    const d = await N.onlineList(); if (!document.getElementById('onlist')) return;
+    const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : '-');
+    if (d) { N.onlineN = d.online | 0; chip.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; }
+    box.querySelector('.olh').textContent = `ผู้เล่นออนไลน์ ${list.length.toLocaleString('th-TH')} คน`;
+    box.querySelector('.olb').innerHTML = !d ? '<div class="olr muted">โหลดรายชื่อไม่ได้ ลองใหม่อีกครั้ง</div>' : list.length ? list.map(p => `<div class="olr${p.name.toLowerCase() === me ? ' me' : ''}"><b>${esc(p.name)}</b><span>${p.cty === 'thai' ? '🇹🇭 ' : '✈ '}${esc(cn(p.cty))}</span></div>`).join('') : '<div class="olr muted">ยังไม่มีใครออนไลน์</div>';
+    place();
+  };
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  document.addEventListener('pointerdown', e => { const b = document.getElementById('onlist'); if (!b) return; if (e.target.closest('#onlist') || e.target.closest('#onchip')) return; b.remove(); }, true);
+  document.addEventListener('click', e => { if (e.target.closest('#onchip')) { e.preventDefault(); e.stopPropagation(); N.toggleOnline(); } }, true);
   // ---------- บอร์ดอันดับจริง ----------
   N.boardStale = () => N.online && Date.now() - N.boardAt > 20000;
   N.showcaseOf = async function (name) { const r = await api('/api/showcase?name=' + encodeURIComponent(name), null, { timeout: 10000 }); return r.status === 200 && r.data && r.data.showcase ? r.data : { err: (r.data && r.data.err) || 'โหลดตู้โชว์ไม่สำเร็จ' }; };
@@ -11631,7 +11652,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795166700";
+window.GAME_BUILD="1795167095";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
