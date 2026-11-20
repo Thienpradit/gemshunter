@@ -1890,7 +1890,7 @@ function newState() {
     items: [{ uid: 1, id: 'pick1', dur: 100 }, { uid: 2, id: 'wpn1' }, { uid: 3, id: 'arm1' }], equip: { pick: 1, weapon: 2, armor: 3, helmet: 0, gloves: 0, boots: 0, shield: 0 }, nextUid: 4,
     cons: { water: 3, rice: 2, herb: 1, warp: 2 }, mine: { ver: 4, dug: '' }, mines: {},
     pos: { map: 'village', x: 21 * 16, y: 22 * 16, dir: 'down' },
-    nextId: 1, savedAt: 0, muted: false, seenIntro: false,
+    nextId: 1, savedAt: 0, muted: false, seenIntro: false, gift5: false,
   };
 }
 function normGem(g, st) {
@@ -1965,7 +1965,7 @@ function migrateSave(s) {
   st.grp = {}; if (s.grp && typeof s.grp === 'object') for (const id in s.grp) { const L = s.grp[id], o = {}; if (L && typeof L === 'object') for (const k in L) { const v = L[k]; if (/^\d+$/.test(k) && v && typeof v === 'object') o[k] = { l: Math.max(0, v.l | 0), d: Number(v.d) || 0, c: v.c ? 1 : 0 }; } st.grp[id] = o; }
   st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
-  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v);
+  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5;
   st.savedAt = Number(s.savedAt) || 0;
   const maxId = Math.max(0, ...st.inv.map(g => g.id), ...st.queue.jobs.map(j => j.gem.id));
   st.nextId = Math.max(st.nextId, maxId + 1);
@@ -9091,6 +9091,16 @@ function faint(who) {
 }
 // กดปุ่มลัด 1/2/3: ใช้ของในหมวดนั้น โดยเลือกชิ้นที่พอดีกับที่ขาดให้อัตโนมัติ
 const STA_COST_MUL = 0.65; // สเตมินาลดช้าลง: ขุด/ตีแต่ละครั้งใช้สเตมินา 65% ของค่าเดิม
+// ของขวัญถึง Lv 5 ครั้งแรก: ดรอปพลั่วคุณภาพ "หายาก" ออปชันดี 2 อย่าง (เน้นโชคเจอพลอย/แรงขุด) ลงข้างตัว
+function lv5Gift() {
+  const ids = ['pick9', 'pick2', 'pick8'], id = ids[Math.floor(Math.random() * ids.length)]; let best = null, bs = -1;
+  for (let i = 0; i < 400; i++) { const r = rollLoot(id, 0, Math.random, 3); if (r.q !== 1 || !r.mods || Object.keys(r.mods).length < 2) continue; const m = r.mods, sc = (m.luck || 0) * 40 + (m.power ? 4 : 0) + (m.stac || 0) * 10 + (m.gxp || 0) * 5 + (m.speed || 0) * 30 + (m.hp || 0) * 0.05; if (sc > bs) { bs = sc; best = r; } }
+  if (!best) best = { q: 1, mods: { luck: 0.05, stac: 0.08 } };
+  const it = { kind: 'item', id, g: 0.5, lv: 5, ...best };
+  if (typeof dropAt === 'function') dropAt(PL.x + 14, PL.y + 2, it); else G.drops.push({ ...it, x: PL.x + 14, y: PL.y + 2, z: 6, vz: 50, t: 0 });
+  SFX.play('done'); floatText(PL.x, PL.y - 50, '🎁 ของขวัญ Lv 5!', '#5ab0ff', 2.6);
+  toast(`🎁 <b>ของขวัญถึง Lv 5!</b> ได้ <b style="color:${LOOT_Q[1].col}">${ITEMS[id].name}</b> คุณภาพหายาก ออปชันพิเศษ 2 อย่าง ตกอยู่ข้างตัว เดินไปเก็บได้เลย`, 'quest'); saveGame();
+}
 // ---------- EXP / อัปเลเวล ----------
 function gainXp(n, monLv) {
   const S = charState(); if (S.lv >= MAX_LV || !(n > 0)) return 0;
@@ -9100,6 +9110,7 @@ function gainXp(n, monLv) {
   if (S.lv >= MAX_LV) S.xp = 0;
   if (ups) { const ps = pstats(); STATE.hp = ps.maxHp; STATE.sta = ps.maxSta; SFX.play('done'); banner(`⬆ เลเวลอัป! Lv ${S.lv}`); floatText(PL.x, PL.y - 44, `LEVEL UP! Lv ${S.lv}`, '#ffe680', 2); floatText(PL.x, PL.y - 60, `HP +${ups * HP_PER_LV} • สเตมินา +${ups * STA_PER_LV}`, '#9af0a0', 2.4);
     for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 60; G.parts.push({ k: 'star', x: PL.x, y: PL.y - 12, z: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 0, life: 0.7, max: 0.7, col: i % 2 ? '#ffe680' : '#ffffff' }); }
+    if (S.lv >= 5 && !STATE.gift5) { STATE.gift5 = true; setTimeout(() => { try { lv5Gift(); } catch (e) {} }, 900); } // ของขวัญถึง Lv 5 ครั้งแรก
     toast(`⬆ <b>เลเวลอัป! ตอนนี้ Lv ${S.lv}</b> — ได้แต้มสถานะ +${ups * PTS_PER_LV} (เหลือ ${S.pts} แต้ม) • HP สูงสุด +${ups * HP_PER_LV} สเตมินาสูงสุด +${ups * STA_PER_LV} และเติมเต็ม • กด C เพื่อลงแต้ม`, 'quest'); saveGame(); }
   UI.hud(); return n;
 }
@@ -11667,7 +11678,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795172393";
+window.GAME_BUILD="1795172608";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
