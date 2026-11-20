@@ -10611,7 +10611,6 @@ const UI = (() => {
         : `<div class="wme"><div class="wmeh"><b>👤 ${esc(me.name)}</b><button class="btn small" data-a="player">${NET.online ? 'บัญชี' : 'ผู้เล่น / สลับ'}</button></div>
           ${BOARD_OFFERS && mine ? `<div class="wopen"><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b>' : '<b>ไม่รับข้อเสนอราคา</b>'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div>` : ''}</div>`}
       <div class="wsect"><div class="wsect-t"><span class="wsect-ic">💎</span><b>อันดับพลอยทั้งเกม</b><span class="wsect-ic">💎</span></div>${NET.online ? `<div class="wsect-s"><span>👥 ผู้เล่นทั้งหมด <b>${NET.board ? fmtNum(NET.board.n) : '…'}</b> คน</span>${NET.onlineN ? `<span class="on">🟢 ออนไลน์ <b>${fmtNum(NET.onlineN)}</b> คน</span>` : ''}</div>` : ''}</div><div class="wlist">${rows.slice(0, NET.online ? 30 : 15).map(row).join('') || '<div class="empty">ยังไม่มีพลอยบนบอร์ด</div>'}</div>
-      ${NET.online ? `<div class="wsect lv"><div class="wsect-t"><span class="wsect-ic">⭐</span><b>อันดับเลเวลผู้เล่น</b><span class="wsect-ic">⭐</span></div></div><div class="wlv">${((NET.board && NET.board.levels) || []).slice(0, 20).map((u, i) => `<div class="wlvr ${me && u.name === me.name ? 'me' : ''}"><span>${i === 0 ? '👑' : '#' + (i + 1)}</span><b class="plink" data-a="viewsc" data-n="${esc(u.name)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(u.name)} 💎</b><em>Lv ${u.lv | 0}</em></div>`).join('') || '<div class="empty">กำลังโหลด…</div>'}</div>` : ''}
       <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
       (a, b) => {
         if (a === 'player') return player();
@@ -11778,7 +11777,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795218943";
+window.GAME_BUILD="1795219100";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
