@@ -8806,6 +8806,7 @@ function monNear(R) { let best = null, bd = R; for (const e of G.mons) { const d
 // คลิกซ้ายเมื่อไรเป็นการโจมตี: คลิกโดนศัตรู • หรือมีศัตรูอยู่ในระยะต่อสู้ (ดาบ/พลั่ว = ประชิดตัว • ปืน = ในระยะยิง) — นอกนั้นคลิกซ้าย = เดินไป/ขุด/ใช้งาน เหมือนกันทุกของในมือ
 function mouseFight() { // คลิกซ้าย = ตี เฉพาะเมื่อคลิกโดนตัวศัตรู หรือมีศัตรูอยู่ในระยะตีถึงจริง ๆ ทางที่ชี้เมาส์ — นอกนั้นคือเดิน (ไม่ยืนฟันลมรอศัตรู) • ยิงปืนไปทางเมาส์ใช้คลิกขวา
   if (STATE.hand === 'pick') return false; /* ถือพลั่ว: คลิก = เดิน/ขุดเสมอ ไม่ล็อกเป้าศัตรู */
+  if (meleeTarget()) return true; /* อาวุธประชิดและมีศัตรูอยู่ในระยะ: คลิก = ตีตัวที่ใกล้ที่สุดให้อัตโนมัติ */
   const mo = G.mouse; if (monAt(mo)) return true; if (interactAt(mo)) return false;
   const w = pstats().weapon; if (STATE.hand === 'weapon' && w.gun) return false;
   const a = aimAngle(), reach = (STATE.hand === 'weapon' ? w.range : 18) + 6;
@@ -8983,6 +8984,10 @@ function climateWarn() {
   const k = climate(); if (k.kind === 'ok') return;
   toast(k.kind === 'cold' ? `❄ ที่นี่${k.C.name} (${k.C.temp}) ชุดคุณหนาวเกินไป — สเตมินาฟื้นช้า เสีย HP ถ้าหนาวมาก ซื้อเสื้อโค้ท หมวกขนสัตว์ ถุงมือขนแกะ รองเท้าบุขน ได้ที่ร้านอุปกรณ์` : `🔥 ที่นี่${k.C.name} (${k.C.temp}) ชุดคุณร้อนเกินไป — เหนื่อยง่าย ควรใส่ชุดระบายอากาศ หมวกสานกันแดด`, 'bad');
 }
+/* อาวุธประชิด (ดาบ/ขวาน/มีด): กดตีแล้วหันหา + ล็อกศัตรูที่ใกล้ที่สุดในระยะให้อัตโนมัติ ตีโดนแน่นอน ไม่ต้องเล็งเอง */
+const MELEE_ASSIST = 26;
+function meleeTarget() { const w = pstats().weapon; if (STATE.hand !== 'weapon' || w.gun) return null; let best = null, bd = 1e9;
+  for (const e of G.mons) { if (e.dead || e.riseT > 0) continue; const d = Math.hypot(e.x - PL.x, (e.y - 6) - (PL.y - 8)) - (MONS[e.type].r || 6); if (d < w.range + MELEE_ASSIST && d < bd) { bd = d; best = e; } } return best; }
 function startSwing(kind, rock) {
   const ps = pstats();
   const cost = (kind === 'dig' ? ps.pick.sta * (1 - Math.min(0.6, ps.pick.stac || 0)) : 2) * (1 + 0.1 * climate().d) * STA_COST_MUL;
@@ -8992,7 +8997,9 @@ function startSwing(kind, rock) {
   if (rock) faceTo(rock.tx * 16 + 8, rock.ty * 16 + 8);
   PL.state = 'swing'; PL.swingT = 0; PL.kind = kind; PL.impact = false; PL.digTile = rock || null;
   PL.swingDur = kind === 'dig' ? 0.46 / (1 + (pstats().dspd || 0)) : 0.36;
-  if (kind === 'attack') SFX.play('swing');
+  if (kind === 'attack') { SFX.play('swing'); PL.lockTg = null;
+    if (STATE.hand === 'weapon' && !pstats().weapon.gun) { const c = G.chaseTg && !G.chaseTg.dead && G.mons.includes(G.chaseTg) && Math.hypot(G.chaseTg.x - PL.x, (G.chaseTg.y - 6) - (PL.y - 8)) - (MONS[G.chaseTg.type].r || 6) < pstats().weapon.range + MELEE_ASSIST ? G.chaseTg : null, tg = c || meleeTarget();
+      if (tg) { const a = Math.atan2((tg.y - 6) - (PL.y - 8), tg.x - PL.x); PL.lockTg = tg; PL.aim = a; PL.aimT = G.time; PL.dir = dirOfAngle(a); PL.faceA = a; PL.faceT = G.time; } } }
 }
 function resolveImpact() {
   const m = G.map, ps = pstats();
@@ -9003,9 +9010,10 @@ function resolveImpact() {
       if (STATE.hand === 'pick') break; /* พลั่วไม่ทำดาเมจศัตรู */
       if (e.riseT > 0) continue;
       const ex = e.x - cx, ey = (e.y - 6) - cy, d = Math.hypot(ex, ey); if (d > range + MONS[e.type].r) continue;
-      if (d > 8 && (ex * fx + ey * fy) / d < 0.25) continue;
-      hitMonster(e, dmg, PL.x, PL.y); hits++;
+      if (d > 8 && (ex * fx + ey * fy) / d < 0.25 && e !== PL.lockTg) continue;
+      hitMonster(e, dmg, PL.x, PL.y); hits++; if (e === PL.lockTg) PL.lockTg = null;
     }
+    { const t = PL.lockTg; if (t && STATE.hand === 'weapon' && !t.dead && G.mons.includes(t) && !(t.riseT > 0) && Math.hypot(t.x - cx, (t.y - 6) - cy) <= range + MONS[t.type].r + MELEE_ASSIST) { hitMonster(t, dmg, PL.x, PL.y); hits++; } PL.lockTg = null; } /* ศัตรูที่ล็อกไว้ถอยออกนิดหน่อยระหว่างเหวี่ยง ก็ยังโดน */
     if (hits && STATE.hand === 'weapon') wearWeapon();
     G.slashes.push({ x: cx + fx * 10, y: cy + fy * 8, dir: PL.dir, t: 0, col: STATE.hand === 'weapon' ? ps.weapon.col : '#d8d0c0' });
     // ฟันโดนหินก็ทำให้หินบิ่นนิดหน่อย
@@ -11772,7 +11780,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795196012";
+window.GAME_BUILD="1795196210";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
