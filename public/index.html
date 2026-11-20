@@ -10607,11 +10607,7 @@ const UI = (() => {
     show('board', `<h3>🏆 บอร์ดโชว์พลอยทั้งเกม</h3>
       ${!me ? `<div class="wme warn"><b>ยังไม่ได้ลงทะเบียน</b><small>ลงทะเบียนชื่อผู้เล่นก่อน พลอยของคุณถึงจะขึ้นบอร์ด</small><button class="btn gold small" data-a="player">ลงทะเบียนผู้เล่น</button></div>`
         : `<div class="wme"><div class="wmeh"><b>👤 ${esc(me.name)}</b><button class="btn small" data-a="player">${NET.online ? 'บัญชี' : 'ผู้เล่น / สลับ'}</button></div>
-          ${mine ? `<small>พลอยที่ดีที่สุดของคุณ (ในกระเป๋าหรือตู้เซฟ) ขึ้นบอร์ดอัตโนมัติ</small>
-            <div class="wmine wclick" data-a="wview" data-k="${mine.key}" title="คลิกเพื่อดูรายละเอียดพลอยเม็ดนี้">${wGem(mine.gem)}<div class="winfo"><b>${boardGemName(mine.gem)}</b><small>${wLine(mine.gem)}</small><small>${COUNTRIES[mine.gem.origin || 'thai'].name} • ${RARITY_NAMES[gemRarity(mine.gem)]}</small></div><div class="wval"><small>อันดับ <b>#${mine.rank}</b> จาก ${rows.length}</small><b>${money(mine.value)}</b><span class="wmore">ดูรายละเอียด ›</span></div></div>
-            <div class="wopen" ${BOARD_OFFERS ? '' : 'style="display:none"'}><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b> — ผู้เล่นอื่นเสนอราคาเข้ามาได้' : '<b>ไม่รับข้อเสนอราคา</b> — โชว์บนบอร์ดอย่างเดียว'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div>
-            ${B.open && offers.length ? `<small class="good">🔔 มีข้อเสนอเข้ามา ${offers.length} รายการ — กดกระดิ่งเหนือรูปโปรไฟล์เพื่อดูและตอบรับ</small>` : ''}`
-            : '<small class="muted">ยังไม่มีพลอยในกระเป๋าหรือตู้เซฟ ขุดหรือเจียพลอยมาก่อน แล้วเม็ดที่ดีที่สุดจะขึ้นบอร์ดเอง</small>'}</div>`}
+          ${BOARD_OFFERS && mine ? `<div class="wopen"><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b>' : '<b>ไม่รับข้อเสนอราคา</b>'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div>` : ''}</div>`}
       <h4>อันดับพลอยทั้งเกม${NET.online ? ` <small class="muted">ผู้เล่นทั้งหมด ${NET.board ? fmtNum(NET.board.n) + ' คน' : '…'}${NET.onlineN ? ' • ออนไลน์ตอนนี้ ' + fmtNum(NET.onlineN) + ' คน' : ''}</small>` : ''}</h4><div class="wlist">${rows.slice(0, NET.online ? 30 : 15).map(row).join('') || '<div class="empty">ยังไม่มีพลอยบนบอร์ด</div>'}</div>
       ${NET.online ? `<h4>อันดับเลเวลผู้เล่น</h4><div class="wlv">${((NET.board && NET.board.levels) || []).slice(0, 20).map((u, i) => `<div class="wlvr ${me && u.name === me.name ? 'me' : ''}"><span>${i === 0 ? '👑' : '#' + (i + 1)}</span><b class="plink" data-a="viewsc" data-n="${esc(u.name)}" title="ดูตู้โชว์ของผู้เล่นนี้">${esc(u.name)} 💎</b><em>Lv ${u.lv | 0}</em></div>`).join('') || '<div class="empty">กำลังโหลด…</div>'}</div>` : ''}
       <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
@@ -11780,7 +11776,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795196210";
+window.GAME_BUILD="1795197097";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
