@@ -1263,6 +1263,7 @@ const CONSUMABLES = { /* ราคาของกิน/ยาในร้าน
 };
 for (const k of ['water', 'rice', 'herb', 'coconut', 'energy', 'mango', 'bandage', 'medkit']) CONSUMABLES[k].price *= 10;
 for (const k in CONSUMABLES) if (k !== 'warp' && CONSUMABLES[k].price) CONSUMABLES[k].price *= SHOP_PRICE_MUL;
+for (const k of ['water', 'rice', 'herb', 'coconut', 'energy', 'mango', 'bandage', 'medkit']) CONSUMABLES[k].price *= 0.5; /* ลดราคาร้านอาหารลงครึ่งหนึ่ง (20 พ.ย. 2569) */
 // หมวดของใช้ตามปุ่มลัด: 1 = ฟื้นเลือด • 2 = เครื่องดื่ม • 3 = อาหาร (เรียงจากฟื้นน้อย → มาก)
 const CONS_CAT = { hp: ['herb', 'bandage', 'medkit'], drink: ['water', 'coconut', 'energy'], food: ['rice', 'mango'] };
 const CONS_CAT_OF = {}; for (const k in CONS_CAT) for (const id of CONS_CAT[k]) CONS_CAT_OF[id] = k;
@@ -11678,7 +11679,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795172804";
+window.GAME_BUILD="1795172842";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
