@@ -299,6 +299,7 @@ tr.nonerow td{color:var(--muted)}
 .gtool{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px;padding:8px;border-radius:10px;background:rgba(255,224,138,.06);border:1px solid rgba(255,224,138,.16)}
 .gtool .gsort{display:flex;align-items:center;gap:8px;font-size:14px;color:#ffe08a}.gtool .gsort select{flex:1}
 .gfil{display:flex;flex-wrap:wrap;gap:6px}.gfil select{flex:1 1 140px;min-width:0;font-size:13px}
+.scnew{font-size:11px;font-weight:700;color:#1a1004;background:linear-gradient(180deg,#ffe27a,#e8a830);border:1px solid #6a4a10;border-radius:8px;padding:0 6px;line-height:16px;white-space:nowrap}
 .gcard .tick{color:#8fe070;font-weight:700}
 @media (max-width:620px){table.odds{font-size:11.5px}table.odds th,table.odds td{padding:5px 3px}table.odds td.gname{gap:4px;min-width:96px}table.odds td.gname img{width:20px;height:20px}table.odds td.gname small{display:none}.ease{font-size:10.5px;padding:1px 5px}table.odds td small{font-size:9.5px}}
 .rbadge{display:inline-block;font:600 11px Mitr,sans-serif;color:#1a0e06;background:var(--rc);border:1px solid rgba(0,0,0,.4);border-radius:4px;padding:0 6px;white-space:nowrap}
@@ -9481,9 +9482,12 @@ const UI = (() => {
   const rarityBadge = g => { const r = gemRarity(g); return `<span class="rbadge" style="--rc:${RARITY_COLS[r]}">${RARITY_NAMES[r]}</span>`; };
   const gemCl = g => g.clean ?? cleanPct(g.flaw, g.seed || 1);
   // การ์ดพลอย: ภาพพลอยใหญ่ + เกรด + สี/น้ำหนัก/ความสะอาด
+  /* เม็ดที่ยังไม่มีในตู้โชว์/กระเป๋าสะสม (ประเทศ+ชนิด+สีเดียวกัน) → ติดป้ายเล็ก ๆ ให้รู้ว่าเอาเข้าที่สะสมได้ • เฉพาะพลอยของเราเอง */
+  const scNew = g => { try { const S = showcaseState(), own = STATE.inv.includes(g) || (STATE.safe && Array.isArray(STATE.safe.gems) && STATE.safe.gems.includes(g)) || g._mine; return !!own && !S[showcaseKey(g)]; } catch (e) { return false; } };
+  const scBadge = g => scNew(g) ? `<span class="scnew" title="ยังไม่มีพลอยประเทศ/ชนิด/สีนี้ในที่สะสม — เอาเข้าตู้โชว์ได้">✦ ยังไม่มีในที่สะสม</span>` : '';
   const gemRow = (g, right = '', sel = false, act = 'pick') => `<div class="gcard ${g.state} ${sel ? 'sel' : ''}" data-a="${act}" data-id="${g.id}">
     <div class="gimg" style="--gc:${gemHex(g)}"><img src="${gemBigURL(g)}" alt=""></div>
-    <div class="ginfo"><div class="gtitle"><b>${gemName(g)}</b>${g.jumbo || g.carat >= 10 ? '<span class="jumbo">🏆 ก้อนยักษ์</span>' : ''}${gradeBadge(g)}${rarityBadge(g)}${g.state === 'cut' ? `<span class="shp">${SHAPE_TH[g.shape] || ''}</span>` : ''}</div>
+    <div class="ginfo"><div class="gtitle"><b>${gemName(g)}</b>${g.jumbo || g.carat >= 10 ? '<span class="jumbo">🏆 ก้อนยักษ์</span>' : ''}${gradeBadge(g)}${scBadge(g)}${rarityBadge(g)}${g.state === 'cut' ? `<span class="shp">${SHAPE_TH[g.shape] || ''}</span>` : ''}</div>
       <div class="gstats"><span><i class="sw" style="background:${gemHex(g)}"></i>${gemColorName(g)}</span><span>⚖ ${g.carat.toFixed(2)} กะรัต</span>${g.state === 'cut' ? `<span>✧ เจีย${cutGradeName(g.polish)}</span>` : ''}<span class="orig">⛏ ขุดจาก${g.origin && g.origin !== 'thai' ? COUNTRIES[g.origin].short : 'ไทย (จันทบุรี)'}</span></div>
       <div class="clean"><span>ความสะอาด ${gemCl(g)}%</span><div class="cbar"><i style="width:${gemCl(g)}%;background:${GRADE_COLS[g.flaw]}"></i></div></div></div>
     <div class="gp">${right}</div></div>`;
