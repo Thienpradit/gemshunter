@@ -306,8 +306,10 @@ tr.nonerow td{color:var(--muted)}
 .gcard .clean{white-space:nowrap;overflow:hidden}.gcard .clean .cbar{min-width:36px}.gcard .clean .scnew{flex:none}
 .cl-s{display:none}
 .tinfo-intro{margin:6px 0 10px;font-size:13.5px;line-height:1.55;color:#2a2418}.tinfo-more{width:100%;margin-top:8px}.tinfo-more th{width:24%}
-.lab .tinfo-bar{justify-content:center;text-align:center;padding:10px 12px}.lab .tinfo-bar b.tinfo-name{font-size:32px;letter-spacing:1px;line-height:1.2;margin:0 auto}.tinfo-bar b.tinfo-name em{font-style:normal;font-size:20px;opacity:.85;letter-spacing:0;margin-left:4px}
-@media (max-width:640px){.lab .tinfo-bar b.tinfo-name{font-size:26px}.tinfo-bar b.tinfo-name em{font-size:16px}}
+.tinfo-head .talias{font-size:12px;letter-spacing:0}
+@media (max-width:640px){.tinfo-head{flex-direction:column;align-items:stretch;gap:2px}.tinfo-head b{font-size:15px!important;letter-spacing:1px!important;white-space:nowrap}.tinfo-head .tsub,.tinfo-head .labno small{display:none}.tinfo-head .labno{text-align:left}.tinfo-head .talias{font-size:12.5px!important;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;letter-spacing:0!important}}
+.lab .tinfo-bar{justify-content:center;text-align:center;padding:7px 12px}.lab .tinfo-bar b.tinfo-name{font-size:24px;letter-spacing:1px;line-height:1.2;margin:0 auto}.tinfo-bar b.tinfo-name em{font-style:normal;font-size:15px;opacity:.85;letter-spacing:0;margin-left:4px}
+@media (max-width:640px){.lab .tinfo-bar b.tinfo-name{font-size:20px}.tinfo-bar b.tinfo-name em{font-size:13px}}
 .lab .tinfo-h{margin:12px 0 4px;color:#7a2a1a!important;font-size:15px}.tinfo-h small{font-weight:400;color:#7a6c50;font-size:11px}.tinfo-ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.55;color:#2a2418}.tinfo-ul li{margin:2px 0}
 .tinfo-fun{background:#f4e8c8;border-left:4px solid #c89a3a;padding:6px 10px;font-size:13px;color:#3a2a10;border-radius:4px}
 .labimg .scbtn{margin-top:8px;display:flex;justify-content:center}.labimg .scbtn .btn{white-space:normal;font-size:13px}
@@ -10348,7 +10350,7 @@ const UI = (() => {
     const ladder = G0.colors.map((c, i) => `<span title="${c[0]}"><i style="background:${c[1]}"></i><small>${baht(GEM_PRICE_DB[t][i])}</small></span>`).join('');
     const img = gemBigURL({ type: t, color: G0.colors.length - 1, state: 'cut', shape: 'oval', carat: 2, flaw: 0, seed: 3, polish: 3, id: 0 });
     show('gem', `<div class="lab">
-      <div class="labhead"><div><b>ข้อมูลพลอยชนิดนี้</b><span>📖 สารานุกรมอัญมณี</span></div><div class="labno"><small>ชื่อเรียกอื่น</small><b style="font-size:12px;letter-spacing:0">${I.alias}</b></div></div>
+      <div class="labhead tinfo-head"><div><b>ข้อมูลพลอยชนิดนี้</b><span class="tsub">📖 สารานุกรมอัญมณี</span></div><div class="labno"><small>ชื่อเรียกอื่น</small><b class="talias">${I.alias}</b></div></div>
       <div class="labrare r${r} tinfo-bar"><b class="tinfo-name">${n[0]} <em>${I.en}</em></b></div>
       <p class="tinfo-intro">${I.intro}</p>
       <div class="labbody">
