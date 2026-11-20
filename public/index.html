@@ -305,6 +305,7 @@ tr.nonerow td{color:var(--muted)}
 .gcard .gstats{flex-wrap:nowrap;overflow:hidden;white-space:nowrap}.gcard .gstats>span{flex:none}.gcard .gstats>span.orig{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .gcard .clean{white-space:nowrap;overflow:hidden}.gcard .clean .cbar{min-width:36px}.gcard .clean .scnew{flex:none}
 .cl-s{display:none}
+.labimg .scbtn{margin-top:8px;display:flex;justify-content:center}.labimg .scbtn .btn{white-space:normal;font-size:13px}
 .gcard .gtitle>span.grade{flex:none}.jumbo .jt{font-style:normal}
 .gcard .gtitle b{flex:0 0 auto;max-width:62%}.gcard .gtitle>span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .gcard .gstats>span.col{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -10303,6 +10304,11 @@ const UI = (() => {
   function reportNo(g) { return 'NLA-' + (2600000000 + (((g.seed || 1) >>> 0) % 900000000)); }
   function gemDetail(g, back, note) {
     const o = g.state === 'cut' ? cutOffers(g) : null, r = gemRarity(g), sh = shadeInfo(g), fam = GEM_FAMILY[g.type] || '';
+    /* ปุ่มใส่ที่สะสม (ตู้โชว์ที่บ้าน / กระเป๋าสะสมในต่างประเทศ = คอลเลกชันเดียวกัน) — เฉพาะพลอยของเราในกระเป๋า/ตู้เซฟ */
+    const SCS = showcaseState(), sk = showcaseKey(g), safeArr = (STATE.safe && Array.isArray(STATE.safe.gems)) ? STATE.safe.gems : [], ownArr = STATE.inv.includes(g) ? STATE.inv : safeArr.includes(g) ? safeArr : null, scHave = SCS[sk], scName = (G.map && G.map.outpost) ? 'กระเป๋าสะสม' : 'ตู้โชว์';
+    const scBtn = !ownArr ? '' : scHave ? `<button class="btn" data-a="scput" title="เม็ดเดิมในที่สะสม: ${gemName(scHave)} ${scHave.carat.toFixed(2)} กะรัต • ประเมิน ${baht(estValue(scHave))} บาท">⇄ สลับกับเม็ดใน${scName} <small class="muted">(เดิม ${money(estValue(scHave))})</small></button>` : `<button class="btn gold" data-a="scput">✦ ใส่${scName}</button>`;
+    const scPutFromDetail = () => { const i = ownArr.indexOf(g); if (i < 0) return; const old = SCS[sk]; if (old) ownArr[i] = old; else ownArr.splice(i, 1); SCS[sk] = g; SFX.play('done');
+      toast(`ใส่ <b>${gemName(g)}</b> ลง${scName}แล้ว${old ? ` • เม็ดเดิม (${gemName(old)}) กลับเข้า${ownArr === STATE.inv ? 'กระเป๋า' : 'ตู้เซฟ'}` : ''}`, 'good'); saveGame(); hud(); (back || bag)(); };
     const row = (k, v, en) => `<tr><th>${k}${en ? `<small>${en}</small>` : ''}</th><td>${v}</td></tr>`;
     const stars = [0, 1, 2, 3, 4].map(i => `<i class="${i <= r ? 'on' : ''}"></i>`).join('');
     const ladder = GEMS[g.type].colors.map((c, i) => `<span class="${i === g.color ? 'on' : ''}" title="${c[0]}"><i style="background:${c[1]}"></i><small>${baht(GEM_PRICE_DB[g.type][i])}</small></span>`).join('');
@@ -10310,7 +10316,7 @@ const UI = (() => {
       <div class="labhead"><div><b>ข้อมูลอัญมณีชิ้นนี้</b><span>${g.state === 'cut' ? 'พลอยเจียระไนแล้ว' : 'พลอยก้อน'} • ${GEMS[g.type].name}</span></div><div class="labno"><small>รหัสพลอย</small><b>#${gemPrint(g)}</b></div></div>${note || ''}
       <div class="labrare r${r}"><span class="rl">ระดับความหายาก</span><b>${RARITY_NAMES[r]}</b><span class="stars">${stars}</span><span class="rt">ชนิดพลอย: ${TYPE_RARITY_NAMES[GEM_RARITY[g.type] || 0]}</span></div>
       <div class="labbody">
-        <div class="labimg"><div class="bigimg" style="--gc:${gemHex(g)}"><img src="${gemBigURL(g)}" alt=""></div><small>ภาพพลอยเม็ดนี้ • ลายตำหนิไม่ซ้ำเม็ดอื่น</small></div>
+        <div class="labimg"><div class="bigimg" style="--gc:${gemHex(g)}"><img src="${gemBigURL(g)}" alt=""></div><small>ภาพพลอยเม็ดนี้ • ลายตำหนิไม่ซ้ำเม็ดอื่น</small>${scBtn ? `<div class="scbtn">${scBtn}</div>` : ''}</div>
         <table class="labtbl">
           ${row('ชื่อพลอย', `<b>${GEMS[g.type].name}</b> <small class="muted">${VARIETY_EN[g.type] || ''}</small>`)}
           ${row('ตระกูลแร่', fam || '-')}
@@ -10327,7 +10333,7 @@ const UI = (() => {
       <div class="labladder"><b>เทียบราคาตามเฉดสีของ${GEMS[g.type].name}</b> <small class="muted">(ราคาตลาดต่อกะรัต เม็ด 1 กะรัตสะอาด — เฉดสดจัดหายากจึงแพงกว่าหลายเท่า แม้สะอาดเท่ากัน)</small><div>${ladder}</div></div>
       <div class="prices">${g.state === 'raw' ? `<div><small>เฮียซีรับซื้อก้อน</small><b>${money(rawPrice(g))}</b></div><div><small>ถ้าเจียแล้ว (ประเมินคร่าว ๆ)</small><b>${money(Math.round(cutOffers({ ...g, state: 'cut', carat: g.carat * 0.45, flaw: Math.max(0, g.flaw - 1), polish: 0.95 }).clean))}+</b></div>` : cutBuyers().map(x => `<div><small>${x.name} (${x.like})</small><b>${money(o[x.k])}</b></div>`).join('')}</div>
       </div>
-      <div class="row end"><button class="btn" data-a="back">ย้อนกลับ</button></div>`, a => { if (a === 'back') (back || bag)(); }, { wide: true });
+      <div class="row end">${scBtn}<button class="btn" data-a="back">ย้อนกลับ</button></div>`, a => { if (a === 'back') (back || bag)(); else if (a === 'scput') scPutFromDetail(); }, { wide: true });
     backFn = back || bag;
   }
 
