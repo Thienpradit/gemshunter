@@ -8710,13 +8710,14 @@ function rollGem(hx, hy, zk, vein, luck) {
   if (res === 'none') { setTimeout(() => SFX.play('rubble'), 60); } /* ไม่ขึ้นข้อความ "เจอแต่เศษหิน" แล้ว (เหลือแค่เสียง) */
   else {
     if (bagFull()) { floatText(hx, hy - 18, 'กระเป๋าเต็ม! พลอยหล่นหาย', '#ff8a7a', 1.4); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ขายพลอย หรือซื้อกระเป๋าใหญ่ขึ้นที่ร้านอุปกรณ์ (แท็บ “กระเป๋า”)`, 'bad'); SFX.play('rubble'); return; }
-    const gem = makeRawGem(res, zk, Math.random, c); gem.run = STATE.mineRun || 1; STATE.inv.push(gem); STATE.stats.found++; const TCH = document.body.classList.contains('touch'); /* จอสัมผัส: ตอนเจอพลอยแสดงแถบข้อความเดียว (ไม่มีตัวหนังสือลอยทับตัวผู้เล่น) */ const gx = gainXp(Math.round(GEM_XP[clamp(gemRarity(gem), 0, 4)] * MINE_TIERS[(G.map.tier || 1) - 1].xp * (1 + (pstats().pick.gxp || 0)))); if (gx && !TCH) floatText(PL.x, PL.y - 46, `+${gx} EXP`, '#b8a0ff', 2.4); /* ขุดเจอพลอยก็ได้ EXP */
+    const gem = makeRawGem(res, zk, Math.random, c); gem.run = STATE.mineRun || 1; STATE.inv.push(gem); STATE.stats.found++; const TCH = document.body.classList.contains('touch'); /* จอสัมผัส: ตอนเจอพลอยแสดงแถบข้อความเดียว (ไม่มีตัวหนังสือลอยทับตัวผู้เล่น) */ const gx = gainXp(Math.round(GEM_XP[clamp(gemRarity(gem), 0, 4)] * MINE_TIERS[(G.map.tier || 1) - 1].xp * (1 + (pstats().pick.gxp || 0))));  /* ขุดเจอพลอยก็ได้ EXP */
     if (bagUsed() >= bagCap() - 5) toast(`🎒 กระเป๋าใกล้เต็ม ${bagUsed()}/${bagCap()}`, 'bad');
     const col = gemHex(gem);
     G.flashes.push({ x: hx, y: hy, col, t: 0, dur: 1.1 });
     for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, s = 15 + Math.random() * 45; G.parts.push({ k: 'star', x: hx, y: hy, z: 4, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vz: 0, life: 0.6 + Math.random() * 0.6, max: 1.2, col: i % 3 ? col : '#ffffff', size: 1 }); }
     G.parts.push({ k: 'gemfly', x: hx, y: hy, z: 0, vx: 0, vy: 0, vz: 0, life: 2.6, max: 2.6, gem, col });
-    if (!TCH) floatText(hx, hy - 30, `พบ${GEMS[res].name}! เกรด ${GRADES[gem.flaw]} • ${gem.carat.toFixed(2)} กะรัต`, shade(col, 0.45), 4, 1);
+    floatText(hx, hy - 30, `พบ${TCH ? GEMS[res].name.split(' (')[0] : GEMS[res].name}! เกรด ${GRADES[gem.flaw]} • ${gem.carat.toFixed(2)} กะรัต`, shade(col, 0.45), 4, 1); /* คอมและมือถือแสดงแบบเดียวกัน (มือถือตัดชื่ออังกฤษให้สั้น) */
+    if (gx) floatText(hx, hy - 30, `+${gx} EXP`, '#b8a0ff', 4, 1, 1.5); /* EXP เป็นบรรทัดที่สองใต้ชื่อพลอย ไม่ทับกัน */
     if (gem.jumbo) { // ฉากพิเศษ: พลอยก้อนยักษ์
       banner(`🏆 พบ${nameWith(GEMS[res].name, 'ก้อนยักษ์')} ${gem.carat.toFixed(2)} กะรัต! 🏆`); G.shake = Math.max(G.shake, 7);
       for (let k = 0; k < 4; k++) setTimeout(() => G.flashes.push({ x: hx, y: hy, col: k % 2 ? '#ffffff' : col, t: 0, dur: 1.4 }), k * 220);
@@ -8724,14 +8725,14 @@ function rollGem(hx, hy, zk, vein, luck) {
       toast(`🏆 <b>พลอยก้อนยักษ์!</b> ${gemName(gem)} ${gem.carat.toFixed(2)} กะรัต — หายากประมาณ 1 ใน 10,000 เม็ด เจียแล้วได้เม็ดใหญ่ 10 กะรัตขึ้นไป`, 'quest');
     }
     const rr = gemRarity(gem);
-    toast(`<img src="${gemIconURL(gem)}"> พบ<b>${gemName(gem)}</b> <span class="rbadge" style="--rc:${RARITY_COLS[rr]}">${RARITY_NAMES[rr]}</span> — ${gemDesc(gem)}${TCH && gx ? ` • <b>+${gx} EXP</b>` : ''}`, rr >= 3 ? 'quest' : 'good');
+    /* ไม่ขึ้นแถบรายละเอียดด้านบนตอนเจอพลอยแล้ว — เหลือข้อความสั้นลอยเหนือก้อนหิน (เหมือนกันทั้งคอมและมือถือ) */
     if (rr >= 3) { if (!gem.jumbo) banner(`✦ พบพลอยระดับ${RARITY_NAMES[rr]}! ✦`); G.flashes.push({ x: hx, y: hy, col: '#ffffff', t: 0, dur: 1.6 }); G.shake = Math.max(G.shake, 4); setTimeout(() => SFX.play('done'), 250); }
     SFX.play('gem', res);
     if (res === 'sapphire') questEvent('findRuby', 1);
   }
   saveGame(); UI.hud();
 }
-function floatText(x, y, text, col, dur = 1.4, big = 0) { G.floats.push({ x, y, text, col, t: 0, dur, big }); } /* big: ข้อความเด่น (เจอพลอย) — เด้งขยายตอนโผล่ ลอยขึ้นแล้วค้างให้อ่าน ค่อยจางตอนท้าย */
+function floatText(x, y, text, col, dur = 1.4, big = 0, oy = 0) { const f = { x, y, text, col, t: 0, dur, big, oy }; G.floats.push(f); return f; } /* big: ข้อความเด่น (เจอพลอย) — เด้งขยายตอนโผล่ ลอยขึ้นแล้วค้างให้อ่าน ค่อยจางตอนท้าย */
 
 // ---------- HP / หมดสติ ----------
 const testGod = () => CONFIG.testGod && !(typeof NET !== 'undefined' && NET.online);
@@ -9430,7 +9431,7 @@ function drawOverlayText(camX, camY, shx, shy) {
   { const wl = warpBackLeft(); if (wl != null && wl > 0 && isFinite(wl) && !G.down && !(G.map && G.map.isMine)) { /* เวลาที่เหลือของประตูวาร์ปขากลับ: ตัวเลขเล็ก ๆ เหนือหัว */
       const [x, y] = W2S(PL.x, PL.y - 46), sz = Math.max(8, Math.round(fs * 0.6)), s = Math.ceil(wl), txt = '🌀 ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
       c.font = `bold ${sz}px Tahoma, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round'; c.lineWidth = Math.max(2, sz * 0.28); c.strokeStyle = 'rgba(0,0,0,0.85)'; c.strokeText(txt, x, y); c.fillStyle = s <= 10 ? (Math.floor(G.time * 4) % 2 ? '#ff6a5a' : '#ffd0c8') : '#bfe8ff'; c.fillText(txt, x, y); } }
-  for (const f of G.floats) { const [x, y] = W2S(f.x, f.y - (f.big ? 22 * (1 - Math.pow(1 - Math.min(1, f.t / 0.6), 3)) + f.t * 1.5 : f.t * 16)); const a = f.big ? clamp((f.dur - f.t) / 0.5, 0, 1) : clamp(1.6 - f.t / f.dur * 1.6, 0, 1); c.globalAlpha = a; c.font = font(Math.round(fs * (f.big ? 1.3 * (1 + 0.45 * Math.max(0, 1 - f.t / 0.22)) : 1.1)), f.big ? 700 : 600); c.lineWidth = Math.max(3, fs * 0.28); c.strokeStyle = '#1a0e08'; c.strokeText(f.text, x, y); c.fillStyle = f.col; c.fillText(f.text, x, y); c.globalAlpha = 1; }
+  for (const f of G.floats) { const [x, y] = W2S(f.x, f.y - (f.big ? 22 * (1 - Math.pow(1 - Math.min(1, f.t / 0.6), 3)) + f.t * 1.5 : f.t * 16)); const a = f.big ? clamp((f.dur - f.t) / 0.5, 0, 1) : clamp(1.6 - f.t / f.dur * 1.6, 0, 1); c.globalAlpha = a; c.font = font(Math.round(fs * (f.big ? 1.3 * (1 + 0.45 * Math.max(0, 1 - f.t / 0.22)) : 1.1)), f.big ? 700 : 600); c.lineWidth = Math.max(3, fs * 0.28); const tw = c.measureText(f.text).width, VWp = c.canvas.width, xx = tw + 16 < VWp ? clamp(x, tw / 2 + 8, VWp - tw / 2 - 8) : VWp / 2, yy = y + (f.oy || 0) * fs; /* ข้อความไม่ล้นขอบจอ (มือถือ) • oy = เลื่อนลงเป็นบรรทัดที่สอง */ c.strokeStyle = '#1a0e08'; c.strokeText(f.text, xx, yy); c.fillStyle = f.col; c.fillText(f.text, xx, yy); c.globalAlpha = 1; }
   if (G.banner) { const t = G.banner.t, a = t < 0.3 ? t / 0.3 : t > 2 ? Math.max(0, 1 - (t - 2) / 0.6) : 1; c.globalAlpha = a; const y = screenC.height * 0.24; c.font = font(Math.round(fs * 1.7), 600); c.lineWidth = fs * 0.4; c.strokeStyle = '#140a04'; const txt = `— ${G.banner.text} —`; c.strokeText(txt, screenC.width / 2, y); c.fillStyle = isMine(m) && G.zone ? shade(ZONES[G.zone].tint, 0.3) : '#ffe7b0'; c.fillText(txt, screenC.width / 2, y); c.globalAlpha = 1; }
 }
 
