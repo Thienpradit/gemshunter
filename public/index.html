@@ -8568,6 +8568,16 @@ function boxFree(m, x, y) {
   for (const s of m.solids) if (x1 > s.x && x0 < s.x + s.w && y1 > s.y && y0 < s.y + s.h) return false;
   return true;
 }
+// กันตัวละครติดอยู่ในหิน/บล็อกตอนกลับเข้าเหมือง: เปิดช่องที่ตัวยืนให้โล่งเสมอ และถ้าถูกหินตันล้อมทุกด้านให้เปิดทางขึ้น
+function clearMineTrap(m) {
+  if (!m || !m.vein) return;
+  const carve = (tx, ty) => { if (tx < 1 || ty < 1 || tx >= m.w - 1 || ty >= m.h - 1) return false; const i = MI(m, tx, ty); if (m.t[i] === TILE.WALL || m.t[i] === TILE.BEDROCK) { m.t[i] = TILE.FLOOR; m.solidT[i] = 0; if (m.vein) m.vein[i] = 0; if (m.dug) m.dug[i >> 3] |= 1 << (i & 7); } return true; };
+  const bx0 = Math.floor((PL.x - PB.w / 2) / 16), bx1 = Math.floor((PL.x + PB.w / 2 - 0.01) / 16), by0 = Math.floor((PL.y - PB.h - 10) / 16), by1 = Math.floor((PL.y - 0.01) / 16);
+  for (let ty = by0; ty <= by1; ty++) for (let tx = bx0; tx <= bx1; tx++) carve(tx, ty); // เคลียร์ทุกช่องที่ตัวทับ (รวมหัว) ไม่ให้มีหินซ้อนตัว
+  const ptx = Math.floor(PL.x / 16), pty = Math.floor(PL.y / 16), N = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const hasOpen = N.some(([a, b]) => tileAt(m, ptx + a, pty + b) === TILE.FLOOR), hasDig = N.some(([a, b]) => tileAt(m, ptx + a, pty + b) === TILE.WALL);
+  if (!hasOpen && !hasDig) { carve(ptx, pty - 1); carve(ptx, pty - 2); } // ถูกหินตัน (bedrock) ล้อมทุกด้าน → เปิดทางขึ้นให้ออกได้
+}
 function tryMove(dx, dy) {
   const m = G.map; let moved = false;
   if (dx) { if (boxFree(m, PL.x + dx, PL.y)) { PL.x += dx; moved = true; } else if (!dy) { for (let k = 1; k <= 6 && !moved; k++) for (const s of [-1, 1]) if (boxFree(m, PL.x + dx, PL.y + s * k) && boxFree(m, PL.x, PL.y + s)) { PL.y += s * Math.min(1, Math.abs(dx)); moved = true; break; } } }
@@ -9106,6 +9116,7 @@ function goMap(id, spawnKey) {
       if (spawnKey === 'warpIn' && w.town === id) { w.used = true; w.usedAt = Date.now(); let dx = PL.x + 26, dy = PL.y + 2; w.tx = PL.x; w.ty = PL.y; /* ประตูอยู่ตรงจุดที่โผล่ แล้วตัวละครเดินออกมาจากประตูเองช่วงหนึ่งก่อนหยุด */ let wt = null; for (const [ox, oy] of [...(G.map.warpTo ? [G.map.warpTo] : []), [0, 80], [0, 72], [-40, 68], [40, 68], [-26, 76], [26, 76], [0, 64], [-40, 64], [40, 64], [0, 48], [40, 30], [-40, 30], [0, 30]]) /* เดินออกจากประตูราว 5 ช่อง */ if (boxFree(G.map, PL.x + ox, PL.y + oy) && lineFree(G.map, PL.x, PL.y, PL.x + ox, PL.y + oy)) { wt = [PL.x + ox, PL.y + oy]; break; } PL.dir = 'down'; if (wt) setTimeout(() => { if (G.map && G.map.id === id && !UI.isOpen() && !PL.path) { PL.act = null; PL.path = [wt]; } }, 520); }
       else if (spawnKey === 'warpBack' && w.map === id) { PL.x = w.x; PL.y = w.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; STATE.warp = null; G.warpGone = { x: w.dx ?? w.x, y: w.dy ?? w.y }; } }
     if (spawnKey === 'cp' && G.map.cp) { PL.x = G.map.cp.x; PL.y = G.map.cp.y; PL.dir = 'down'; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.mons = []; }
+    clearMineTrap(G.map); // กันตัวติดในหินตอนเข้าเหมือง
     syncWarpDoor(); // ประตูขากลับที่เมืองตั้งอยู่เลย ไม่ต้องมีแอนิเมชันโผล่
     if (G.warpGone) { const o = addObj(G.map, ART.warpDoor, G.warpGone.x, G.warpGone.y - 3, { kind: 'warpdoor' }); o.fade = true; o.t0 = G.time + 0.9; G.warpGone = null; } // กลับถึงจุดเดิมแล้ว ประตูค่อย ๆ จางหาย
     G.flightDestination = null;
@@ -9835,6 +9846,7 @@ function boot() {
     }
     PL.x = sp.x; PL.y = sp.y; PL.dir = sp.dir || PL.dir;
   }
+  clearMineTrap(G.map);
   G.cam.x = PL.x; G.cam.y = PL.y - 10;
   const ps = pstats(); STATE.hp = clamp(STATE.hp, 1, ps.maxHp); STATE.sta = clamp(STATE.sta, 0, ps.maxSta);
   resize(); setupInput(); UI.init(); setTheme();
@@ -11579,7 +11591,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795170732";
+window.GAME_BUILD="1795171130";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
