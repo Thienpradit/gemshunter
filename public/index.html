@@ -10901,7 +10901,7 @@ const UI = (() => {
   const shopX = id => ({ id, g: shopGrade(), lv: STATE.lv || 1 }); /* สินค้าในร้าน: ขั้นตามเลเวลผู้เล่นตอนนี้ */
   const scard = (id, sel) => { const X = shopX(id), it = effItem(X), n = owned(id), c = cmpStats(id, X), ok = STATE.coins >= it.price;
     return `<div class="scard s2 tier${it.tier}${sel ? ' sel' : ''}" data-a="pick" data-id="${id}" data-tipshop="${id}"><span class="sicon"><img src="${itemIconURL(id)}" alt=""></span><div class="s2-tx"><span class="stier" style="color:${TIER_COLORS[it.tier]}">${TIER_NAMES[it.tier]} • ${it.gun ? 'ปืน' : SLOT_NAMES[it.slot]}${n ? ` • มีแล้ว ${n}` : ''} ${reqTag(X)}</span><b class="sname">${it.name}</b>
-      <span class="schips">${cmpChips(id, X)}</span><small class="s2-vs">${c.same ? '✓ ใส่อยู่ตอนนี้' : c.cur ? `เทียบกับที่ใส่อยู่: ${c.cur.name}` : 'ช่องนี้ยังว่าง'}${it.gun ? ` • ใช้${CONSUMABLES[it.ammo].name} (มี ${STATE.cons[it.ammo] || 0})` : ''}</small></div>
+      <span class="schips">${cmpChips(id, X)}</span><small class="s2-vs">${c.same ? '✓ ใส่อยู่ตอนนี้' : c.cur ? `เทียบกับที่ใส่อยู่: ${c.cur.name}` : 'ช่องนี้ยังว่าง'}${it.gun && it.ammo ? ` • ใช้${CONSUMABLES[it.ammo].name} (มี ${STATE.cons[it.ammo] || 0})` : it.gun ? ' • ไม่ต้องใช้ลูก' : ''}</small></div>
       <div class="s2-buy"><span class="sprice">${money(it.price)}</span><button class="btn small ${ok ? 'gold' : ''}" data-a="buy" data-id="${id}" ${ok ? '' : 'disabled'}>ซื้อ</button></div></div>`; };
   // ฝั่งซ้ายของร้าน: ตัวละคร (ลองสวมชิ้นที่เลือก/ชี้อยู่) + อุปกรณ์ที่ใส่อยู่ตอนนี้ — แบบเดียวกับหน้าอุปกรณ์ (I)
   const tryDoll = id => { const it = ITEMS[id], e = eqIds(); return dollURL(Object.assign({}, e, { [it.slot]: id }), it.slot === 'weapon' ? 'weapon' : it.slot === 'pick' ? 'pick' : STATE.hand); };
@@ -11756,7 +11756,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795186215";
+window.GAME_BUILD="1795186336";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
