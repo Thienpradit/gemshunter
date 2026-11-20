@@ -1113,8 +1113,10 @@ const ITEMS = {
   wpn4: { slot: 'weapon', dur: 1500, name: 'ดาบผลึกน้ำเงิน', tier: 3, dmg: 24, range: 27, col: '#6ab8ff', price: 3500 },
   wpn5: { slot: 'weapon', dur: 3000, name: 'ดาบทับทิมเลือดนก', tier: 4, dmg: 34, range: 28, col: '#ff3a50', price: 6000 },
   // ปืน: ยิงเป็นนัด ต้องมีกระสุน — ปืนสั้นยิงทีละนัด (กดหนึ่งครั้ง = หนึ่งนัด) / ปืนยาวอาก้ายิงออโต้ (กดค้าง)
-  gun1: { slot: 'weapon', dur: 600, name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 14, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 7500 },
-  gun2: { slot: 'weapon', dur: 2500, name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 10, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 22500 },
+  gun1: { slot: 'weapon', dur: 600, name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 70, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 7500 },
+  gun2: { slot: 'weapon', dur: 2500, name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 50, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 22500 },
+  /* หน้าไม้: ยิงไกลแบบปืนแต่ไม่ใช้ลูก (ยิงได้ไม่จำกัด) มีอายุการใช้งาน ซ่อมได้ • แรงน้อยกว่าปืน (ปืนต้องซื้อกระสุน) — ปืนแรงขึ้น 5 เท่า (20 พ.ย. 2569) */
+  xbow1: { slot: 'weapon', dur: 1500, name: 'หน้าไม้นักล่า', tier: 2, gun: 'xbow', dmg: 30, rate: 0.75, auto: false, spread: 0.012, range: 240, col: '#8a5a2a', price: 5000 },
   arm1: { slot: 'armor', warm: -1, name: 'เสื้อม่อฮ่อม', tier: 0, def: 0, hp: 0, sta: 0, col: '#3f6fa8' },
   arm2: { slot: 'armor', warm: 1, name: 'เสื้อหนังงู', tier: 1, def: 2, hp: 10, sta: 10, col: '#6a7a3a', price: 200 },
   arm3: { slot: 'armor', warm: 2, name: 'เสื้อเกราะหนังแมงป่อง', tier: 2, def: 4, hp: 20, sta: 10, col: '#9a4a2a', price: 700 },
@@ -1164,7 +1166,7 @@ Object.assign(ITEMS, {
 // Materials are shared by the inventory artwork and the worn/held sprites.
 const GEAR_MATERIALS = {
   wpn1: '#b8d0d2', wpn2: '#d7e5ec', wpn4: '#5ccdff', wpn5: '#e95272',
-  gun1: '#7594a0', gun2: '#66767e',
+  gun1: '#7594a0', gun2: '#66767e', xbow1: '#8a5a2a',
   arm1: '#344970', arm2: '#607751', arm3: '#8f5940', arm4: '#a67043', arm5: '#ded1ac',
   arm6: '#6859ae', arm7: '#795241', arm8: '#4b7492', arm9: '#d7c5a4', arm10: '#b1945c',
   arm11: '#397d68', arm12: '#b76335', arm13: '#399d83',
@@ -1181,7 +1183,7 @@ const GEAR_TRIM = { hp: '#a7db87', sta: '#f5c16d', both: '#a2ffce' };
 const gearTrim = it => GEAR_TRIM[it.regen] || (it.climate === 'cold' ? '#e2d6c0'
   : it.climate === 'hot' ? '#81d0ce' : it.tier >= 3 ? '#b8e2e5' : '#d29b59');
 const REGEN_ITEMS = ['hat7', 'arm11', 'glv7', 'bt7', 'hat8', 'arm12', 'glv8', 'bt8', 'arm13'];
-const SHOP_ITEMS = [...REGEN_ITEMS, 'pick6', 'pick7', 'pick2', 'pick8', 'pick9', 'pick10', 'pick3', 'pick4', 'pick5', 'glv1', 'glv2', 'glv3', 'glv4', 'bt1', 'bt2', 'bt3', 'bt4', 'wpn2', 'wpn3', 'wpn4', 'wpn5', 'gun1', 'gun2', 'arm2', 'arm3', 'arm4', 'arm5', 'arm6', 'hat1', 'hat2', 'hat3', 'hat4', 'shd1', 'shd2', 'shd3', 'shd4', 'arm9', 'arm10', 'arm7', 'arm8', 'hat6', 'hat5', 'glv6', 'glv5', 'bt6', 'bt5'];
+const SHOP_ITEMS = [...REGEN_ITEMS, 'pick6', 'pick7', 'pick2', 'pick8', 'pick9', 'pick10', 'pick3', 'pick4', 'pick5', 'glv1', 'glv2', 'glv3', 'glv4', 'bt1', 'bt2', 'bt3', 'bt4', 'wpn2', 'wpn3', 'wpn4', 'wpn5', 'gun1', 'gun2', 'xbow1', 'arm2', 'arm3', 'arm4', 'arm5', 'arm6', 'hat1', 'hat2', 'hat3', 'hat4', 'shd1', 'shd2', 'shd3', 'shd4', 'arm9', 'arm10', 'arm7', 'arm8', 'hat6', 'hat5', 'glv6', 'glv5', 'bt6', 'bt5'];
 // ค่าซ่อมพลั่ว: ตามความสึกหรอ (ราคาเต็ม × 30% × สัดส่วนที่สึก)
 /* ความทนทานสูงสุดของชิ้นจริง: ของดรอปคุณภาพหายากทนกว่าปกติ 30% • ของทองทนกว่า 70% (ของระดับยอดเยี่ยม/ตำนานมีค่าพื้นฐานสูงอยู่แล้ว) */
 const DUR_Q = [1, 1.3, 1.7];
@@ -1282,7 +1284,8 @@ function itemStatText(id) {
   const it = id && typeof id === 'object' ? effItem(id) : ITEMS[id];
   if (it.slot === 'pick' && !it.dur) return `แรงขุด ${it.power} • สเตมินา ${it.sta}/ครั้ง • ไม่มีวันพัง ไม่ต้องซ่อม`;
   if (it.slot === 'pick') return `แรงขุด ${it.power} • สเตมินา ${it.sta}/ครั้ง${it.stac ? ` (ประหยัด ${Math.round(it.stac * 100)}%)` : ''} • ขุดได้ ${fmtNum(it.dur)} ครั้งก่อนต้องซ่อม${it.luck ? ` • เจอพลอย +${Math.round(it.luck * 100)}%` : ''}`;
-  if (it.gun) return `ปืน${it.auto ? 'ออโต้ (กดค้างยิงรัว)' : 'ยิงทีละนัด'} • แรง ${it.dmg}/นัด • ${Math.round(1 / it.rate)} นัด/วินาที • ระยะไกล • กระสุนไม่จำกัด${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} นัด` : ''}`;
+  if (it.gun === 'xbow') return `หน้าไม้ยิงทีละลูก • แรง ${it.dmg}/ลูก • ${(1 / it.rate).toFixed(1)} ลูก/วินาที • ระยะไกล • ไม่ต้องใช้ลูก ยิงได้ไม่จำกัด${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} ครั้ง` : ''}`;
+  if (it.gun) return `ปืน${it.auto ? 'ออโต้ (กดค้างยิงรัว)' : 'ยิงทีละนัด'} • แรง ${it.dmg}/นัด • ${Math.round(1 / it.rate)} นัด/วินาที • ระยะไกล • ใช้กระสุน${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} นัด` : ''}`;
   if (it.slot === 'weapon') return `พลังโจมตี ${it.dmg} • ระยะ ${it.range}${it.mdmg ? ` • ตีมอนสเตอร์แรงขึ้น ${Math.round(it.mdmg * 100)}%` : ''}${it.leech ? ` • ตีแล้วดูดเลือด ${it.leech} HP` : ''}${it.crit ? ` • คริติคอล +${Math.round(it.crit * 100)}%` : ''}${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} ครั้ง` : ' • ไม่มีวันพัง ไม่ต้องซ่อม'}`;
   if (it.slot === 'shield') return `ป้องกัน ${it.def} • บล็อก ${Math.round(it.block * 100)}%`;
   return [CLIMATE_ON && it.warm ? (it.warm > 0 ? `🧥 อบอุ่น +${it.warm}` : `🌬 ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.rhp ? `♥ เลือดฟื้นเอง +${it.rhp}/วิ` : '', it.rsta ? `⚡ สเตมินาฟื้นเร็วขึ้น +${Math.round(it.rsta * 100)}%` : '', it.light ? `แสงสว่าง +${it.light}` : '', it.speed ? `เดินเร็ว +${Math.round(it.speed * 100)}%` : '', it.luck ? `เจอพลอย +${Math.round(it.luck * 100)}%` : ''].filter(Boolean).join(' • ');
@@ -2226,6 +2229,7 @@ const SFX = (() => {
           case 'click': tone(660, 0.05, 'square', 0.05); break;
           case 'step': noise(0.04, 0.05, 1200, 'lowpass'); break;
           case 'deny': tone(200, 0.15, 'square', 0.08, 0, 140); break;
+          case 'xbow': noise(0.06, 0.35, 1800, 'bandpass'); tone(210, 0.14, 'triangle', 0.16, 0, 95); tone(420, 0.05, 'sine', 0.06, 0.01, 300); break;
           case 'shot': noise(0.22, 0.9, 2600, 'lowpass'); noise(0.05, 0.5, 5000, 'highpass'); tone(110, 0.16, 'square', 0.18, 0, 38); break;
           case 'shotR': noise(0.11, 0.7, 3200, 'lowpass'); noise(0.03, 0.4, 6000, 'highpass'); tone(130, 0.08, 'square', 0.12, 0, 50); break;
           case 'empty': tone(1800, 0.03, 'square', 0.08); tone(1200, 0.03, 'square', 0.06, 0.05); break;
@@ -5077,7 +5081,8 @@ const PIX = (() => {
       if (it.tier >= 3) { const gx = it.slot === 'weapon' && id !== 'wpn3' ? 24 : 30, gy = it.slot === 'weapon' && id !== 'wpn3' ? 9 : 7; TP(gx, gy - 2, '#ffffff', 1, 5); TP(gx - 2, gy, '#ffffff', 5, 1); }
       outline(T.c, 0.62); T.c.noHD = true; T.c.res = 2; T.c.ang = 1.065; toolCache.set(id, T.c); return T.c;
     }
-    if (it.gun) { P(2, 7, '#2a2a2e', it.gun === 'rifle' ? 13 : 9, 3); P(3, 7, ramp(M, 5), it.gun === 'rifle' ? 11 : 7, 1); P(3, 10, ramp(WD, 3), 3, 4); P(it.gun === 'rifle' ? 14 : 10, 6, '#2a2a2e', 1, 1); }
+    if (it.gun === 'xbow') { P(2, 8, ramp(WD, 3), 11, 2); for (let k = 0; k < 7; k++) P(12 + (k > 3 ? 1 : 0), 4 + k, '#8a96a4'); P(13, 8, '#c8955a', 3, 1); }
+    else if (it.gun) { P(2, 7, '#2a2a2e', it.gun === 'rifle' ? 13 : 9, 3); P(3, 7, ramp(M, 5), it.gun === 'rifle' ? 11 : 7, 1); P(3, 10, ramp(WD, 3), 3, 4); P(it.gun === 'rifle' ? 14 : 10, 6, '#2a2a2e', 1, 1); }
     else if (it.slot === 'weapon') { for (let k = 0; k < 9; k++) { P(4 + k, 11 - k, ramp(M, 5)); P(5 + k, 11 - k, ramp(M, 3)); } P(2, 12, ramp(WD, 3), 3, 2); P(3, 11, '#c8a040', 3, 1); P(12, 2, ramp(M, 6)); }
     else { // พลั่ว/จอบขุด
       for (let k = 0; k < 11; k++) { P(2 + k, 13 - k, ramp(WD, k % 3 ? 4 : 3)); P(3 + k, 13 - k, ramp(WD, 2.6)); }
@@ -5952,6 +5957,16 @@ const PIXUI = (() => {
   }
   function gun(P, it) {
     const DK = rampOf(it.col, 8);
+    if (it.gun === 'xbow') { /* หน้าไม้: ด้ามไม้แนวทแยง + คันศรเหล็กโค้งขวางหัว + สาย + ลูกพร้อมยิง */
+      const ln = (x0, y0, x1, y1, col, w = 1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.6) + 1; for (let j = 0; j <= n; j++) { const t = j / n; P(Math.round(x0 + (x1 - x0) * t), Math.round(y0 + (y1 - y0) * t), col, w, w); } };
+      const WDK = rampOf('#7a4a24', 8), ST = rampOf('#8a96a4', 8);
+      shape(P, S, S, poly([[1, 15], [16, 9], [17, 11], [2, 18]]), WDK, { base: 4.6, tex: 'wood' }); /* ด้าม */
+      shape(P, S, S, poly([[5, 16], [8, 15], [9, 21], [6, 22]]), rampOf('#5a3418', 8), { base: 4.2, tex: 'wood' }); /* มือจับ */
+      ln(9, 15, 10, 18, ST[2]); /* ไก */
+      ln(11, 12, 14, 2, '#d8d0c0'); ln(11, 12, 20, 19, '#d8d0c0'); /* สาย */
+      for (const [x, y, x2, y2] of [[14, 1, 17, 4], [17, 4, 18, 9], [18, 9, 19, 14], [19, 14, 21, 20]]) { ln(x, y, x2, y2, ST[2], 2); ln(x, y, x2, y2, ST[5]); } /* คันศรโค้ง */
+      ln(9, 12, 22, 7, '#c8955a'); P(22, 6, ST[6], 2, 2); P(23, 7, '#ffffff'); P(8, 11, '#f0e8d8', 2, 1); P(8, 13, '#f0e8d8', 2, 1); /* ลูกหน้าไม้: ก้าน หัว ขนหาง */
+      return; }
     if (it.gun === 'pistol') {
       shape(P, S, S, poly([[3, 7], [20, 7], [20, 11], [3, 11]]), DK, { base: 4.6, tex: 'metal' });
       shape(P, S, S, poly([[6, 11], [11, 11], [10, 20], [5, 20]]), rampOf('#5a3a22', 8), { base: 4.4, fn: (x, y, i) => (x + y) % 3 === 0 ? i - 0.8 : i });
@@ -8887,11 +8902,12 @@ function fireGun() {
   const ca = Math.cos(a), sa = Math.sin(a);
   if (Math.abs(ca) > Math.abs(sa)) PL.dir = ca < 0 ? 'left' : 'right'; else PL.dir = sa < 0 ? 'up' : 'down'; PL.faceA = a; PL.faceT = G.time;
   const mx = PL.x + ca * 10, my = PL.y + sa * 6; /* ตำแหน่งบนพื้นใต้ปากกระบอก (วาดยกขึ้น GUNZ) */
-  G.bullets.push({ x: mx, y: my, vx: ca * 520, vy: sa * 520, life: w.range / 520, dmg: Math.round(w.dmg * pstats().dmgMul * pstats().wMul), px: mx, py: my });
-  G.muzzle.push({ x: PL.x + ca * 13, y: PL.y - GUNZ() + sa * 8, a, t: 0 }); /* ไฟปากกระบอก: วาดที่ระดับปืนในมือ (ชดเชยมุมกล้องเอียง) — เดิมไปโผล่แถวเท้า */
+  const xb = w.gun === 'xbow', spd = xb ? 430 : 520;
+  G.bullets.push({ x: mx, y: my, vx: ca * spd, vy: sa * spd, life: w.range / spd, dmg: Math.round(w.dmg * pstats().dmgMul * pstats().wMul), px: mx, py: my, bolt: xb });
+  if (!xb) G.muzzle.push({ x: PL.x + ca * 13, y: PL.y - GUNZ() + sa * 8, a, t: 0 }); /* ไฟปากกระบอก: วาดที่ระดับปืนในมือ (ชดเชยมุมกล้องเอียง) — เดิมไปโผล่แถวเท้า */
   PL.recoil = 0.08; // ไม่ผลักตัวถอยหลังตอนยิงแล้ว (เดิมแรงถีบทำให้เดินสะดุดทุกนัด) เหลือแค่ท่าสะบัดปืน
-  G.shake = Math.max(G.shake, w.auto ? 1.2 : 2); SFX.play(w.auto ? 'shotR' : 'shot');
-  G.parts.push({ k: 'chip', x: PL.x - ca * 3, y: PL.y - 8, vx: -sa * 40 + (Math.random() - 0.5) * 20, vy: -60, z: 6, vz: 60, life: 0.6, max: 0.6, col: '#e8c050', size: 1 }); // ปลอกกระสุน
+  G.shake = Math.max(G.shake, xb ? 0.6 : w.auto ? 1.2 : 2); SFX.play(xb ? 'xbow' : w.auto ? 'shotR' : 'shot');
+  if (!xb) G.parts.push({ k: 'chip', x: PL.x - ca * 3, y: PL.y - 8, vx: -sa * 40 + (Math.random() - 0.5) * 20, vy: -60, z: 6, vz: 60, life: 0.6, max: 0.6, col: '#e8c050', size: 1 }); // ปลอกกระสุน
   if (w.auto) G.holdAct = true;
   UI.hud();
 }
@@ -8911,7 +8927,11 @@ function updateBullets(dt) {
 }
 function drawBullets(g, S, T) {
   drawPins(g, S, T); drawArrows(g, S, T);
-  { const Z = GUNZ(); for (const b of G.bullets) { g.strokeStyle = 'rgba(255,230,140,0.95)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(S(b.x - b.vx * 0.018), T(b.y - Z - b.vy * 0.018)); g.lineTo(S(b.x), T(b.y - Z)); g.stroke(); g.fillStyle = '#fff6d0'; g.fillRect(S(b.x) - 0.5, T(b.y - Z) - 0.5, 1.5, 1.5); } }
+  { const Z = GUNZ(); for (const b of G.bullets) { if (b.bolt) { /* ลูกหน้าไม้: ก้านไม้ หัวเหล็ก หางขนนก */ const L = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / L, uy = b.vy / L, hx = S(b.x), hy = T(b.y - Z), tx = S(b.x - ux * 11), ty = T(b.y - Z - uy * 11);
+      g.lineCap = 'round'; g.strokeStyle = '#3a220e'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(tx, ty); g.lineTo(hx, hy); g.stroke(); g.strokeStyle = '#c8955a'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(tx, ty); g.lineTo(hx, hy); g.stroke();
+      const nx = -(hy - ty), ny = hx - tx, nl = Math.hypot(nx, ny) || 1, k = 1.8 / nl, hl = (hx - tx) / 4.5, hv = (hy - ty) / 4.5; g.fillStyle = '#d8dee6'; g.beginPath(); g.moveTo(hx + hl * 0.7, hy + hv * 0.7); g.lineTo(hx - hl * 0.3 + nx * k, hy - hv * 0.3 + ny * k); g.lineTo(hx - hl * 0.3 - nx * k, hy - hv * 0.3 - ny * k); g.fill();
+      g.fillStyle = '#e8e0d0'; g.beginPath(); g.moveTo(tx + hl * 0.5, ty + hv * 0.5); g.lineTo(tx - hl * 0.2 + nx * k, ty - hv * 0.2 + ny * k); g.lineTo(tx, ty); g.lineTo(tx - hl * 0.2 - nx * k, ty - hv * 0.2 - ny * k); g.fill(); g.lineCap = 'butt'; continue; }
+      g.strokeStyle = 'rgba(255,230,140,0.95)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(S(b.x - b.vx * 0.018), T(b.y - Z - b.vy * 0.018)); g.lineTo(S(b.x), T(b.y - Z)); g.stroke(); g.fillStyle = '#fff6d0'; g.fillRect(S(b.x) - 0.5, T(b.y - Z) - 0.5, 1.5, 1.5); } }
   g.globalCompositeOperation = 'lighter';
   for (const f of G.muzzle) { const x = S(f.x), y = T(f.y), r = 6 - f.t * 40; const gr = g.createRadialGradient(x, y, 0, x, y, Math.max(1, r * 1.8)); gr.addColorStop(0, 'rgba(255,250,200,0.95)'); gr.addColorStop(0.5, 'rgba(255,170,60,0.7)'); gr.addColorStop(1, 'rgba(255,120,30,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, Math.max(1, r * 1.8), 0, 7); g.fill(); g.save(); g.translate(x, y); g.rotate(f.a); g.fillStyle = 'rgba(255,240,170,0.9)'; g.beginPath(); g.moveTo(0, -2); g.lineTo(9, 0); g.lineTo(0, 2); g.fill(); g.restore(); }
   g.globalCompositeOperation = 'source-over';
@@ -10340,7 +10360,7 @@ const UI = (() => {
       $('#pcRank').textContent = RANKS[Math.min(4, tier)]; $('#pcGem').className = 'pc-gem t' + Math.min(4, tier); $('#pcGem').title = 'ยศ: ' + RANKS[Math.min(4, tier)];
       $('#pcName').textContent = STATE.name || 'นักล่าอัญมณี';
       $('#bagcount').textContent = `${bagUsed()}/${bagCap()}`; $('#bagcount').classList.toggle('full', bagUsed() >= bagCap() - 5);
-      $('#handicon').src = itemIconURL(held); $('#handname').textContent = ITEMS[held].name + (gunIt ? ` • กระสุน ${STATE.cons[gunIt.ammo] || 0}` : '');
+      $('#handicon').src = itemIconURL(held); $('#handname').textContent = ITEMS[held].name + (gunIt && gunIt.ammo ? ` • กระสุน ${STATE.cons[gunIt.ammo] || 0}` : '');
       const cc = $('#climchip'); cc.textContent = `${clim.C.icon} ${clim.C.temp} • ${clim.kind === 'ok' ? 'ชุดพอดี' : (clim.d >= 3 ? 'เลือดลด! ' : '') + (clim.kind === 'cold' ? 'หนาวไป ใส่ชุดอุ่นขึ้น' : 'ร้อนไป ใส่ชุดระบายอากาศ')}`; cc.title = 'แตะเพื่อดูวิธีแก้'; cc.className = 'chip frame clim ' + clim.kind;
       $('#swapicon').src = itemIconURL(held); /* ปุ่มกลมเล็กบนโทรศัพท์: โชว์ของที่ถืออยู่ตอนนี้ (เหมือนปุ่ม Q บนคอม) แตะเพื่อสลับ */
       { const first = cat => CONS_CAT[cat].find(id => (STATE.cons[id] || 0) > 0) || CONS_CAT[cat][0]; /* ปุ่มลัดรวมของทั้งหมวด: ตัวเลข = จำนวนรวม • รูป = ชิ้นเล็กสุดที่มี */
@@ -10355,7 +10375,7 @@ const UI = (() => {
       db.style.display = 'block';
       if (base && base.dur) { const mxd = maxDur(inst), d = inst.dur ?? mxd, f = clamp(d / mxd, 0, 1); db.firstChild.style.width = (f * 100).toFixed(1) + '%'; db.firstChild.style.background = f <= 0 ? '#555' : f < 0.2 ? '#e05a4a' : f < 0.5 ? '#e8c44a' : '#8fe070';
         db.title = `ความทนทาน ${d}/${mxd} — ใช้ได้อีก ${d} ครั้งก่อนต้องซ่อม`; dn.textContent = d <= 0 ? 'พัง!' : ''; dn.className = f <= 0 ? 'bad' : '';
-        if (base.gun) db.title += ' • กระสุนไม่จำกัด'; /* ปืน: หลอด/วงแหวน = ความทนทาน • ตัวเลข = กระสุน */ } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
+        if (base.gun === 'xbow') db.title += ' • ไม่ต้องใช้ลูก'; /* ปืน: หลอด/วงแหวน = ความทนทาน • ตัวเลข = กระสุน */ } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
       else { db.firstChild.style.width = '100%'; db.firstChild.style.background = '#6ab8ff'; db.title = 'ไม่มีวันพัง ไม่ต้องซ่อม'; dn.textContent = ''; dn.className = 'inf'; }
       { const ab = $('#btnSwap'); ab.style.setProperty('--durf', db.firstChild.style.width); ab.style.setProperty('--durc', db.firstChild.style.background); ab.dataset.n = dn.textContent; ab.dataset.nc = dn.className; } /* จอสัมผัส: หลอดเดียวกันวาดเป็นวงแหวนรอบปุ่มกลมเล็กที่โชว์ไอคอนของในมือ (ปุ่ม Q ถูกซ่อนบนโทรศัพท์) */
     }
@@ -10858,7 +10878,8 @@ const UI = (() => {
   // ---------- ร้านค้าแบบการ์ด 3 มิติ (ตามดีไซน์ใน Claude Design) ----------
   const shopSel = {};
   const statChips = id => { const it = ITEMS[id]; let a;
-    if (it.gun) a = [`แรง ${it.dmg}/นัด`, `${Math.round(1 / it.rate)} นัด/วิ`, it.auto ? 'ยิงออโต้' : 'ทีละนัด'];
+    if (it.gun === 'xbow') a = [`แรง ${it.dmg}/ลูก`, `${(1 / it.rate).toFixed(1)} ลูก/วิ`, 'ไม่ใช้ลูก'];
+    else if (it.gun) a = [`แรง ${it.dmg}/นัด`, `${Math.round(1 / it.rate)} นัด/วิ`, it.auto ? 'ยิงออโต้' : 'ทีละนัด'];
     else if (it.slot === 'weapon') a = [`โจมตี ${it.dmg}`, `ระยะ ${it.range}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง'];
     else if (it.slot === 'pick') a = [`แรงขุด ${it.power}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง', it.luck ? `เจอพลอย +${Math.round(it.luck * 100)}%` : ''];
     else if (it.slot === 'shield') a = [`ป้องกัน ${it.def}`, `กัน ${Math.round(it.block * 100)}%`];
@@ -11731,7 +11752,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795183054";
+window.GAME_BUILD="1795183387";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
