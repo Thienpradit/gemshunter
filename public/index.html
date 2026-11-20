@@ -9967,9 +9967,10 @@ function setupInput() {
   setInterval(() => { try { warpBackTick(); } catch (e) { console.error(e); } }, 500);
   setInterval(() => { try { if (STATE && !G.flying) UI.worldEvents(worldTick()); } catch (e) { console.error(e); } }, 3000); // โลกของผู้เล่นอื่นเดินทุก 3 วินาที
   $('#qchip').addEventListener('click', () => UI.queue());
-  $('#useRice').addEventListener('click', () => useSlot('food'));
-  $('#useHerb').addEventListener('click', () => useSlot('hp'));
-  $('#useWater').addEventListener('click', () => useSlot('drink'));
+  /* ปุ่มกินเร็ว: ใช้ pointerdown (ไม่ใช่ click) → กดได้ทันทีระหว่างเดิน/ขุด/ตีมอน แม้อีกนิ้วกดจอยหรือปุ่มขุดค้างอยู่ (มือถือ: click ไม่ทำงานตอนมีหลายนิ้วบนจอ) • ไม่ไปหยุดการเดิน/ขุดที่ทำอยู่ */
+  for (const [sel, cat] of [['#useRice', 'food'], ['#useHerb', 'hp'], ['#useWater', 'drink']]) { const b = $(sel); b.style.touchAction = 'none';
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); SFX.unlock(); b.classList.add('down'); useSlot(cat); });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => b.classList.remove('down')); }
   $('#handchip').addEventListener('click', () => toggleHand());
   addEventListener('resize', resize);
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
@@ -11758,7 +11759,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795190407";
+window.GAME_BUILD="1795195015";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
