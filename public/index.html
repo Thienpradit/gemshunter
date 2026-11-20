@@ -343,6 +343,7 @@ tr.nonerow td{color:var(--muted)}
 /* ร้าน/อุปกรณ์ */
 .item{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border:2px solid rgba(20,10,5,.8);padding:6px 8px}
 .item>img{width:48px;height:48px;padding:6px;flex:none;border-radius:10px;background:radial-gradient(circle at 50% 38%,#4e3624,#170d06 78%);border:2px solid rgba(232,180,74,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.item>.rsticon{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-size:28px;border-radius:10px;background:radial-gradient(circle at 50% 38%,#4e3624,#170d06 78%);border:2px solid rgba(255,176,64,.6)}
 .item.tier1>img{border-color:#8fe070}.item.tier2>img{border-color:#6ab8ff}.item.tier3>img{border-color:#c890ff;box-shadow:0 0 10px rgba(200,144,255,.35)}.item.tier4>img{border-color:#ffb040;box-shadow:0 0 12px rgba(255,176,64,.45)}
 .item{border-radius:10px}
 .item small.stat,.slot small.stat{color:#bfe6ff}
@@ -1269,6 +1270,7 @@ const CONSUMABLES = { /* ราคาของกิน/ยาในร้าน
 for (const k of ['water', 'rice', 'herb', 'coconut', 'energy', 'mango', 'bandage', 'medkit']) CONSUMABLES[k].price *= 10;
 for (const k in CONSUMABLES) if (k !== 'warp' && CONSUMABLES[k].price) CONSUMABLES[k].price *= SHOP_PRICE_MUL;
 for (const k of ['water', 'rice', 'herb', 'coconut', 'energy', 'mango', 'bandage', 'medkit']) CONSUMABLES[k].price *= 0.5; /* ลดราคาร้านอาหารลงครึ่งหนึ่ง (20 พ.ย. 2569) */
+CONSUMABLES.reset = { name: 'ม้วนรีเซ็ตสกิล', reset: true, pack: 1, price: 100000 / 33 }; /* 100,000 บาท • คืนแต้มสถานะที่ลงไปแล้วทั้งหมด ให้ลงใหม่ได้ (20 พ.ย. 2569) */
 // หมวดของใช้ตามปุ่มลัด: 1 = ฟื้นเลือด • 2 = เครื่องดื่ม • 3 = อาหาร (เรียงจากฟื้นน้อย → มาก)
 const CONS_CAT = { hp: ['herb', 'bandage', 'medkit'], drink: ['water', 'coconut', 'energy'], food: ['rice', 'mango'] };
 const CONS_CAT_OF = {}; for (const k in CONS_CAT) for (const id of CONS_CAT[k]) CONS_CAT_OF[id] = k;
@@ -1283,7 +1285,7 @@ function itemStatText(id) {
   if (it.gun) return `ปืน${it.auto ? 'ออโต้ (กดค้างยิงรัว)' : 'ยิงทีละนัด'} • แรง ${it.dmg}/นัด • ${Math.round(1 / it.rate)} นัด/วินาที • ระยะไกล • กระสุนไม่จำกัด${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} นัด` : ''}`;
   if (it.slot === 'weapon') return `พลังโจมตี ${it.dmg} • ระยะ ${it.range}${it.mdmg ? ` • ตีมอนสเตอร์แรงขึ้น ${Math.round(it.mdmg * 100)}%` : ''}${it.leech ? ` • ตีแล้วดูดเลือด ${it.leech} HP` : ''}${it.crit ? ` • คริติคอล +${Math.round(it.crit * 100)}%` : ''}${it.dur ? ` • ทนทาน ${fmtNum(it.dur)} ครั้ง` : ' • ไม่มีวันพัง ไม่ต้องซ่อม'}`;
   if (it.slot === 'shield') return `ป้องกัน ${it.def} • บล็อก ${Math.round(it.block * 100)}%`;
-  return [CLIMATE_ON && it.warm ? (it.warm > 0 ? `🧥 อบอุ่น +${it.warm}` : `🌬 ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.rhp ? `♥ เลือดฟื้นเอง +${it.rhp}/วิ` : '', it.rsta ? `⚡ สเตมินาฟื้นเร็วขึ้น +${Math.round(it.rsta * 100)}%` : '', it.light ? `แสงสว่าง +${it.light}` : '', it.speed ? `เดินเร็ว +${Math.round(it.speed * 100)}%` : '', it.luck ? `โชค +${Math.round(it.luck * 100)}%` : ''].filter(Boolean).join(' • ');
+  return [CLIMATE_ON && it.warm ? (it.warm > 0 ? `🧥 อบอุ่น +${it.warm}` : `🌬 ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.rhp ? `♥ เลือดฟื้นเอง +${it.rhp}/วิ` : '', it.rsta ? `⚡ สเตมินาฟื้นเร็วขึ้น +${Math.round(it.rsta * 100)}%` : '', it.light ? `แสงสว่าง +${it.light}` : '', it.speed ? `เดินเร็ว +${Math.round(it.speed * 100)}%` : '', it.luck ? `เจอพลอย +${Math.round(it.luck * 100)}%` : ''].filter(Boolean).join(' • ');
 }
 
 // ---------- utils ----------
@@ -1948,7 +1950,7 @@ function migrateSave(s) {
     for (const k of ['helmet', 'gloves', 'boots', 'shield']) { const u = s.equip && s.equip[k]; st.equip[k] = st.items.some(x => x.uid === u && ITEMS[x.id].slot === k) ? u : 0; }
     for (const k of ['pick', 'weapon', 'armor']) { const u = s.equip && s.equip[k]; if (st.items.some(x => x.uid === u && ITEMS[x.id].slot === k)) st.equip[k] = u; else { const f = st.items.find(x => ITEMS[x.id].slot === k); if (f) st.equip[k] = f.uid; else { st.items.push(makeItem(st.nextUid, k === 'pick' ? 'pick1' : k === 'weapon' ? 'wpn1' : 'arm1')); st.equip[k] = st.nextUid++; } } }
   }
-  if (s.cons) { st.cons.warp = s.cons.warp == null ? 2 : Math.max(0, Number(s.cons.warp) || 0); st.cons.water = Math.max(0, Number(s.cons.water) || 0); st.cons.rice = Math.max(0, Number(s.cons.rice) || 0); st.cons.herb = Math.max(0, Number(s.cons.herb) || 0); st.cons.a9 = Math.max(0, Number(s.cons.a9) || 0); st.cons.a762 = Math.max(0, Number(s.cons.a762) || 0); for (const id of ['coconut', 'energy', 'mango', 'bandage', 'medkit']) st.cons[id] = Math.max(0, Number(s.cons[id]) || 0); }
+  if (s.cons) { st.cons.warp = s.cons.warp == null ? 2 : Math.max(0, Number(s.cons.warp) || 0); st.cons.water = Math.max(0, Number(s.cons.water) || 0); st.cons.rice = Math.max(0, Number(s.cons.rice) || 0); st.cons.herb = Math.max(0, Number(s.cons.herb) || 0); st.cons.a9 = Math.max(0, Number(s.cons.a9) || 0); st.cons.a762 = Math.max(0, Number(s.cons.a762) || 0); for (const id of ['coconut', 'energy', 'mango', 'bandage', 'medkit', 'reset']) st.cons[id] = Math.max(0, Math.floor(Number(s.cons[id])) || 0); }
   if (s.hand === 'weapon') st.hand = 'weapon';
   if (isFinite(s.hp)) st.hp = Number(s.hp); if (isFinite(s.sta)) st.sta = Number(s.sta);
   // Older builds sometimes wrote version 3 on a current-size mine save.
@@ -10714,8 +10716,11 @@ const UI = (() => {
       <div class="chpts ${S.pts ? 'has' : ''}">แต้มสถานะที่เหลือ <b>${S.pts}</b> <small>(ได้ ${PTS_PER_LV} แต้มทุกครั้งที่อัปเลเวล)</small></div>
       <div class="list chattrs">${ATTRS.map(([k, name, ic, desc]) => `<div class="chattr"><span class="cha-ic">${ic}</span><div class="cha-tx"><b>${name} <em>${A[k]}</em></b><small>${desc}</small><small class="good">ตอนนี้: ${eff[k]}</small></div><div class="cha-b"><button class="btn small ${S.pts ? 'gold' : ''}" data-a="add" data-k="${k}" data-n="1" ${S.pts ? '' : 'disabled'}>+1</button><button class="btn small" data-a="add" data-k="${k}" data-n="5" ${S.pts >= 5 ? '' : 'disabled'}>+5</button></div></div>`).join('')}</div>
       <div class="sum">❤ HP ${ps.maxHp} • ⚡ สเตมินา ${ps.maxSta} • ⚔ โจมตี ${Math.round(ps.weapon.dmg * ps.dmgMul)} • 🛡 ป้องกัน ${ps.def} • 👟 เร็ว +${Math.round((ps.speed - 1) * 100)}%</div>
-      <div class="row end"><button class="btn" data-a="eqp">อุปกรณ์ (I)</button><button class="btn" data-a="close">ปิด</button></div>`,
-      (a, b) => { if (a === 'eqp') return equipment(); if (a === 'add') { const n = Math.min(S.pts, +b.dataset.n); if (n <= 0) return; S.pts -= n; A[b.dataset.k] += n; SFX.play('pickup'); const p2 = pstats(); STATE.hp = Math.min(p2.maxHp, STATE.hp + (b.dataset.k === 'vit' ? n * 3 : 0)); STATE.sta = Math.min(p2.maxSta, STATE.sta + (b.dataset.k === 'ene' ? n * 2 : 0)); saveGame(); hud(); character(); } });
+      <div class="row end">${(STATE.cons.reset || 0) > 0 ? `<button class="btn" data-a="rst" ${ATTRS.some(([k]) => A[k] > 0) ? '' : 'disabled'}>📜 รีเซ็ตสกิล (มี ${STATE.cons.reset})</button>` : ''}<button class="btn" data-a="eqp">อุปกรณ์ (I)</button><button class="btn" data-a="close">ปิด</button></div>`,
+      (a, b) => { if (a === 'eqp') return equipment();
+        if (a === 'rst') { const tot = ATTRS.reduce((t, [k]) => t + (A[k] || 0), 0); if (!tot || !(STATE.cons.reset > 0)) return;
+          return show('rstc', `<h3>📜 ใช้ม้วนรีเซ็ตสกิล?</h3><p>คืนแต้มสถานะทั้งหมด <b>${tot}</b> แต้ม (${ATTRS.filter(([k]) => A[k] > 0).map(([k, n]) => `${n} ${A[k]}`).join(' • ')}) แล้วลงใหม่ได้ตามใจ</p><p class="muted small">ม้วนจะถูกใช้ 1 ม้วน (เหลือ ${STATE.cons.reset - 1}) • ย้อนกลับไม่ได้</p><div class="row end"><button class="btn" data-a="no">ยกเลิก</button><button class="btn gold" data-a="ok">รีเซ็ต</button></div>`,
+            a2 => { if (a2 === 'ok' && STATE.cons.reset > 0) { STATE.cons.reset--; for (const [k] of ATTRS) A[k] = 0; S.pts += tot; const p2 = pstats(); STATE.hp = Math.min(p2.maxHp, STATE.hp); STATE.sta = Math.min(p2.maxSta, STATE.sta); SFX.play('pickup'); saveGame(); hud(); toast(`📜 รีเซ็ตสกิลแล้ว — ได้แต้มคืน ${tot} แต้ม`); } character(); }); } if (a === 'add') { const n = Math.min(S.pts, +b.dataset.n); if (n <= 0) return; S.pts -= n; A[b.dataset.k] += n; SFX.play('pickup'); const p2 = pstats(); STATE.hp = Math.min(p2.maxHp, STATE.hp + (b.dataset.k === 'vit' ? n * 3 : 0)); STATE.sta = Math.min(p2.maxSta, STATE.sta + (b.dataset.k === 'ene' ? n * 2 : 0)); saveGame(); hud(); character(); } });
     api.onE = null;
   }
   // ---------- ตู้เซฟในบ้าน: ย้ายพลอย กระเป๋า ⇄ ตู้ (เมนูแบบเดียวกับหน้าขาย) ----------
@@ -10855,7 +10860,7 @@ const UI = (() => {
   const statChips = id => { const it = ITEMS[id]; let a;
     if (it.gun) a = [`แรง ${it.dmg}/นัด`, `${Math.round(1 / it.rate)} นัด/วิ`, it.auto ? 'ยิงออโต้' : 'ทีละนัด'];
     else if (it.slot === 'weapon') a = [`โจมตี ${it.dmg}`, `ระยะ ${it.range}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง'];
-    else if (it.slot === 'pick') a = [`แรงขุด ${it.power}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง', it.luck ? `โชค +${Math.round(it.luck * 100)}%` : ''];
+    else if (it.slot === 'pick') a = [`แรงขุด ${it.power}`, it.dur ? `ทนทาน ${fmtNum(it.dur)}` : 'ไม่มีวันพัง', it.luck ? `เจอพลอย +${Math.round(it.luck * 100)}%` : ''];
     else if (it.slot === 'shield') a = [`ป้องกัน ${it.def}`, `กัน ${Math.round(it.block * 100)}%`];
     else a = [CLIMATE_ON && it.warm ? (it.warm > 0 ? `อบอุ่น +${it.warm}` : `ระบายร้อน ${it.warm}`) : '', `ป้องกัน ${it.def}`, it.hp ? `HP +${it.hp}` : '', it.sta ? `สเตมินา +${it.sta}` : '', it.speed ? `เร็ว +${Math.round(it.speed * 100)}%` : '', it.coin ? `เหรียญจากศัตรู +${Math.round(it.coin * 100)}%` : '', it.rhp ? `เลือดฟื้น +${it.rhp}/วิ` : '', it.rsta ? `สเตมินาฟื้น +${Math.round(it.rsta * 100)}%` : ''];
     return a.filter(Boolean).map(t => `<span class="schip${/อบอุ่น/.test(t) ? ' cold' : /ระบายร้อน/.test(t) ? ' hot' : ''}">${t}</span>`).join(''); };
@@ -10864,7 +10869,7 @@ const UI = (() => {
     const it = X ? effItem(X) : ITEMS[id], e = eqIds(), curX = STATE.items.find(i => i.uid === STATE.equip[it.slot]), cur = curX ? effItem(curX) : e[it.slot] ? ITEMS[e[it.slot]] : null, v = (x, k) => (x && x[k]) || 0, R = [];
     const add = (label, a, b, unit = '', always) => { const d = Math.round((b - a) * 100) / 100; if (b || d || always) R.push([label, b, d, unit]); };
     if (it.slot === 'weapon') { const dps = x => x ? (x.gun ? x.dmg / x.rate : x.dmg / 0.36) : 0; add('พลัง/วินาที', Math.round(dps(cur)), Math.round(dps(it)), '', 1); add('ระยะ', v(cur, 'range'), it.range, '', 1); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } }
-    else if (it.slot === 'pick') { add('แรงขุด', v(cur, 'power'), it.power, '', 1); R.push(['ใช้สเตมินา/ครั้ง', it.sta, null, '']); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } add('โชค', Math.round(v(cur, 'luck') * 100), Math.round((it.luck || 0) * 100), '%'); add('ประหยัดสเตมินา', Math.round(v(cur, 'stac') * 100), Math.round((it.stac || 0) * 100), '%'); }
+    else if (it.slot === 'pick') { add('แรงขุด', v(cur, 'power'), it.power, '', 1); R.push(['ใช้สเตมินา/ครั้ง', it.sta, null, '']); if (it.dur) { if (v(cur, 'dur')) add('ทนทาน', v(cur, 'dur'), it.dur); else R.push(['ทนทาน', it.dur, null, '']); } add('เจอพลอย', Math.round(v(cur, 'luck') * 100), Math.round((it.luck || 0) * 100), '%'); add('ประหยัดสเตมินา', Math.round(v(cur, 'stac') * 100), Math.round((it.stac || 0) * 100), '%'); }
     else if (it.slot === 'shield') { add('ป้องกัน', v(cur, 'def'), it.def, '', 1); add('บล็อก', Math.round(v(cur, 'block') * 100), Math.round(it.block * 100), '%', 1); }
     else { add('ป้องกัน', v(cur, 'def'), v(it, 'def'), '', 1); add('HP', v(cur, 'hp'), v(it, 'hp')); add('สเตมินา', v(cur, 'sta'), v(it, 'sta')); add('แสง', v(cur, 'light'), v(it, 'light')); add('เร็ว', Math.round(v(cur, 'speed') * 100), Math.round(v(it, 'speed') * 100), '%'); if (CLIMATE_ON) add('อบอุ่น', v(cur, 'warm'), v(it, 'warm')); add('เลือดฟื้น/วิ', v(cur, 'rhp'), v(it, 'rhp')); add('สเตมินาฟื้น', Math.round(v(cur, 'rsta') * 100), Math.round(v(it, 'rsta') * 100), '%'); }
     return { cur, rows: R, same: X ? !!curX && (curX === X || (curX.id === id && (curX.g || 0) === (X.g || 0) && (curX.lv || 0) === (X.lv || 0) && !curX.mods && !X.mods)) : e[it.slot] === id };
@@ -10961,7 +10966,8 @@ const UI = (() => {
     const buyBtn = id => { const it = effItem(shopX(id)), n = owned(id); return itemRow(shopX(id), `${money(it.price)}<br><button class="btn small ${STATE.coins >= it.price ? 'gold' : ''}" data-a="buy" data-id="${id}" ${STATE.coins >= it.price ? '' : 'disabled'}>ซื้อ</button>`, n ? ` • มีแล้ว ${n}` : ''); };
     const warpRow = () => { const c = CONSUMABLES.warp; return `<div class="item"><img src="${itemIconURL('warp')}"><div class="gi"><b>${c.name}</b><small>ใช้ครั้งเดียว • มีอยู่ ${STATE.cons.warp || 0} บาน</small><small class="stat">กด T ในเหมือง → ประตูโผล่ขึ้นมา เดินเข้าไปถึงเมืองทันที • ที่เมืองมีประตูเปิดรอให้กลับไปจุดเดิมได้ 1 ครั้ง</small></div><div class="gp">${money(c.price)}<br><button class="btn small gold" data-a="ammo" data-id="warp" data-n="1">ซื้อ 1 บาน</button><button class="btn small" data-a="ammo" data-id="warp" data-n="5">ซื้อ 5 บาน</button></div></div>`; };
     const ammoRow = k => { const c = CONSUMABLES[k], gn = Object.values(ITEMS).find(x => x.ammo === k); return `<div class="item"><img src="${itemIconURL(k)}"><div class="gi"><b>${c.name}</b><small>สำหรับ${gn ? gn.name : 'ปืน'} • กล่องละ ${c.pack} นัด • มีอยู่ ${STATE.cons[k] || 0} นัด</small></div><div class="gp">${money(c.price)}<br><button class="btn small gold" data-a="ammo" data-id="${k}" data-n="1">ซื้อ 1 กล่อง</button><button class="btn small" data-a="ammo" data-id="${k}" data-n="5">ซื้อ 5 กล่อง</button></div></div>`; };
-    const ammoRows = () => `<h4 style="margin:4px 0">🔫 กระสุนปืน</h4>` + ammoRow('a9') + ammoRow('a762') + `<h4 style="margin:10px 0 4px">🌀 ประตูวาร์ป</h4>` + warpRow(); /* กระสุน: ยิงนัดละ 1 ต้องซื้อหรือเก็บจากมอนสเตอร์ */
+    const resetRow = () => { const c = CONSUMABLES.reset; return `<div class="item"><span class="rsticon">📜</span><div class="gi"><b>${c.name}</b><small>ใช้ครั้งเดียว • มีอยู่ ${STATE.cons.reset || 0} ม้วน</small><small class="stat">คืนแต้มสถานะ (พลัง ว่องไว พลังชีวิต พลังงาน) ที่ลงไปแล้วทั้งหมด ให้ลงใหม่ได้ • ใช้ที่หน้าตัวละคร (C)</small></div><div class="gp">${money(c.price)}<br><button class="btn small gold" data-a="ammo" data-id="reset" data-n="1">ซื้อ 1 ม้วน</button></div></div>`; };
+    const ammoRows = () => `<h4 style="margin:4px 0">🔫 กระสุนปืน</h4>` + ammoRow('a9') + ammoRow('a762') + `<h4 style="margin:10px 0 4px">🌀 ประตูวาร์ป</h4>` + warpRow() + `<h4 style="margin:10px 0 4px">📜 รีเซ็ตสกิล</h4>` + resetRow(); /* กระสุน: ยิงนัดละ 1 ต้องซื้อหรือเก็บจากมอนสเตอร์ */
     if (shopTab === 'climate') {
       const k = climate(); const row = (t, ids) => `<h4>${t}</h4>` + ids.map(buyBtn).join('');
       body = `<div class="climbox ${k.kind}"><b>${k.C.icon} ตอนนี้อยู่: ${k.c === 'thai' ? 'ไทย' : COUNTRIES[k.c].short} — ${k.C.name} ${k.C.temp}</b><br>ความอบอุ่นของชุดคุณ <b>${k.w > 0 ? '+' : ''}${k.w}</b> • ที่นี่สบายตัวช่วง <b>${k.C.lo} ถึง +${k.C.hi}</b> → ${k.kind === 'ok' ? 'พอดีแล้ว' : k.kind === 'cold' ? 'หนาวไป ' + k.d + ' ระดับ' : 'ร้อนไป ' + k.d + ' ระดับ'}<br><span class="muted small">รวมค่าอบอุ่นจาก เสื้อ+หมวก+ถุงมือ+รองเท้า • รัสเซียต้อง +9 ขึ้นไป • ประเทศร้อนต้องไม่เกิน +1 ถึง +4</span></div>`
@@ -10999,7 +11005,7 @@ const UI = (() => {
         else if (a === 'tab') { shopTab = b.dataset.t; shopSel._gear = shopTab; SFX.play('click'); shop(); }
         else if (a === 'buybag') { const i = +b.dataset.i, B = BAGS[i]; if (!B || i <= bagLevel()) return; if (STATE.coins < B.price) return toast('เงินไม่พอ', 'bad'); STATE.coins -= B.price; STATE.bag = i; SFX.play('coin'); toast(`🎒 ได้${B.name} ใส่พลอยได้ ${B.cap} เม็ด`, 'good'); saveGame(); hud(); shop(); }
         else if (a === 'pick') { shopSel[shopTab] = b.dataset.id; SFX.play('click'); const el = panel.querySelector('.shbody'), sc = el ? el.scrollTop : 0; shop(); const e2 = panel.querySelector('.shbody'); if (e2) e2.scrollTop = sc; }
-        else if (a === 'ammo') { const k = b.dataset.id, n = +b.dataset.n, c = CONSUMABLES[k]; if (STATE.coins < c.price * n) return toast('เงินไม่พอ', 'bad'); STATE.coins -= c.price * n; STATE.cons[k] = (STATE.cons[k] || 0) + c.pack * n; SFX.play('coin'); toast(`ได้${c.name} ${c.pack * n} ${c.warp ? 'บาน' : 'นัด'}`, 'good'); saveGame(); hud(); shop(); }
+        else if (a === 'ammo') { const k = b.dataset.id, n = +b.dataset.n, c = CONSUMABLES[k]; if (STATE.coins < c.price * n) return toast('เงินไม่พอ', 'bad'); STATE.coins -= c.price * n; STATE.cons[k] = (STATE.cons[k] || 0) + c.pack * n; SFX.play('coin'); toast(`ได้${c.name} ${c.pack * n} ${c.warp ? 'บาน' : c.reset ? 'ม้วน' : 'นัด'}`, 'good'); saveGame(); hud(); shop(); }
         else if (a === 'fix' || a === 'fixall') { doRepair(a === 'fixall' ? null : +b.dataset.u); shop(); }
         else if (a === 'buy') { const id = b.dataset.id, BX = shopX(id), it = effItem(BX);
           show('buyc', `<h3>ยืนยันการซื้อ</h3><div class="list">${itemRow(BX, money(it.price))}</div><div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อ ${baht(it.price)} บาท</button></div>`, a2 => {
@@ -11086,7 +11092,7 @@ const UI = (() => {
           <div class="eq2-me"><div class="doll sm"><img src="${dollURL(eqIds(), STATE.hand)}" alt="ตัวละครสวมอุปกรณ์"></div>
             <div class="eq2-hand"><small>ถืออยู่</small><b>${STATE.hand === 'pick' ? '⛏ พลั่ว (ขุด)' : '⚔ อาวุธ (ต่อสู้)'}</b><button class="btn small gold" data-a="swap">สลับ${G.touch ? '' : ' (Q)'}</button></div></div>
           <div class="eq2-slots">${SLOTS.map(slot).join('')}</div>
-          <div class="eq2-stats"><span>❤ HP ${ps.maxHp}</span><span>⚡ สเตมินา ${ps.maxSta}</span><span>⚔ โจมตี ${ps.weapon.dmg}</span><span>⛏ แรงขุด ${ps.pick.power}</span><span>🛡 ป้องกัน ${ps.def}</span><span title="โอกาสที่โล่ปัดการโจมตีได้ทั้งหมด ไม่เสียเลือด">⛨ บล็อก ${Math.round(ps.block * 100)}%</span><span>✦ โชค +${Math.round(ps.luck * 100)}%</span><span>🪙 เหรียญ +${Math.round((ps.coinFind || 0) * 100)}%</span><span title="โอกาสตีแรง ×1.8 (พื้นฐาน 12% + ค่าบวกจากอุปกรณ์)">🎯 คริติคอล ${Math.round((0.12 + (ps.crit || 0)) * 100)}%</span><span>☀ แสง +${ps.light}</span><span>👟 เร็ว ${Math.round((ps.speed - 1) * 100)}%</span><span title="เลือดฟื้นเองต่อวินาที">♥ ฟื้น +${ps.regenHp}/วิ</span><span title="สเตมินาฟื้นเร็วขึ้นตอนพัก">⚡ ฟื้น +${Math.round(ps.regenSta * 100)}%</span></div>
+          <div class="eq2-stats"><span>❤ HP ${ps.maxHp}</span><span>⚡ สเตมินา ${ps.maxSta}</span><span>⚔ โจมตี ${ps.weapon.dmg}</span><span>⛏ แรงขุด ${ps.pick.power}</span><span>🛡 ป้องกัน ${ps.def}</span><span title="โอกาสที่โล่ปัดการโจมตีได้ทั้งหมด ไม่เสียเลือด">⛨ บล็อก ${Math.round(ps.block * 100)}%</span><span>✦ เจอพลอย +${Math.round(ps.luck * 100)}%</span><span>🪙 เหรียญ +${Math.round((ps.coinFind || 0) * 100)}%</span><span title="โอกาสตีแรง ×1.8 (พื้นฐาน 12% + ค่าบวกจากอุปกรณ์)">🎯 คริติคอล ${Math.round((0.12 + (ps.crit || 0)) * 100)}%</span><span>☀ แสง +${ps.light}</span><span>👟 เร็ว ${Math.round((ps.speed - 1) * 100)}%</span><span title="เลือดฟื้นเองต่อวินาที">♥ ฟื้น +${ps.regenHp}/วิ</span><span title="สเตมินาฟื้นเร็วขึ้นตอนพัก">⚡ ฟื้น +${Math.round(ps.regenSta * 100)}%</span></div>
           <div class="eq2-cons">${consIds.map(con).join('')}</div>
         </div>
         <div class="eq2-r">
@@ -11725,7 +11731,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795181799";
+window.GAME_BUILD="1795182132";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
