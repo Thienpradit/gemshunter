@@ -885,9 +885,9 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 .hero-picker .hero-card input{position:absolute;top:9px;right:9px;width:16px;height:16px;margin:0;accent-color:#63ded2}
 #panel{overflow-x:hidden}
 @media (max-width:640px){.gcard:has(.hctl){flex-wrap:wrap}.gcard:has(.hctl) .ginfo{flex:1 1 0}.gcard:has(.hctl) .gp{flex:1 1 100%;min-width:0}.gcard .hctl{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}.gcard .hctl .time{margin-right:auto}.gcard .hctl .sel{max-width:none;flex:1 1 160px}.gcard:has(.hctl) .gtitle b{max-width:none}}
-#onlist{position:fixed;z-index:9000;max-height:min(60vh,420px);overflow:auto;background:linear-gradient(180deg,#3a2414,#22140a);border-radius:10px;box-shadow:0 0 0 2px #140a04,inset 0 0 0 1px #8a6438,0 8px 24px rgba(0,0,0,.55);color:#f4dcae;font:13px Tahoma,'Noto Sans Thai',sans-serif;padding:6px}
-#onlist .olh{font-weight:700;color:#ffe6a8;padding:4px 8px 6px;border-bottom:1px solid rgba(200,154,74,.35);margin-bottom:4px}
-#onlist .olr{display:flex;justify-content:space-between;gap:10px;padding:5px 8px;border-radius:6px}#onlist .olr:nth-child(odd){background:rgba(255,255,255,.04)}
+#onlist{position:fixed;z-index:9000;max-height:min(52vh,340px);overflow:auto;background:linear-gradient(180deg,#3a2414,#22140a);border-radius:9px;box-shadow:0 0 0 2px #140a04,inset 0 0 0 1px #8a6438,0 6px 18px rgba(0,0,0,.55);color:#f4dcae;font:11.5px Tahoma,'Noto Sans Thai',sans-serif;padding:4px}
+#onlist .olh{font-weight:700;font-size:12px;color:#ffe6a8;padding:3px 7px 4px;border-bottom:1px solid rgba(200,154,74,.35);margin-bottom:3px}
+#onlist .olr{display:flex;justify-content:space-between;gap:8px;padding:3px 7px;border-radius:5px}#onlist .olr:nth-child(odd){background:rgba(255,255,255,.04)}
 #onlist .olr b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#onlist .olr span{white-space:nowrap;color:#c8e8b0}#onlist .olr.me b{color:#ffd86a}#onlist .muted{color:#a89070;justify-content:center}
 </style>
 </head>
@@ -6959,7 +6959,7 @@ function buildAirport(m, cx, baseRow) {
 }
 function buildVillage() {
   // แมปขยาย: อาคารเรียงเป็นแนวครึ่งวงกลมรอบลานกลาง เว้นระยะไม่ให้ทับกัน (อาคารตั้งตรงสูง → ต้องเว้นแถวบนไว้มาก)
-  const W = 60, H0 = 37, H = 44, CX = 30, m = newMap('village', W, H); // H0 = ขอบหมู่บ้าน • แถวล่างเป็นสนามบิน
+  const W = 60, H0 = 37, H = 44, CX = 30, m = newMap('village', W, H); m.country = 'thai'; // H0 = ขอบหมู่บ้าน • แถวล่างเป็นสนามบิน
   m.t.fill(TILE.GRASS);
   for (let x = 0; x < W; x++) for (let y = 0; y < 4; y++) m.t[MI(m, x, y)] = TILE.CLIFF;
   for (const x of [CX - 1, CX]) for (const y of [2, 3]) m.t[MI(m, x, y)] = TILE.DARK; // ทางเข้าเหมืองเจาะเข้าหน้าผา
@@ -7826,7 +7826,7 @@ function paintHouseBG(m) {
   return c;
 }
 function buildHouse() {
-  const W = 18, H = 12, m = newMap('house', W, H); m.indoor = true; m.doorX = 8;
+  const W = 18, H = 12, m = newMap('house', W, H); m.indoor = true; m.doorX = 8; m.country = 'thai';
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const wall = y < 3 || x === 0 || x === W - 1 || (y === H - 1 && !(x === 8 || x === 9)); m.t[MI(m, x, y)] = wall ? TILE.CLIFF : TILE.PLAZA; }
   m.grinderAt = { x: 5 * 16, y: 5 * 16 + 6 };
   addObj(m, sprBed(), 14.5 * 16, 6 * 16, { solid: [36, 40], kind: 'bed' });
@@ -10112,8 +10112,9 @@ const NET = (() => {
 
   // ---------- จำนวนผู้เล่นออนไลน์ (ส่งสัญญาณทุก 25 วิ ตอนเปิดหน้าเกมอยู่ → เซิร์ฟเวอร์นับคนที่ส่งมาใน 70 วิล่าสุด) ----------
   N.onlineN = 0;
+  N.curCty = () => { try { const m = (typeof G !== 'undefined') && G.map; if (m && m.country) return m.country; if (m && (m.indoor || /village|house/.test(m.id || ''))) return 'thai'; } catch (e) {} return 'thai'; };
   N.ping = async function () {
-    if (!N.online || !token || document.hidden) return; const r = await api('/api/ping', { cty: (typeof G !== 'undefined' && G.map && G.map.country) || 'thai' }, { timeout: 8000 });
+    if (!N.online || !token || document.hidden) return; const r = await api('/api/ping', { cty: NET.curCty() }, { timeout: 8000 });
     if (r.status === 200) { N.onlineN = r.data.online | 0; const el = document.getElementById('onchip'); if (el) { el.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; el.style.display = ''; } }
   };
   // ---------- รายชื่อผู้เล่นออนไลน์ (กดป้าย "ออนไลน์ N คน" → เมนูชื่อ + ประเทศที่กำลังเล่นอยู่) ----------
@@ -10122,7 +10123,7 @@ const NET = (() => {
     let box = document.getElementById('onlist'); if (box) { box.remove(); return; }
     const chip = document.getElementById('onchip'); if (!chip) return;
     box = document.createElement('div'); box.id = 'onlist'; box.innerHTML = '<div class="olh">ผู้เล่นออนไลน์</div><div class="olb">กำลังโหลด…</div>'; document.body.appendChild(box);
-    const place = () => { const r = chip.getBoundingClientRect(), w = Math.min(260, innerWidth - 12); box.style.width = w + 'px'; box.style.top = (r.bottom + 6) + 'px'; box.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px'; }; place();
+    const place = () => { const r = chip.getBoundingClientRect(), w = Math.min(200, innerWidth - 12); box.style.width = w + 'px'; box.style.top = (r.bottom + 6) + 'px'; box.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px'; }; place();
     const d = await N.onlineList(); if (!document.getElementById('onlist')) return;
     const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : '-');
     if (d) { N.onlineN = d.online | 0; chip.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; }
@@ -11655,7 +11656,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795169159";
+window.GAME_BUILD="1795169441";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 30 วินาที (และตอนกลับมาที่แท็บ) โหลดหน้าเกมจากเซิร์ฟเวอร์ (ไม่ใช้แคช) แล้วเทียบเลขบิลด์ ถ้าไม่ตรง = มีอัปเดต → แสดงแถบด้านบน
 (function () {
