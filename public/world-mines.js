@@ -82,7 +82,7 @@ const WorldMines = (() => {
   // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น เป็น "ฝูงชนิดเดียวกัน" เรียงจากง่ายไปยากตามระยะทาง (ปากถ้ำอยู่บน → บันไดลงอยู่ล่าง):
   //  • จัด 10 ชนิดตามความยาก (พลังชีวิต × พลังโจมตี) แล้วแบ่งทางเดินเป็น 10 ช่วง ช่วงละ 1 ชนิด: ช่วงแรกชนิดที่ง่ายสุด … ช่วงสุดท้ายชนิดที่ยากสุดก่อนถึงบอส
   //  • ทุกจุดเป็นฝูงชนิดเดียวกัน 2–4 ตัว (จำนวนตามจุดเดิมของด่าน) • โพรงข้างทางใช้ชนิดเดียวกับช่วงความลึกนั้น
-  //  • มินิบอสและบอสเฝ้าท้ายชั้น • รอบจุดเซฟไม่มีศัตรู
+  //  • มินิบอสและบอสเฝ้าท้ายชั้น • ทุกจุดวางของด่านมีศัตรู เหมือนเหมืองจันทบุรี
   function distribute(m,groups){
     const entries=roster(m); if(!entries)return;
     const order=entries.slice(0,10).map((d,i)=>({d,i,p:(d.hp>0?d.hp*d.dmg:i)})).sort((a,b)=>a.p-b.p||a.i-b.i).map(o=>o.d);
@@ -94,8 +94,7 @@ const WorldMines = (() => {
       delete g.pack; delete g.sanctuary; g.champDead=false;
       if(g===bossG||g===miniG){g.type=entries[g===bossG?11:10].type;g.n=g.left=1;g.champ=false;continue;}
       if(g===lowG){g.type=order[N-1].type;g.n=g.left=3;g.champ=true;continue;}
-      g.type=kindAt(Math.floor(g.y/16)).type; g.n=g.left=Math.max(2,Math.min(4,g.n|0));   // ฝูงชนิดเดียวกัน 2–4 ตัว
-      if(nearSave(m,g.x,g.y,24))g.sanctuary=true;
+      g.type=kindAt(Math.floor(g.y/16)).type; g.n=g.left=Math.max(2,g.n|0);   // ตำแหน่งและจำนวนต่อฝูงเหมือนเหมืองจันทบุรีทุกจุด (ไม่เว้นจุดไหน) — เปลี่ยนแค่ชนิดตามช่วงความยาก
     }
   }
   return {install,roster,byId,regions,nearSave,distribute,scatterSpots};
