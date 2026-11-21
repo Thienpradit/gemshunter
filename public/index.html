@@ -107,6 +107,7 @@ body.touch #toasts{bottom:calc(190px + env(safe-area-inset-bottom))}
 .lead{font-size:16px}
 .muted{color:var(--muted)}.small{font-size:12.5px}.bad{color:var(--bad)}
 .x{position:absolute;right:8px;top:8px;width:34px;height:34px;font:600 16px Mitr,sans-serif;color:var(--ink);background:#5a3420;border:2px solid #140a05;cursor:pointer}
+#panel>.x{z-index:30;will-change:transform}
 .btn{font:inherit;color:var(--ink);background:linear-gradient(color-mix(in srgb,var(--f1,#523322) 70%,#fff 12%),var(--f2,#5a3420));border:2px solid #140a05;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,220,160,.22);padding:8px 14px;cursor:pointer;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:4px}
 .btn:hover{filter:brightness(1.12)}
 .btn:active{transform:translateY(1px)}
@@ -10286,6 +10287,9 @@ const NET = (() => {
    ===================================================================== */
 const UI = (() => {
   const modal = $('#modal'), panel = $('#panel');
+  /* ปุ่มปิด ✕ ตามติดมุมขวาบนตลอด: เลื่อนหน้าต่างลงไปแค่ไหนก็ยังกดปิดได้ (21 พ.ย. 2569) */
+  const xFollow = () => { const x = panel.querySelector(':scope > .x'); if (x) x.style.transform = panel.scrollTop ? `translateY(${panel.scrollTop}px)` : ''; };
+  panel.addEventListener('scroll', xFollow, { passive: true }); new MutationObserver(xFollow).observe(panel, { childList: true });
   let handler = null, timer = null, openName = null;
   const api = { grinding: false, onE: null };
 
@@ -10315,7 +10319,7 @@ const UI = (() => {
     handler = onAct; modal.classList.remove('hidden');
     G.keys = {}; G.dpad = {}; document.querySelectorAll('[data-dir].down').forEach(b => b.classList.remove('down'));
     panel.scrollTop = 0;
-    if (restore) { const m = scrollMem[name]; panel.scrollTop = m.p; panel.querySelectorAll('.list').forEach((x, i) => { if (m.l[i] != null) x.scrollTop = m.l[i]; }); } // ไม่ให้รายการเด้งกลับขึ้นบนสุดเวลาเลือก
+    if (restore) { const m = scrollMem[name]; panel.scrollTop = m.p; xFollow(); panel.querySelectorAll('.list').forEach((x, i) => { if (m.l[i] != null) x.scrollTop = m.l[i]; }); } // ไม่ให้รายการเด้งกลับขึ้นบนสุดเวลาเลือก
   }
   let backFn = null; // หน้าย่อย (เช่น ข้อมูลพลอย): กดปิด/Esc/คลิกนอกหน้าต่าง = ย้อนกลับหน้าก่อนหน้า ไม่ใช่ปิดทั้งหมด
   function dismiss() { if (backFn) { const f = backFn; backFn = null; SFX.play('click'); f(); } else close(); }
@@ -11794,7 +11798,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795224975";
+window.GAME_BUILD="1795228378";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
