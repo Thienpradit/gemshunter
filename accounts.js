@@ -204,12 +204,13 @@ async function handleApi(req, res, p) {
       /* กันเกมเวอร์ชันเก่าเซฟทับ (21 พ.ย. 2569): เวอร์ชันเก่าไม่รู้จักกระเป๋า/ตู้โชว์ แล้วเซฟทับจนของหาย
          1) ต้องส่งเลขบิลด์มา และไม่เก่ากว่า MIN_BUILD → ไม่งั้นตอบ 426 ให้รีเฟรช
          2) กระเป๋า/ตู้เซฟซื้อแล้วลดไม่ได้ → ใช้ค่าที่สูงกว่า
-         3) ตู้โชว์หายไปหลายเม็ดในครั้งเดียว (มากกว่า 3) → ไม่รับ ให้เครื่องนั้นโหลดของล่าสุดจากเซิร์ฟเวอร์ */
+         3) ตู้โชว์หายไปหลายเม็ดในครั้งเดียว (มากกว่า 3 โดยไม่นับเม็ดที่ผู้เล่นกดถอดเอง) → ไม่รับ ให้เครื่องนั้นโหลดของล่าสุดจากเซิร์ฟเวอร์ */
       if (!(+b.build >= MIN_BUILD)) return out(426, { err: 'เกมเวอร์ชันเก่า กรุณารีเฟรชหน้าเกม' });
       { const o = u.save || {}; if ((+o.bag | 0) > (+save.bag | 0)) save.bag = +o.bag | 0;
         if (o.safe && save.safe && (+o.safe.lv | 0) > (+save.safe.lv | 0)) save.safe.lv = +o.safe.lv | 0;
         const oc = o.showcase && typeof o.showcase === 'object' ? Object.keys(o.showcase).length : 0, nc = save.showcase && typeof save.showcase === 'object' ? Object.keys(save.showcase).length : 0;
-        if (oc - nc > 3) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
+        /* ผู้เล่นกดปุ่ม "ถอดออก" เองในตู้โชว์: เครื่องส่งจำนวนที่ตั้งใจถอด (scOut) มาด้วย → ไม่นับเป็นข้อมูลหาย */
+        if (oc - nc > 3 + Math.min(1000, Math.max(0, b.scOut | 0))) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
       const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval); { const c = ctyOfMap(save.pos && save.pos.map); if (c) touch(u.lname, u.name, c); } /* ประเทศล่าสุดจากเซฟ */
       return out(200, { ok: true, rev });
     }
