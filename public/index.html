@@ -10608,8 +10608,7 @@ const UI = (() => {
         ${BOARD_OFFERS && !r.me && r.open && me ? `<button class="btn small gold" data-a="bid" data-k="${r.key}">เสนอราคา</button>` : ''}</div></div>`; };
     show('board', `<h3>🏆 บอร์ดโชว์พลอยทั้งเกม</h3>
       ${!me ? `<div class="wme warn"><b>ยังไม่ได้ลงทะเบียน</b><small>ลงทะเบียนชื่อผู้เล่นก่อน พลอยของคุณถึงจะขึ้นบอร์ด</small><button class="btn gold small" data-a="player">ลงทะเบียนผู้เล่น</button></div>`
-        : `<div class="wme"><div class="wmeh"><b>👤 ${esc(me.name)}</b><button class="btn small" data-a="player">${NET.online ? 'บัญชี' : 'ผู้เล่น / สลับ'}</button></div>
-          ${BOARD_OFFERS && mine ? `<div class="wopen"><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b>' : '<b>ไม่รับข้อเสนอราคา</b>'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div>` : ''}</div>`}
+        : (BOARD_OFFERS && mine ? `<div class="wme"><div class="wopen"><span>สถานะ: ${B.open ? '<b class="good">รับข้อเสนอราคา</b>' : '<b>ไม่รับข้อเสนอราคา</b>'}</span><button class="btn small ${B.open ? '' : 'gold'}" data-a="open">${B.open ? 'ปิดรับข้อเสนอ' : 'เปิดรับข้อเสนอราคา'}</button></div></div>` : '')}
       <div class="wsect"><div class="wsect-t"><span class="wsect-ic">💎</span><b>อันดับพลอยทั้งเกม</b><span class="wsect-ic">💎</span></div>${NET.online ? `<div class="wsect-s"><span>👥 ผู้เล่นทั้งหมด <b>${NET.board ? fmtNum(NET.board.n) : '…'}</b> คน</span>${NET.onlineN ? `<span class="on">🟢 ออนไลน์ <b>${fmtNum(NET.onlineN)}</b> คน</span>` : ''}</div>` : ''}</div><div class="wlist">${rows.slice(0, NET.online ? 30 : 15).map(row).join('') || '<div class="empty">ยังไม่มีพลอยบนบอร์ด</div>'}</div>
       <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
       (a, b) => {
@@ -11777,7 +11776,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795219100";
+window.GAME_BUILD="1795219396";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
