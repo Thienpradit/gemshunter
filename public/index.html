@@ -8015,6 +8015,8 @@ const TOWN_WALKS = {"australia": "0000000000000000000000000000000000000000000000
 const TOWN_TENTS = {"australia": [1110, 590, 1300, 722, 1200], "brazil": [1215, 628, 1385, 736, 1297], "cambodia": [1140, 590, 1370, 728, 1240], "colombia": [1200, 585, 1470, 730, 1330], "ethiopia": [1180, 590, 1450, 722, 1300], "madagascar": [1150, 585, 1380, 732, 1260], "mozambique": [1150, 595, 1400, 732, 1250], "myanmar": [1100, 600, 1280, 728, 1190], "russia": [1180, 585, 1440, 722, 1300], "tanzania": [1150, 600, 1400, 735, 1245], "vietnam": [1090, 590, 1290, 725, 1185], "zambia": [1180, 590, 1480, 730, 1350]};
 for (const k in TOWN_WALKS) { const t = TOWN_TENTS[k]; TOWN_ART[k] = { ...TOWN_TMPL, src: 'towns/' + k + '.webp', walk: TOWN_WALKS[k] };
   if (t) { const A = TOWN_ART[k]; A.solids = TOWN_TMPL.solids.filter(r => !(r[0] === 1075 && r[1] === 582)).concat([[t[0], t[1] + 28, t[2], t[3] - 14]]); A.pts = { ...TOWN_TMPL.pts, tent: [t[4], t[3] + 12], tentHit: [t[0], t[1], t[2], t[3]] }; } }
+/* อัฟกานิสถาน: ยืมแผนที่เมืองของมาดากัสการ์มาใช้ชั่วคราว (ภาพ ทางเดิน เต็นท์ และบ่อน้ำชุดเดียวกัน) จนกว่าจะมีแผนที่ของตัวเอง */
+if (TOWN_ART.madagascar) TOWN_ART.afghanistan = { ...TOWN_ART.madagascar, pondKey: 'madagascar' };
 function applyTownArt(m, key) {
   const A = TOWN_ART[key]; if (!A) return;
   const WX = px => px * m.w * 16 / A.W, WY = py => py * m.h * 16 / A.H, P = ([x, y]) => [WX(x), WY(y)], R = ([x0, y0, x1, y1]) => ({ x: WX(x0), y: WY(y0), w: WX(x1) - WX(x0), h: WY(y1) - WY(y0) }), pt = A.pts;
@@ -8027,8 +8029,8 @@ function applyTownArt(m, key) {
   const SR = A.solids.map(R); m.solids = SR.map(r => ({ ...r }));
   for (let ty = 0; ty < m.h; ty++) for (let tx = 0; tx < m.w; tx++) { const cx = tx * 16 + 8, cy = ty * 16 + 8; if (SR.some(r => cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h)) m.solidT[MI(m, tx, ty)] = 1; }
   // บ่อน้ำกลางลาน (ponds.js) — ชนได้ เดินอ้อม
-  m.pond = null; if (typeof PONDS !== 'undefined' && PONDS[key]) { const Pd = PONDS[key], px = WX(POND_CENTER[0]), py = WY(POND_CENTER[1]), cpx = Math.round(px / 16), cpy = Math.round(py / 16);
-    m.pond = { key, x: px, y: py, sortY: py + Pd.fh / 2 - 2 };
+  m.pond = null; const pondK = A.pondKey || key; if (typeof PONDS !== 'undefined' && PONDS[pondK]) { const Pd = PONDS[pondK], px = WX(POND_CENTER[0]), py = WY(POND_CENTER[1]), cpx = Math.round(px / 16), cpy = Math.round(py / 16);
+    m.pond = { key: pondK, x: px, y: py, sortY: py + Pd.fh / 2 - 2 };
     let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     for (const [dx, dy] of Pd.cells) { const tx = cpx + dx, ty = cpy + dy; if (tx < 0 || ty < 0 || tx >= m.w || ty >= m.h) continue; m.solidT[MI(m, tx, ty)] = 1; minx = Math.min(minx, tx); maxx = Math.max(maxx, tx); miny = Math.min(miny, ty); maxy = Math.max(maxy, ty); }
     if (maxx >= minx) m.solids.push({ x: minx * 16 + 3, y: miny * 16 + 3, w: (maxx - minx + 1) * 16 - 6, h: (maxy - miny + 1) * 16 - 6 }); }
@@ -12083,7 +12085,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795244171";
+window.GAME_BUILD="1795244402";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
