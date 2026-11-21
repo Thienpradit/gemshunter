@@ -8640,7 +8640,7 @@ function drawThaiCaveMonster(g, e, def, S, T) {
   g.save();
   g.fillStyle = 'rgba(0,0,0,0.32)';
   g.beginPath();
-  g.ellipse(x, feet - 1, def.r, def.r * 0.4, 0, Math.PI * 2);
+  g.ellipse(x, feet - 1, def.r, def.r * 0.4, 0, 0, Math.PI * 2);
   g.fill();
   if (image.complete && image.naturalWidth) {
     const cell = image.naturalWidth / 4;
