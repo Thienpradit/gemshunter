@@ -956,6 +956,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 <div id="flight" class="hidden"><div class="sky"><canvas id="flCanvas"></canvas></div>
   <div class="flbox frame"><h2 id="flTitle"></h2><div class="route"><b id="flFrom"></b><span>✈ · · · · · · ·</span><b id="flTo"></b></div><div class="bar big"><i id="flBar"></i></div><p id="flTime"></p></div></div>
 <div id="fade"></div>
+<script src="world-mines.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -8075,6 +8076,8 @@ for (const entry of THAI_CAVE_MONSTERS) {
   MON_LV[type] = MON_LV[loot] || [4, 10];
 }
 
+WorldMines.install(THAI_CAVE_MONSTERS, MONS, MON_LV);
+
 function assignThaiCaveMonsters(m, groups) {
   if (countryOfMap(m.id) !== 'thai') return;
   const roster = THAI_CAVE_MONSTERS.filter(entry => entry.floor === m.tier);
@@ -8106,6 +8109,7 @@ const _white = new Map();
 function whiteOf(c) { if (_white.has(c)) return _white.get(c); const w = mk(c.width, c.height); w.g.drawImage(c, 0, 0); w.g.globalCompositeOperation = 'source-in'; w.g.fillStyle = '#ffffff'; w.g.fillRect(0, 0, c.width, c.height); _white.set(c, w.c); return w.c; }
 
 function monBoxFree(m, x, y, r) {
+  if (WorldMines.nearSave(m,x,y,r)) return false;
   const x0 = x - r, x1 = x + r, y0 = y - r * 0.8, y1 = y;
   const tx0 = Math.floor(x0 / 16), tx1 = Math.floor((x1 - 0.01) / 16), ty0 = Math.floor(y0 / 16), ty1 = Math.floor((y1 - 0.01) / 16);
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { if (tx < 0 || ty < 0 || tx >= m.w || ty >= m.h || m.solidT[MI(m, tx, ty)]) return false; }
@@ -8163,7 +8167,8 @@ function tryDigHaunt(m, x, y, zone) {
   const haunt = G.digHaunt;
   haunt.breaks++;
   if (haunt.breaks < DIG_HAUNT_MIN_BREAKS || G.time < haunt.nextAt || Math.random() >= DIG_HAUNT_CHANCE) return;
-  const type = Math.random() < 0.5 ? 'skeleton' : 'ghost';
+  const local=WorldMines.roster(m);
+  const type = local ? local[Math.floor(Math.random()*11)].type : Math.random() < 0.5 ? 'skeleton' : 'ghost';
   if (!monBoxFree(m, x, y, MONS[type].r)) return;
 
   const e = mkMon(m, type, x, y, zone);
@@ -8208,12 +8213,13 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
       let draw = rnd() * list.reduce((t, e) => t + e[1], 0); const [type] = list.find(([, w]) => (draw -= w) < 0) || list[0];
       const n = Math.max(2, Math.round((zz === 'gravel' ? 2 : 2 + Math.floor(rnd() * 2)) * MON_MORE) - 1);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: zz !== 'gravel' && rnd() < 0.15, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true }); } }
-  assignThaiCaveMonsters(m, G2);
+  if (WorldMines.roster(m)) WorldMines.distribute(m,G2);
+  else assignThaiCaveMonsters(m, G2);
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   m.groups = G2; }
 function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
 function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now(), present = new Set(); for (const o of G.mons) if (o.grp) present.add(o.grp);
-  for (const g of m.groups) { if (g.active && !present.has(g)) g.active = false;
+  for (const g of m.groups) { if (g.sanctuary) continue; if (g.active && !present.has(g)) g.active = false;
     if (g.left <= 0) { if (now - g.deadAt >= GROUP_RESPAWN_MIN * 60000) { g.left = g.n; g.deadAt = 0; g.champDead = false; grpSave(m, g); } else continue; }
     if (g.active) continue; const d = Math.hypot(g.x - PL.x, g.y - PL.y); if (d > GROUP_NEAR || d < 90) continue; /* ไม่โผล่ทับตัวผู้เล่น */
     const def = MONS[g.type]; let made = 0; const spots = [[0, 0], [18, 4], [-18, -4], [4, 18], [-4, -18], [16, 16], [-16, 16], [16, -16], [-16, -16], [32, 0], [-32, 0], [0, 32], [0, -32]];
@@ -8223,12 +8229,12 @@ function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now()
 /* แม่ทัพ: ตัวเดียวกับลูกน้องแต่ตัวใหญ่กว่า เลือด 3.2 เท่า ตีแรง 1.5 เท่า เลเวล +3 ให้ EXP/เงิน 3 เท่า ดรอปของเสมอและมีโอกาสได้ของดีสูงกว่า */
 function makeChamp(o) { const def = MONS[o.type]; o.champ = true; o.name = 'แม่ทัพ' + (o.name || def.name); monScale(o, true); /* แม่ทัพ: เลเวลผู้เล่น +4 เลือด ×3.2 ตีแรง ×1.5 */ o.xp = Math.round((o.xp || 1) * 3); o.coinMul = (o.coinMul || 1) * 3; return o; }
 // ประตูวิเศษหน้าบันไดทางลง: ชั้นที่มีบอส ต้องฆ่าบอสของชั้นนั้นก่อน ประตูจึงสลาย (ฆ่าแล้วเปิดถาวรสำหรับเหมืองชั้นนั้น — เก็บใน STATE.gates)
-function gateBoss(m) { const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : (m && (m.tier || 1) === 1 && m.descend ? 'brute' : null); } /* ชั้น 1 ไม่มีบอส: ใช้มินิบอสซอมบี้ยักษ์ไพลินเป็นผู้เฝ้าประตู */
+function gateBoss(m) { const local = WorldMines.roster(m); if (local) return local[12].type; const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : (m && (m.tier || 1) === 1 && m.descend ? 'brute' : null); } /* ชั้น 1 ไม่มีบอส: ใช้มินิบอสซอมบี้ยักษ์ไพลินเป็นผู้เฝ้าประตู */
 function gateLocked(m) { return !!(m && m.descend && gateBoss(m) && !(STATE.gates && STATE.gates[m.id])); }
 // บอสใหญ่ประจำชั้นเรียกลูกสมุน (ศัตรูธรรมดาของชั้นนั้น) ออกมาช่วยเป็นช่วง ๆ: ครั้งแรกหลังเริ่มสู้ 8 วิ จากนั้นทุก 20 วิ ครั้งละ 2 ตัว มีพร้อมกันได้ไม่เกิน 4 ตัว • บอสตาย ลูกสมุนสลายตาม
 const SUMMON_FIRST = 8, SUMMON_EVERY = 20, SUMMON_N = 2, SUMMON_MAX = 4;
 function bossSummon(m, e, dt) { if (e.sumT == null) e.sumT = SUMMON_FIRST; e.sumT -= dt; if (e.sumT > 0) return; e.sumT = SUMMON_EVERY;
-  const S = t2Mine(m); if (!S) return; const list = S.table.deep.filter(a => !MONS[a[0]].big && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) return;
+  const S = t2Mine(m), local=WorldMines.roster(m); if (!S && !local) return; const list = local ? local.slice(0,11).map(d=>[d.type,1]) : S.table.deep.filter(a => !MONS[a[0]].big && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) return;
   let alive = 0; for (const o of G.mons) if (o.sumBy === e && !o.dead && o.hp > 0) alive++; let made = 0;
   for (let k = 0; k < 14 && made < SUMMON_N && alive + made < SUMMON_MAX; k++) { const type = list[pickWeighted(list.map(a => a[1]))][0], a = Math.random() * 6.283, rr = 34 + Math.random() * 22, x = e.x + Math.cos(a) * rr, y = e.y + Math.sin(a) * rr * 0.8;
     if (!monBoxFree(m, x, y, MONS[type].r) || Math.hypot(x - PL.x, y - PL.y) < 20) continue; const o = mkMon(m, type, x, y, 'deep'); o.sumBy = e; o.riseT = 0.65; o.state = 'chase'; made++;
@@ -8309,6 +8315,7 @@ function updateKrakenSlam(m, e, def, dt, d) {
 }
 /* บอสคลั่ง (21 พ.ย. 2569): บอสใหญ่/มินิบอส เลือดยิ่งน้อยยิ่งเร็ว — เดิน ง้าง ตี และคูลดาวน์เร็วขึ้นสูงสุด +50% ตอนเลือดใกล้หมด */
 function thaiCaveHit(m, e, def, dmg, who) {
+  if (WorldMines.nearSave(m,PL.x,PL.y)) return false;
   const dx = PL.x - e.x, dy = PL.y - e.y, distance = Math.hypot(dx, dy);
   if (G.down || distance > def.reach + 4 || dx * e.ax + dy * e.ay < distance * 0.35
       || !losClear(m, e.x, e.y - 4, PL.x, PL.y - 4)) return false;
@@ -8377,6 +8384,7 @@ function tickThaiCaveAttack(m, e, def, dt) {
 }
 
 function updateThaiCavePoison(m, dt) {
+  if (WorldMines.nearSave(m,PL.x,PL.y)) { G.cavePoison=null; return; }
   if (dt <= 0 || G.down || G.trans) return;
   for (const c of G.clouds || []) {
     if (!c.poison || c.map !== m || c.t < c.delay || c.t >= c.life) continue;
@@ -8480,7 +8488,7 @@ function updateMonsters(dtAll) {
 // ลูกธนูของศัตรู: บินตรง ชนผนัง/หินแล้วหยุด โดนผู้เล่นแล้วเจ็บ (วิ่งหลบได้)
 function updateArrows(dt) { const m = G.map; if (!G.arrows || !G.arrows.length) return;
   for (const b of G.arrows) { for (let i = 0; i < 3 && !b.dead; i++) { b.x += b.vx * dt / 3; b.y += b.vy * dt / 3; const tx = Math.floor(b.x / 16), ty = Math.floor((b.y - 4) / 16);
-      if (tx < 0 || ty < 0 || tx >= m.w || ty >= m.h || (m.solidT[MI(m, tx, ty)] && m.t[MI(m, tx, ty)] !== TILE.WATER)) { b.dead = true; break; }
+      if (WorldMines.nearSave(m,b.x,b.y) || tx < 0 || ty < 0 || tx >= m.w || ty >= m.h || (m.solidT[MI(m, tx, ty)] && m.t[MI(m, tx, ty)] !== TILE.WATER)) { b.dead = true; break; }
       if (!G.down && Math.abs(PL.x - b.x) < 8 && b.y - PL.y > -11 && b.y - PL.y < 8) { /* โดนตัวผู้เล่นทั้งตัว (เดิมเป็นจุดเล็กแถวขา) */ hurtPlayer(b.dmg, b.x - b.vx * 0.1, b.y - b.vy * 0.1, b.who); b.dead = true; } }
     b.life -= dt; if (b.life <= 0) b.dead = true; }
   G.arrows = G.arrows.filter(b => !b.dead); }
@@ -8665,6 +8673,7 @@ function drawThaiCaveMonster(g, e, def, S, T) {
 }
 
 function drawMonsterSprite(g, e, S, T) {
+  if (MONS[e.type].worldCreature) return WorldMineArt.draw(g,e,MONS[e.type],S,T);
   if (MONS[e.type].caveAttack) return drawThaiCaveMonster(g, e, MONS[e.type], S, T);
   const def0 = MONS[e.type], IMG = ART.monImg && ART.monImg[e.type], def = IMG ? { ...def0, human: false } : def0, t = G.time; let fr, w, h, sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1);
   // ท่าโจมตี: ง้าง (ถอยหลังเล็กน้อย+สั่น) → พุ่งเข้าใส่ (ท่าฟาด)
