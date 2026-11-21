@@ -78,34 +78,39 @@ const WorldMines = (() => {
     }
     return out;
   }
-  // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น: ล้างชนิดเดิมทั้งหมด → 10 ชนิดสลับกันตลอดทาง (ประชิด ยิงไกล พิษ วนกัน ไม่ซ้ำติดกัน) ตัวเดี่ยวสลับกับกลุ่มเล็กต่างชนิด
-  // มินิบอสเฝ้ากลางทาง บอสอยู่ท้ายชั้น • รอบจุดเซฟและช่วงพักไม่มีศัตรู
+  // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น เรียงจากง่ายไปยากตามระยะทาง (ปากถ้ำอยู่บน → บันไดลงอยู่ล่าง):
+  //  • จัด 10 ชนิดตามความยาก (พลังชีวิต × พลังโจมตี) แล้วแบ่งเป็น 5 กลุ่ม กลุ่มละ 2 ชนิด: กลุ่ม 1 ง่ายสุดอยู่ช่วงแรกของทาง … กลุ่ม 5 ยากสุดอยู่ก่อนถึงบอส
+  //  • แต่ละช่วงเจอเฉพาะ 2 ชนิดของกลุ่มนั้น (ตัวเดี่ยวสลับกับคู่) • มินิบอสและบอสเฝ้าท้ายชั้น • รอบจุดเซฟและช่วงพักไม่มีศัตรู
+  const BANDS=5;
   function distribute(m,groups){
     const entries=roster(m); if(!entries)return;
-    const normal=entries.slice(0,10), by={melee:[],ranged:[],poison:[]}; for(const d of normal)(by[d.caveAttack.role]||by.melee).push(d);
-    const cyc=[]; for(let i=0;cyc.length<normal.length&&i<10;i++)for(const r of ['melee','ranged','poison'])if(by[r][i])cyc.push(by[r][i]);
-    const R=m.endRoute, at=p=>p&&groups.findLast(g=>g.x===p[0]*16+8&&g.y===p[1]*16+12&&!g.routeEncounter);
-    const bossG=at(R.boss), miniG=at(R.guard), lowG=at(R.lowerGuard);
-    let k=(m.tier*3+entries[0].regionNo)%cyc.length, c=k+5;
-    const one=(g,type)=>{g.type=type;g.n=g.left=1;g.champ=false;g.champDead=false;delete g.pack;delete g.sanctuary;};
+    const power=d=>{const D=d&&d.hp>0?d:null; return D?D.hp*D.dmg:0;};
+    const order=entries.slice(0,10).map((d,i)=>({d,i,p:power(d)})).sort((a,b)=>a.p-b.p||a.i-b.i).map(o=>o.d);
+    const R=m.endRoute, y0=18, y1=Math.max(y0+10,R.entranceY-1);
+    const bandOf=ty=>Math.max(0,Math.min(BANDS-1,Math.floor((ty-y0)/(y1-y0)*BANDS)));
+    const pair=b=>[order[Math.min(order.length-1,2*b)],order[Math.min(order.length-1,2*b+1)]];
+    const at=p=>p&&groups.findLast(g=>g.x===p[0]*16+8&&g.y===p[1]*16+12&&!g.routeEncounter);
+    const bossG=at(R.boss), miniG=at(R.guard), lowG=at(R.lowerGuard), turn=new Array(BANDS).fill(0);
+    const clear=g=>{delete g.pack;delete g.sanctuary;g.champDead=false;g.champ=false;};
+    const one=(g,type)=>{clear(g);g.type=type;g.n=g.left=1;};
     const lane=groups.filter(g=>g.routeEncounter&&g!==bossG&&g!==miniG&&g!==lowG).sort((a,b)=>a.y-b.y||a.x-b.x);
     lane.forEach((g,i)=>{
-      delete g.pack; delete g.sanctuary; g.champDead=false;
-      const ty=Math.floor(g.y/16);
-      if(nearSave(m,g.x,g.y,24)||restRow(ty)){g.type=cyc[0].type;g.n=g.left=1;g.champ=false;g.sanctuary=true;return;}
-      const a=cyc[k++%cyc.length];
-      if(g.scatter){one(g,a.type);return;}
-      const b=cyc[(k+3)%cyc.length], c2=cyc[(k+6)%cyc.length]; g.type=a.type; g.n=g.left=2; g.pack=[a.type,b.type,c2.type]; g.champ=i%7===3;   // จุดบนทางเดิน: คู่ต่างชนิด • บางคู่มีแม่ทัพนำ
+      clear(g); const ty=Math.floor(g.y/16), b=bandOf(ty), P=pair(b);
+      if(nearSave(m,g.x,g.y,24)||restRow(ty)){g.type=P[0].type;g.n=g.left=1;g.sanctuary=true;return;}
+      const t=turn[b]++;
+      if(g.scatter){g.type=P[t%2].type;g.n=g.left=1;return;}
+      g.type=P[t%2].type; g.n=g.left=2; g.pack=[P[t%2].type,P[(t+1)%2].type]; g.champ=i%7===3;   // จุดบนทางเดิน: คู่ของกลุ่มเดียวกัน • บางคู่มีแม่ทัพนำ
     });
+    let c=0;
     for(const g of groups){
       if(g===bossG){one(g,entries[11].type);continue;}
       if(g===miniG){one(g,entries[10].type);continue;}
-      if(g===lowG){const a=cyc[(k+1)%cyc.length],b=cyc[(k+4)%cyc.length];g.type=a.type;g.n=g.left=2;g.pack=[a.type,b.type];g.champ=true;g.champDead=false;delete g.sanctuary;continue;}
+      if(g===lowG){const P=pair(BANDS-1);clear(g);g.type=P[1].type;g.n=g.left=2;g.pack=[P[1].type,P[0].type];g.champ=true;continue;}
       if(g.routeEncounter)continue;
-      // โพรงข้างทาง (ต้องขุดเข้าไป): ตัวเดี่ยวหรือคู่ กระจายครบทุกชนิด
-      delete g.pack; delete g.sanctuary; g.champDead=false;
-      if(nearSave(m,g.x,g.y,24)){g.type=cyc[0].type;g.n=g.left=1;g.champ=false;g.sanctuary=true;continue;}
-      const a=cyc[c++%cyc.length]; g.type=a.type; g.n=g.left=c%3?2:3; g.pack=[a.type,cyc[(c+4)%cyc.length].type,cyc[(c+7)%cyc.length].type]; g.champ=c%5===0;
+      // โพรงข้างทาง (ต้องขุดเข้าไป): ใช้ชนิดของกลุ่มเดียวกับระดับความลึกนั้น
+      clear(g); const ty=Math.floor(g.y/16), P=pair(bandOf(ty));
+      if(nearSave(m,g.x,g.y,24)){g.type=P[0].type;g.n=g.left=1;g.sanctuary=true;continue;}
+      c++; g.type=P[c%2].type; g.n=g.left=c%3?2:3; g.pack=[P[c%2].type,P[(c+1)%2].type]; g.champ=c%5===0;
     }
   }
   return {install,roster,byId,regions,nearSave,distribute,scatterSpots};
