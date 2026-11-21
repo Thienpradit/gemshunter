@@ -133,11 +133,11 @@ function pubOf(save, pub) {
 
 // ผู้เล่นออนไลน์: จดเวลาที่แต่ละบัญชีส่งสัญญาณล่าสุด (เก็บในหน่วยความจำ) — นับคนที่ส่งมาภายใน 70 วินาที
 const seen = new Map(), ONLINE_MS = 70000;
-function touch(l, name, cty) { const o = seen.get(l) || {}; seen.set(l, { t: Date.now(), name: name || o.name || l, cty: cty || o.cty || '' }); }
+function touch(l, name, cty, lv) { const o = seen.get(l) || {}; seen.set(l, { t: Date.now(), name: name || o.name || l, cty: cty || o.cty || '', lv: lv > 0 ? Math.max(1, Math.min(MAX_LV, Math.floor(lv))) : (o.lv || 0) }); } /* lv = เลเวลจากเซฟล่าสุดของบัญชี (อ่านจากเซฟเอง) */
 function onlineCount() { const now = Date.now(); let n = 0; for (const [l, o] of seen) { if (now - o.t > ONLINE_MS) seen.delete(l); else n++; } return n; }
 /* ประเทศจากชื่อแผนที่ในเซฟ (village/house/mine = ไทย • out_X / mine_X = X) — ใช้กับเครื่องที่ยังไม่ได้ส่งประเทศมาเอง */
 function ctyOfMap(id) { id = String(id || '').split('~')[0]; if (id === 'mine' || id === 'village' || id === 'house') return 'thai'; const m = /^(?:mine_|out_)([a-z]{2,12})$/.exec(id); return m ? m[1] : ''; }
-function onlineList() { onlineCount(); return [...seen.values()].map(o => ({ name: o.name, cty: o.cty })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 200); }
+function onlineList() { onlineCount(); return [...seen.values()].map(o => ({ name: o.name, cty: o.cty, lv: o.lv || 0 })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 200); }
 let boardCache = null, boardAt = 0;   // อันดับ: คำนวณใหม่ไม่ถี่กว่า 15 วินาที
 async function board() { const now = Date.now(); if (boardCache && now - boardAt < 15000) return boardCache; boardCache = await store.board(50); boardAt = now; return boardCache; }
 
@@ -192,7 +192,7 @@ async function handleApi(req, res, p) {
 
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
-    { const o = seen.get(u.lname); touch(u.lname, u.name, o && o.cty ? '' : ctyOfMap(u.save && u.save.pos && u.save.pos.map)); }
+    { const o = seen.get(u.lname); touch(u.lname, u.name, o && o.cty ? '' : ctyOfMap(u.save && u.save.pos && u.save.pos.map), o && o.lv ? 0 : +(u.save && u.save.lv) || 0); }
     if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } let top = null; try { const B = await board(), t = B.gems && B.gems[0]; if (t && t.gem) top = { name: t.name, value: t.value, gem: t.gem }; } catch (e) {} return out(200, { online: onlineCount(), top }); } /* top = อันดับ 1 ของบอร์ด (แคช 15 วิ) → ทุกเครื่องรู้ทันทีเมื่ออันดับ 1 เปลี่ยน แล้วโชว์ป้ายประกาศ */
     if (p === '/api/online') return out(200, { online: onlineCount(), list: onlineList() });
     if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
@@ -211,7 +211,7 @@ async function handleApi(req, res, p) {
         const oc = o.showcase && typeof o.showcase === 'object' ? Object.keys(o.showcase).length : 0, nc = save.showcase && typeof save.showcase === 'object' ? Object.keys(save.showcase).length : 0;
         /* ผู้เล่นกดปุ่ม "ถอดออก" เองในตู้โชว์: เครื่องส่งจำนวนที่ตั้งใจถอด (scOut) มาด้วย → ไม่นับเป็นข้อมูลหาย */
         if (oc - nc > 3 + Math.min(1000, Math.max(0, b.scOut | 0))) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
-      const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval); { const c = ctyOfMap(save.pos && save.pos.map); if (c) touch(u.lname, u.name, c); } /* ประเทศล่าสุดจากเซฟ */
+      const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval); { const c = ctyOfMap(save.pos && save.pos.map); touch(u.lname, u.name, c, P.lv); } /* ประเทศล่าสุดจากเซฟ */
       return out(200, { ok: true, rev });
     }
     if (p === '/api/password' && req.method === 'POST') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)

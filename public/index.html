@@ -900,7 +900,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 #onlist{position:fixed;z-index:9000;max-height:min(52vh,340px);overflow:auto;background:linear-gradient(180deg,#3a2414,#22140a);border-radius:9px;box-shadow:0 0 0 2px #140a04,inset 0 0 0 1px #8a6438,0 6px 18px rgba(0,0,0,.55);color:#f4dcae;font:11.5px Tahoma,'Noto Sans Thai',sans-serif;padding:4px}
 #onlist .olh{font-weight:700;font-size:12px;color:#ffe6a8;padding:3px 7px 4px;border-bottom:1px solid rgba(200,154,74,.35);margin-bottom:3px}
 #onlist .olr{display:flex;justify-content:space-between;gap:8px;padding:3px 7px;border-radius:5px}#onlist .olr:nth-child(odd){background:rgba(255,255,255,.04)}
-#onlist .olr b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#onlist .olr span{white-space:nowrap;color:#c8e8b0}#onlist .olr.me b{color:#ffd86a}#onlist .muted{color:#a89070;justify-content:center}
+#onlist .olr b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#onlist .olr span{white-space:nowrap;color:#c8e8b0}#onlist .olr.me b{color:#ffd86a}#onlist .ollv{font-style:normal;font-weight:700;font-size:10px;color:#1c1206;background:linear-gradient(#ffe9a0,#d8a848);border-radius:4px;padding:0 4px;margin-left:4px;vertical-align:1px}#onlist .muted{color:#a89070;justify-content:center}
 </style>
 </head>
 <body class="ro">
@@ -925,7 +925,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
     <div id="climchip" class="chip frame clim ok" style="display:none!important"></div>
     <div id="onchip" class="chip frame" style="display:none;cursor:pointer" title="กดเพื่อดูรายชื่อผู้เล่นที่ออนไลน์"></div>
     <button id="btnPin" class="hbtn frame" title="ปักหมุดตรงที่ยืนอยู่ — เห็นบนแผนที่ย่อ (P) • ยืนทับหมุดเดิมแล้วกดอีกครั้งเพื่อถอน">📍</button>
-    <button id="btnCps" class="hbtn frame" title="คัมภีร์จุดเซฟ — วาร์ปไปจุดเซฟในเหมือง (M)">📜</button>
+    <button id="btnCps" class="hbtn frame" title="คัมภีร์จุดเซฟ — วาร์ปไปจุดเซฟในเหมือง (K)">📜</button>
     <button id="btnBoard" class="hbtn frame" title="บอร์ดโชว์พลอยทั้งเกม">🏆</button>
     <button id="btnMenu" class="hbtn frame" title="เมนู (Esc)">☰</button>
   </div>
@@ -2020,7 +2020,7 @@ function migrateSave(s) {
   st.grp = {}; if (s.grp && typeof s.grp === 'object') for (const id in s.grp) { const L = s.grp[id], o = {}; if (L && typeof L === 'object') for (const k in L) { const v = L[k]; if (/^\d+$/.test(k) && v && typeof v === 'object') o[k] = { l: Math.max(0, v.l | 0), d: Number(v.d) || 0, c: v.c ? 1 : 0 }; } st.grp[id] = o; }
   st.cps = s.cps && typeof s.cps === 'object' ? s.cps : {}; st.pins = s.pins && typeof s.pins === 'object' ? s.pins : {}; st.gates = s.gates && typeof s.gates === 'object' ? s.gates : {};
   st.hero = s.hero === 'female' || s.hero === 'male' || s.hero === 'classic' ? s.hero : heroDefault();
-  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5; st.ammoGift = !!s.ammoGift; st.bossGold = {}; if (s.bossGold && typeof s.bossGold === 'object') for (const k in s.bossGold) if (/^[a-z0-9]{1,16}$/.test(k)) st.bossGold[k] = 1;
+  st.muted = !!s.muted; if (s.music === false) st.music = false; st.v = SAVE_VERSION; st.durV = 2; st.seenIntro = !!(s.seenIntro || s.v); st.gift5 = !!s.gift5; st.ammoGift = !!s.ammoGift; st.bossGold = {}; if (s.bossGold && typeof s.bossGold === 'object') for (const k in s.bossGold) if (/^[a-z0-9]{1,16}$/.test(k)) st.bossGold[k] = 1; st.bossGoldSlots = Array.isArray(s.bossGoldSlots) ? s.bossGoldSlots.filter(x => SLOTS.includes(x)).slice(0, 7) : []; st.bossGoldShot = s.bossGoldShot ? 1 : 0;
   st.savedAt = Number(s.savedAt) || 0;
   const maxId = Math.max(0, ...st.inv.map(g => g.id), ...st.queue.jobs.map(j => j.gem.id));
   st.nextId = Math.max(st.nextId, maxId + 1);
@@ -6440,8 +6440,18 @@ const MINER = (() => {
         if (view === 'front') { const n = at(17 - PK.L * PK.L / 11, -PK.L); px(Math.round(n[0] - .5), Math.round(n[1] - .5), c(PK.tips || PK.edge || PK.h, 'hi')); } };
       if (view === 'back') { head(); handle(); } else { handle(); head(); } };
     // ท่าถือปืน: ปืนยาวประทับสองมือ (พานท้ายชิดไหล่ มือหน้าประคองลำกล้อง) • ปืนสั้นยื่นแขนเล็ง
-    const gp = !!(IT && IT.gun) && !dig, pistol = gp && IT.gun === 'pistol', bG = b + (gp && anim === 'walk' ? Math.round(sr * 0.9) : 0); /* เดินถือปืน: ปืนกับมือโยกขึ้นลงตามจังหวะก้าว (ไม่แข็งทื่อ) */
+    const gp = !!(IT && IT.gun) && !dig, pistol = gp && IT.gun === 'pistol', xbow = gp && IT.gun === 'xbow', bG = b + (gp && anim === 'walk' ? Math.round(sr * 0.9) : 0); /* เดินถือปืน: ปืนกับมือโยกขึ้นลงตามจังหวะก้าว (ไม่แข็งทื่อ) */
     const gunDraw = (x0, y0, x1, y1, flip) => { const L = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L, uy = (y1 - y0) / L, k = flip ? -1 : 1, qx = -uy * k, qy = ux * k, at = t => [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
+      if (xbow) { /* หน้าไม้: ด้ามไม้ + คันศรเหล็กโค้งขวางหัว + สาย • ถือ/เดิน = ขึ้นสายพร้อมลูก • เฟรมยิง: 0–1 สายดีดตรง ลูกออกไปแล้ว → 2 ดึงสายกลับครึ่งทาง → 3 ขึ้นสายใส่ลูกใหม่ */
+        const st = FIRE ? [0, 0, 1, 2][f] : 2, c = at(.8), B2 = at(.06), tipL = L < 16 ? 8 : 7, sw = st === 0 ? 1.6 : 3;
+        const tA = [c[0] + qx * tipL - ux * sw, c[1] + qy * tipL - uy * sw], tB = [c[0] - qx * tipL - ux * sw, c[1] - qy * tipL - uy * sw], nk = st === 2 ? at(.36) : st === 1 ? at(.56) : [c[0] - ux * sw, c[1] - uy * sw];
+        P(seg(tA[0], tA[1], nk[0], nk[1], .45), '#efe6d2', { nol: 1 }); P(seg(tB[0], tB[1], nk[0], nk[1], .45), '#efe6d2', { nol: 1 }); /* สาย */
+        P(seg(B2[0], B2[1], ...at(.3), 2), '#7a4e2a'); P(seg(...at(.26), ...at(.9), 1.5), '#9a6a3a'); P(seg(...at(.3), ...at(.86), .5), '#c89a5e', { nol: 1 }); /* พานท้าย + ราง */
+        { const tg = at(.34); P(seg(tg[0], tg[1], tg[0] + qx * 2.6, tg[1] + qy * 2.6, .8), '#3a3a42'); } /* ไก */
+        for (const tp of [tA, tB]) { const md = [(c[0] + tp[0]) / 2 + ux * .9, (c[1] + tp[1]) / 2 + uy * .9]; P(seg(c[0], c[1], md[0], md[1], 1.25), '#8a96a4'); P(seg(md[0], md[1], tp[0], tp[1], 1), '#aab6c2'); } /* คันศร */
+        P(el(c[0], c[1], 1.5, 1.5), '#4a4a54');
+        if (st === 2) { P(seg(nk[0], nk[1], x1, y1, .55), '#d8b070', { nol: 1 }); P(el(x1, y1, 1, 1), '#e8eef2', { nol: 1 }); } /* ลูกหน้าไม้ */
+        return; }
       if (pistol) { P(seg(x0, y0, x0 + qx * 3.4, y0 + qy * 3.4, 1.2), '#5a3a22'); P(seg(x0, y0, x1, y1, 1.5), tcol); P(seg(...at(.15), ...at(.9), .6), '#a6bfc1', { nol: 1 }); return; }
       const a = at(.28), m1 = at(.46), r = at(.64), e = at(.8);
       P(seg(m1[0], m1[1], m1[0] + qx * 5 + ux * 1.2, m1[1] + qy * 5 + uy * 1.2, 1.2), '#26262c');
@@ -6449,8 +6459,8 @@ const MINER = (() => {
       P(seg(r[0], r[1], e[0], e[1], 1.5), '#7a4e2a'); P(seg(e[0], e[1], x1, y1, .9), '#4a4a54');
       P(el(x1 - ux - qx * 1.6, y1 - uy - qy * 1.6, .9, .9), '#26262c', { nol: 1 }); };
     // เฟรมยิงปืน (anim 'fire' 4 เฟรม): ปืนถีบถอยเข้าหาตัวแล้วคืนที่ ปากกระบอกกระดกขึ้น มีไฟแลบปากกระบอก 2 เฟรมแรก • หันหน้า/หลังจะประทับเล็งตรงออกไป ไม่ถือพาดตัวเฉย ๆ
-    const FIRE = anim === 'fire', RC = FIRE ? [3, 2, 1, 0][f] : 0, KICK = RC > 1 ? 1 : 0;
-    const flash = (x, y, dx, dy) => { if (!FIRE || f > 1) return; const k = f === 0 ? 1 : 0.65, nx = -dy, ny = dx;
+    const FIRE = anim === 'fire', RC = FIRE ? (xbow ? [1, 1, 0, 0] : [3, 2, 1, 0])[f] : 0, KICK = RC > 1 ? 1 : 0;
+    const flash = (x, y, dx, dy) => { if (!FIRE || f > 1 || xbow) return; const k = f === 0 ? 1 : 0.65, nx = -dy, ny = dx;
       P(el(x + dx * 3 * k, y + dy * 3 * k, 3.4 * k, 3.4 * k), '#ffb020', { nol: 1 }); P(el(x + dx * 2.4 * k, y + dy * 2.4 * k, 2.2 * k, 2.2 * k), '#ffe680', { nol: 1 }); P(el(x + dx * 1.6 * k, y + dy * 1.6 * k, 1.2, 1.2), '#ffffff', { nol: 1 });
       for (const s2 of [-1, 1]) { px(x + dx * 3 * k + nx * 4 * k * s2, y + dy * 3 * k + ny * 4 * k * s2, [255, 214, 90]); px(x + dx * 6 * k + nx * 2 * s2, y + dy * 6 * k + ny * 2 * s2, [255, 240, 170]); } px(x + dx * 7.5 * k, y + dy * 7.5 * k, [255, 255, 255]); };
     const gunPose = (b = bG) => {
@@ -8656,7 +8666,14 @@ function bossGoldDrop(e) {
   const lv = STATE.lv || 1, slots = ['weapon', 'armor', 'helmet', 'gloves', 'boots', 'shield', 'pick'];
   let ok = Object.keys(ITEMS).filter(k => slots.includes(ITEMS[k].slot) && ITEMS[k].price && k !== 'pick1' && !CLIMATE_IDS.includes(k) && !REGEN_ITEMS.includes(k) && itemReq(k) <= lv);
   const top = Math.max(...ok.map(k => ITEMS[k].tier || 0)); ok = ok.filter(k => (ITEMS[k].tier || 0) === top); /* ชิ้นขั้นสูงสุดที่ใส่ได้ตามเลเวล */
-  const id = ok[Math.floor(Math.random() * ok.length)] || 'wpn1'; let r = null;
+  /* สุ่มให้หลากหลาย: เลือก "ชนิดอุปกรณ์" ก่อน (อาวุธ/เสื้อ/หมวก/ถุงมือ/รองเท้า/โล่/พลั่ว โอกาสเท่ากัน) แล้วค่อยเลือกชิ้นในชนิดนั้น • ชนิดที่เพิ่งได้จากบอสตัวก่อน ๆ จะไม่ออกซ้ำจนกว่าจะได้ครบทุกชนิด
+     • ในช่องอาวุธ ของยิงไกล (หน้าไม้/ปืน) ออกได้ไม่เกิน 1 ใน 4 และไม่ออกติดกันสองครั้ง */
+  const got = Array.isArray(STATE.bossGoldSlots) ? STATE.bossGoldSlots : (STATE.bossGoldSlots = []);
+  let pool = [...new Set(ok.map(k => ITEMS[k].slot))]; if (pool.every(sl => got.includes(sl))) got.length = 0; pool = pool.filter(sl => !got.includes(sl));
+  const slot = pool[Math.floor(Math.random() * pool.length)]; let cand = ok.filter(k => ITEMS[k].slot === slot);
+  if (slot === 'weapon') { const melee = cand.filter(k => !ITEMS[k].gun), shoot = cand.filter(k => ITEMS[k].gun); if (melee.length && shoot.length) cand = (!STATE.bossGoldShot && Math.random() < 0.25) ? shoot : melee; STATE.bossGoldShot = cand === shoot ? 1 : 0; }
+  if (slot) got.push(slot);
+  const id = cand[Math.floor(Math.random() * cand.length)] || ok[Math.floor(Math.random() * ok.length)] || 'wpn1'; let r = null;
   for (let i = 0; i < 80 && !(r && r.q === 2); i++) r = rollLoot(id, 60, Math.random, lv / 10, 1);
   if (!r || r.q !== 2) r = { q: 2, mods: { hp: 20 } };
   dropAt(e.x, e.y + 6, { kind: 'item', id, g: gradeOf(lv), lv, ...r });
@@ -9955,9 +9972,80 @@ function drawMinimap(dt) {
   const a = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[PL.dir] || 0;
   g.save(); g.translate(C, C); g.fillStyle = 'rgba(255,230,140,0.25)'; g.beginPath(); g.arc(0, 0, 9, 0, 7); g.fill(); g.rotate(a); g.fillStyle = '#fff6d0'; g.strokeStyle = '#3a2008'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5.5); g.lineTo(-2, 0); g.lineTo(-5, 5.5); g.closePath(); g.stroke(); g.fill(); g.fillStyle = '#e8a830'; g.beginPath(); g.moveTo(7, 0); g.lineTo(-2, 0); g.lineTo(-5, 5.5); g.closePath(); g.fill(); g.restore();
 }
+// ================= แผนที่ใหญ่ (กด M / แตะแผนที่ย่อ) — โชว์ทั้งสถานที่ทับบนเกมแบบโปร่ง เห็นว่าเราอยู่ตรงไหน =================
+const BM = { open: false, z: 1, ox: 0, oy: 0, t: 0, el: null, drag: null };
+const BM_NAME = { craft: 'ช่างเจียระไน', rawdealer: 'รับซื้อพลอยก้อน', cutdealer: 'รับซื้อพลอยเจียระไน', smith: 'ร้านอุปกรณ์', jeweler: 'ร้านจิวเวลรี่', aunt: 'ร้านอาหาร', mint: 'ขายน้ำ', deathBag: 'กระเป๋าที่ตก', warpIn: 'ประตูวาร์ป', warpBack: 'ประตูวาร์ป', enterHouse: 'บ้าน/ที่พัก', travel: 'สนามบิน', enterMine: 'ทางเข้าเหมือง', descend: 'ทางลงชั้นถัดไป', cp: 'จุดเซฟ', pin: 'หมุด', exitHouse: 'ทางออก' };
+const BM_IC = { craft: ['⚙', '#3a6ad0'], rawdealer: ['⛏', '#3a8a4a'], cutdealer: ['💎', '#a83a6a'], smith: ['🛡', '#7a5a3a'], jeweler: ['💍', '#b03a8a'], aunt: ['🍚', '#c86a2a'], mint: ['🥤', '#2a8a9a'], deathBag: ['🎒', '#c8442a'], warpIn: ['🌀', '#6a4a9a'], warpBack: ['🌀', '#6a4a9a'], enterHouse: ['🏠', '#8a4a2a'], travel: ['✈', '#2a7ab0'], enterMine: ['⛰', '#4a4a52'], descend: ['⬇', '#2a5ab0'], cp: ['✦', '#1a7aa0'], pin: ['📍', '#7a1a14'], exitMine: ['⬆', '#1a8a2a'], exitHouse: ['⬆', '#1a8a2a'] };
+function bigMapToggle(v) {
+  const on = v == null ? !BM.open : !!v; if (on && (!G.map || G.trans)) return;
+  if (!BM.el) {
+    const el = BM.el = document.createElement('div'); el.id = 'bigmap';
+    el.style.cssText = 'position:fixed;inset:0;z-index:8000;display:none;background:rgba(10,7,4,.62);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none';
+    el.innerHTML = '<canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>'
+      + '<div id="bmTitle" style="position:absolute;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);padding:5px 18px;border-radius:6px;background:linear-gradient(180deg,#f0dcb0,#d8bc84);color:#3a2008;font:bold 14px Tahoma,\'Noto Sans Thai\',sans-serif;box-shadow:0 0 0 2px #140a04,0 4px 12px rgba(0,0,0,.6);white-space:nowrap;pointer-events:none"></div>'
+      + '<div id="bmHint" style="position:absolute;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);padding:4px 12px;border-radius:6px;background:rgba(20,10,4,.82);color:#f4dcae;font:12px Tahoma,\'Noto Sans Thai\',sans-serif;white-space:nowrap;pointer-events:none"></div>'
+      + '<div style="position:absolute;right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));display:flex;gap:6px">' + [['bmIn', '＋'], ['bmOut', '－'], ['bmX', '✕']].map(([id, t]) => `<button id="${id}" style="width:38px;height:38px;border-radius:8px;border:2px solid #140a04;background:linear-gradient(180deg,#7a5232,#3e2614);color:#ffe9a0;font:bold 18px Tahoma,sans-serif;box-shadow:inset 0 0 0 1px #c89a50;cursor:pointer">${t}</button>`).join('') + '</div>';
+    document.body.appendChild(el);
+    const zoom = f => { BM.z = clamp(BM.z * f, 1, 6); };
+    el.querySelector('#bmIn').addEventListener('click', e => { e.stopPropagation(); zoom(1.4); });
+    el.querySelector('#bmOut').addEventListener('click', e => { e.stopPropagation(); zoom(1 / 1.4); });
+    el.querySelector('#bmX').addEventListener('click', e => { e.stopPropagation(); bigMapToggle(false); });
+    el.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2); }, { passive: false });
+    el.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; BM.drag = { x: e.clientX, y: e.clientY, ox: BM.ox, oy: BM.oy, moved: 0 }; try { el.setPointerCapture(e.pointerId); } catch (_) {} el.style.cursor = 'grabbing'; });
+    el.addEventListener('pointermove', e => { const d = BM.drag; if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; d.moved = Math.max(d.moved, Math.hypot(dx, dy)); if (d.moved > 6) { BM.ox = d.ox + dx; BM.oy = d.oy + dy; } });
+    const up = e => { const d = BM.drag; BM.drag = null; el.style.cursor = 'grab'; if (d && d.moved <= 6 && !e.target.closest('button')) bigMapToggle(false); }; /* แตะ/คลิกเฉย ๆ (ไม่ได้ลาก) = ปิดแผนที่ */
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', () => { BM.drag = null; });
+    for (const ev of ['click', 'mousedown', 'touchstart', 'contextmenu']) el.addEventListener(ev, e => { e.stopPropagation(); if (ev === 'contextmenu') e.preventDefault(); });
+  }
+  BM.open = on; BM.el.style.display = on ? 'block' : 'none';
+  if (on) { BM.z = 1; BM.ox = BM.oy = 0; BM.t = 0; G.keys = {}; G.dpad = {}; G.holdAct = false; if (PL.path) PL.path = null;
+    BM.el.querySelector('#bmHint').textContent = G.touch ? 'แตะเพื่อปิด • ลากเพื่อเลื่อน • ＋ － ซูม' : 'กด M หรือ Esc เพื่อปิด • ลากเพื่อเลื่อน • ล้อเมาส์เพื่อซูม';
+    if (typeof SFX !== 'undefined') try { SFX.play('click'); } catch (_) {} }
+}
+function drawBigMap(dt) {
+  if (!BM.open) return; const m = G.map, el = BM.el; if (!m || !MM.img || MM.key !== m.id) return;
+  if (UI.isOpen() || G.trans) { bigMapToggle(false); return; }
+  BM.t -= dt; if (BM.t > 0) return; BM.t = 1 / 30;
+  const cv = el.firstChild, dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  { const tt = (document.getElementById('mmtitle') || {}).textContent || '', te = el.querySelector('#bmTitle'), t2 = '🗺 ' + (tt || 'แผนที่'); if (te.textContent !== t2) te.textContent = t2; }
+  // มาตราส่วน: ให้เห็นทั้งสถานที่ถ้าพอ • ถ้าแผนที่ยาวมาก (เหมือง) ช่องหนึ่งต้องไม่เล็กกว่า ~5 จุด แล้วเลื่อนตามตัวเรา
+  const mw = m.w * 16, mh = m.h * 16, padX = 24, padT = 58, padB = 46, aw = W - padX * 2, ah = H - padT - padB;
+  const k = Math.max(Math.min(aw / mw, ah / mh), (G.touch ? 4.5 : 6) / 16) * BM.z, dw = mw * k, dh = mh * k;
+  // จุดกึ่งกลางที่มอง: ตามตัวผู้เล่น (ถ้าแผนที่ล้นจอ) + ระยะที่ลากไว้ • ไม่ให้เลื่อนหลุดขอบแผนที่
+  let cx = dw <= aw ? mw / 2 : clamp(PL.x - BM.ox / k, aw / 2 / k, mw - aw / 2 / k), cy = dh <= ah ? mh / 2 : clamp(PL.y - BM.oy / k, ah / 2 / k, mh - ah / 2 / k);
+  if (dw > aw) BM.ox = (PL.x - cx) * k; else BM.ox = 0; if (dh > ah) BM.oy = (PL.y - cy) * k; else BM.oy = 0;
+  const X0 = padX + aw / 2 - cx * k, Y0 = padT + ah / 2 - cy * k, W2S = (wx, wy) => [X0 + wx * k, Y0 + wy * k];
+  // กรอบ + ภาพแผนที่
+  g.save(); g.beginPath(); g.rect(padX, padT, aw, ah); g.clip();
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(X0 - 4, Y0 - 4, dw + 8, dh + 8);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.globalAlpha = 0.94; g.drawImage(MM.img, X0, Y0, dw, dh); g.globalAlpha = 1;
+  g.strokeStyle = '#d8a848'; g.lineWidth = 2; g.strokeRect(X0 - 1, Y0 - 1, dw + 2, dh + 2); g.strokeStyle = '#140a04'; g.lineWidth = 1; g.strokeRect(X0 - 3, Y0 - 3, dw + 6, dh + 6);
+  const text = (t, x, y, col, px) => { g.font = `bold ${px || 11}px Tahoma, 'Noto Sans Thai', sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 3.5; g.strokeStyle = 'rgba(10,6,2,.95)'; g.strokeText(t, x, y); g.fillStyle = col || '#fff'; g.fillText(t, x, y); };
+  // ชื่อชั้นดินของเหมือง (ซ้ายมือ)
+  if (isMine(m) && m.zone) { let last = -1; for (let ty = 14; ty < m.h - 2; ty++) { const zi = m.zone[MI(m, Math.floor(m.w / 2), ty)]; if (zi !== last && ZONE_KEYS[zi]) { last = zi; const [, y] = W2S(0, ty * 16); g.strokeStyle = 'rgba(255,233,160,.35)'; g.lineWidth = 1; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(X0, y); g.lineTo(X0 + dw, y); g.stroke(); g.setLineDash([]); const nm = zoneName(m, ZONE_KEYS[zi]); if (nm) { g.textAlign = 'left'; g.font = "bold 11px Tahoma, 'Noto Sans Thai', sans-serif"; g.textBaseline = 'top'; g.lineWidth = 3; g.strokeStyle = 'rgba(10,6,2,.9)'; g.strokeText(nm, Math.max(X0, padX) + 6, y + 4); g.fillStyle = '#ffe9a0'; g.fillText(nm, Math.max(X0, padX) + 6, y + 4); } } } }
+  // ศัตรูที่อยู่ใกล้ (จุดแดง) + คนในเมือง (จุดเหลือง)
+  const dot = (wx, wy, col, r) => { const [x, y] = W2S(wx, wy); g.fillStyle = 'rgba(0,0,0,.8)'; g.beginPath(); g.arc(x, y, r + 1.2, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  for (const e of G.mons || []) if (!e.dead) dot(e.x, e.y - 4, MONS[e.type] && (MONS[e.type].boss2 || MONS[e.type].mini) ? '#ff9a2a' : '#ff4a3a', MONS[e.type] && MONS[e.type].big ? 4 : 2.6);
+  const marks = [], used = new Set();
+  for (const it of [...(m.interact || []), ...(m.triggers || []).filter(t => t.kind === 'exitHouse').map(t => ({ kind: 'exitHouse', x: t.x + t.w / 2, y: t.y + t.h / 2 + 14 })), ...(m.cp ? [{ kind: 'cp', x: m.cp.x + 16, y: m.cp.y + 10 }] : []), ...((STATE.pins && STATE.pins[m.id]) || []).map(p => ({ kind: 'pin', x: p.x, y: p.y + 14 }))]) {
+    const ic = BM_IC[it.kind]; if (!ic || (it.npc && it.npc.out)) continue; const key = it.kind + ':' + Math.round(it.x / 24) + ':' + Math.round(it.y / 24); if (used.has(key)) continue; used.add(key);
+    marks.push({ ic, x: it.x, y: it.y - 14, name: it.kind === 'exitMine' ? (it.spawn === 'up' ? 'ทางขึ้น' : 'ทางออก') : it.npc && it.npc.name ? it.npc.name : BM_NAME[it.kind] }); }
+  for (const n of m.npcs || []) if (!n.hidden && !marks.some(q => Math.hypot(q.x - n.x, q.y + 14 - n.y) < 30)) dot(n.x, n.y - 4, '#ffd23a', 3);
+  const R = clamp(k * 14, 8, 12);
+  for (const q of marks) { const [x, y] = W2S(q.x, q.y); g.fillStyle = '#140a04'; g.beginPath(); g.arc(x, y, R + 1.6, 0, 7); g.fill(); g.fillStyle = q.ic[1]; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill(); g.strokeStyle = '#ffe9a0'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, R - 0.6, 0, 7); g.stroke(); g.font = Math.round(R * 1.15) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(q.ic[0], x, y + 0.5); }
+  { const boxes = []; for (const q of marks) { if (!q.name) continue; const [x, y0] = W2S(q.x, q.y); g.font = "bold 11px Tahoma, 'Noto Sans Thai', sans-serif"; const tw = g.measureText(q.name).width / 2 + 3; let y = y0 + R + 9; for (let n = 0; n < 4 && boxes.some(b => Math.abs(b[0] - x) < b[2] + tw && Math.abs(b[1] - y) < 12); n++) y = n === 0 ? y0 - R - 9 : y + 12; boxes.push([x, y, tw]); text(q.name, x, y, '#fff3cf'); } }
+  // ตัวเรา: วงเรืองแสงกะพริบ + ลูกศรทองชี้ทิศ + ป้าย "คุณอยู่ที่นี่"
+  { const [x, y] = W2S(PL.x, PL.y - 8), pu = 0.5 + Math.sin(G.time * 5) * 0.5, a = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[PL.dir] || 0;
+    g.strokeStyle = `rgba(255,236,150,${0.85 - pu * 0.6})`; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 12 + pu * 10, 0, 7); g.stroke(); g.fillStyle = 'rgba(255,230,140,.28)'; g.beginPath(); g.arc(x, y, 13, 0, 7); g.fill();
+    g.save(); g.translate(x, y); g.rotate(a); g.fillStyle = '#fff6d0'; g.strokeStyle = '#3a2008'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(10, 0); g.lineTo(-7, -8); g.lineTo(-3, 0); g.lineTo(-7, 8); g.closePath(); g.stroke(); g.fill(); g.fillStyle = '#e8a830'; g.beginPath(); g.moveTo(10, 0); g.lineTo(-3, 0); g.lineTo(-7, 8); g.closePath(); g.fill(); g.restore();
+    text('คุณอยู่ที่นี่', x, y - 24, '#ffe680', 12); }
+  g.restore();
+}
 function render() {
   const m = G.map, VW = G.VW, VH = G.VH, g = bctx; RIG.frame();
-  drawMinimap(1 / 60);
+  drawMinimap(1 / 60); drawBigMap(1 / 60);
   let camX = G.cam.x - VW / 2, camY = G.cam.y - VH / 2;
   if (PIXEL) { camX = (Math.round(G.cam.x * G.S) - Math.floor(VW * G.S / 2)) / G.S; camY = (Math.round(G.cam.y * G.S * G.TILT) - Math.floor(VH * G.S * G.TILT / 2)) / (G.S * G.TILT); } // กล้องตรงพิกเซลจอ ตัวละครไม่สั่น
   const S = sx => sx - camX, T = sy => sy - camY;
@@ -10221,7 +10309,7 @@ function setupInput() {
   addEventListener('keydown', e => {
     SFX.unlock();
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) { if (e.code === 'Escape') UI.close(); else if (e.code === 'Enter') { const b = document.querySelector('#panel [data-a=reg], #panel [data-a=send]'); if (b) b.click(); } return; } // กำลังพิมพ์ชื่อ/ราคา: ไม่ให้ปุ่มลัดของเกมทำงาน
-    if (e.code === 'Escape') { if (UI.isOpen()) UI.dismiss(); else UI.menu(); return; }
+    if (e.code === 'Escape') { if (BM.open && !UI.isOpen()) { bigMapToggle(false); return; } if (UI.isOpen()) UI.dismiss(); else UI.menu(); return; }
     if (UI.isOpen()) {
       const cur = UI.current(); // กดปุ่มเดิมซ้ำ = ปิด • กดอีกปุ่ม = สลับหน้าต่าง
       if (e.code === 'KeyB' && cur === 'equip') { e.preventDefault(); if (UI.invSec() === 'gem') UI.close(); else UI.bag(); return; } /* กระเป๋ารวม: B = แถบพลอย • I = แถบอุปกรณ์ • กดซ้ำแถบเดิม = ปิด */
@@ -10292,7 +10380,9 @@ function setupInput() {
     STATE.cons.warp--; STATE.warp = { map: m.id, town: (c => c && c !== 'thai' ? 'out_' + c : 'village')(countryOfMap(m.id)) || (ex && ex.to) || 'village', x: PL.x, y: PL.y, dx, dy, tx: 0, ty: 0, used: false };
     SFX.play('door'); syncWarpDoor(G.time); saveGame(); UI.hud(); toast(`ประตูวาร์ปเปิดแล้ว! กด T อีกครั้งหรือคลิกที่ประตู ตัวละครจะเดินไปเข้าเอง (เหลือ ${STATE.cons.warp} บาน)`, 'good'); };
   $('#btnPin').addEventListener('click', togglePin); addEventListener('keydown', e => { if (e.code === 'KeyP' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) togglePin(); });
-  $('#btnCps').addEventListener('click', () => UI.cps()); addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) UI.cps(); });
+  $('#btnCps').addEventListener('click', () => UI.cps()); addEventListener('keydown', e => { if (e.code === 'KeyK' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) UI.cps(); }); /* คัมภีร์ย้ายไปปุ่ม K • M = แผนที่ใหญ่ */
+  addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && (BM.open || !UI.isOpen()) && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) bigMapToggle(); });
+  { const mw = document.getElementById('minimapw'); if (mw) { mw.style.cursor = 'pointer'; mw.title = 'แผนที่ใหญ่ (M)'; mw.style.pointerEvents = 'auto'; for (const ev of ['pointerdown', 'mousedown', 'touchstart']) mw.addEventListener(ev, e => e.stopPropagation()); mw.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); bigMapToggle(); }); } }
   $('#btnWarp').addEventListener('click', warpStart); $('#qWarp').addEventListener('click', warpStart); addEventListener('keydown', e => { if (e.code === 'KeyT' && !e.repeat && !UI.isOpen() && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) warpStart(); });
   $('#btnBag').addEventListener('click', () => { if (UI.current() === 'equip') UI.close(); else if (STATE.items.some(x => x.nw)) UI.equipment('gear'); else UI.bag(); }); /* มีของใหม่ → เปิดที่แถบอุปกรณ์ให้เห็นป้าย NEW */
   $('#btnEq').addEventListener('click', () => { if (UI.current() === 'equip') UI.close(); else UI.equipment('gear'); });
@@ -10566,7 +10656,7 @@ const NET = (() => {
     const list = d && d.list || [], me = (N.name || '').toLowerCase(), cn = c => (typeof COUNTRIES !== 'undefined' && COUNTRIES[c]) ? COUNTRIES[c].short : (c ? c : 'ไม่ทราบ');
     if (d) { N.onlineN = d.online | 0; chip.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; }
     box.querySelector('.olh').textContent = `ผู้เล่นออนไลน์ ${list.length.toLocaleString('th-TH')} คน`;
-    box.querySelector('.olb').innerHTML = !d ? '<div class="olr muted">โหลดรายชื่อไม่ได้ ลองใหม่อีกครั้ง</div>' : list.length ? list.map(p => `<div class="olr${p.name.toLowerCase() === me ? ' me' : ''}"><b>${esc(p.name)}</b><span>${p.cty === 'thai' ? '🇹🇭 ' : '✈ '}${esc(cn(p.cty))}</span></div>`).join('') : '<div class="olr muted">ยังไม่มีใครออนไลน์</div>';
+    box.querySelector('.olb').innerHTML = !d ? '<div class="olr muted">โหลดรายชื่อไม่ได้ ลองใหม่อีกครั้ง</div>' : list.length ? list.map(p => `<div class="olr${p.name.toLowerCase() === me ? ' me' : ''}"><b>${esc(p.name)}${p.lv ? ` <i class="ollv">Lv ${p.lv}</i>` : ''}</b><span>${p.cty === 'thai' ? '🇹🇭 ' : '✈ '}${esc(cn(p.cty))}</span></div>`).join('') : '<div class="olr muted">ยังไม่มีใครออนไลน์</div>';
     place();
   };
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -12112,7 +12202,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795248388";
+window.GAME_BUILD="1795249077";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
