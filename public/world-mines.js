@@ -66,7 +66,8 @@ const WorldMines = (() => {
   function restRow(ty){return ((ty-18)%REST_EVERY+REST_EVERY)%REST_EVERY>=REST_EVERY-REST_ROWS;}
   // จุดวางเพิ่มสำหรับเหมืองสัตว์ประจำถิ่น: ตัวเดี่ยว ๆ สลับซ้าย-ขวาของทางเดินหลักทุก 2 แถว → ศัตรูกระจายเต็มทาง ไม่กระจุกเป็นกอง
   function scatterSpots(m,taken){
-    const out=[]; if(!roster(m)||!m.pathX||!m.endRoute)return out;
+    const out=[]; return out;   // ปิดการวางตัวเดี่ยวกระจาย: กลับไปใช้จุดรวมฝูงแบบเดิมของด่าน (ผู้เล่นต้องการให้ชนิดเดียวกันอยู่รวมกลุ่ม)
+    if(!roster(m)||!m.pathX||!m.endRoute)return out;
     let side=1;
     for(let ty=19;ty<m.endRoute.entranceY-2;ty+=2){
       if(restRow(ty))continue; const px=m.pathX[ty]; if(!px)continue;
@@ -78,39 +79,23 @@ const WorldMines = (() => {
     }
     return out;
   }
-  // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น เรียงจากง่ายไปยากตามระยะทาง (ปากถ้ำอยู่บน → บันไดลงอยู่ล่าง):
-  //  • จัด 10 ชนิดตามความยาก (พลังชีวิต × พลังโจมตี) แล้วแบ่งเป็น 5 กลุ่ม กลุ่มละ 2 ชนิด: กลุ่ม 1 ง่ายสุดอยู่ช่วงแรกของทาง … กลุ่ม 5 ยากสุดอยู่ก่อนถึงบอส
-  //  • แต่ละช่วงเจอเฉพาะ 2 ชนิดของกลุ่มนั้น (ตัวเดี่ยวสลับกับคู่) • มินิบอสและบอสเฝ้าท้ายชั้น • รอบจุดเซฟและช่วงพักไม่มีศัตรู
-  const BANDS=5;
+  // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น เป็น "ฝูงชนิดเดียวกัน" เรียงจากง่ายไปยากตามระยะทาง (ปากถ้ำอยู่บน → บันไดลงอยู่ล่าง):
+  //  • จัด 10 ชนิดตามความยาก (พลังชีวิต × พลังโจมตี) แล้วแบ่งทางเดินเป็น 10 ช่วง ช่วงละ 1 ชนิด: ช่วงแรกชนิดที่ง่ายสุด … ช่วงสุดท้ายชนิดที่ยากสุดก่อนถึงบอส
+  //  • ทุกจุดเป็นฝูงชนิดเดียวกัน 2–4 ตัว (จำนวนตามจุดเดิมของด่าน) • โพรงข้างทางใช้ชนิดเดียวกับช่วงความลึกนั้น
+  //  • มินิบอสและบอสเฝ้าท้ายชั้น • รอบจุดเซฟไม่มีศัตรู
   function distribute(m,groups){
     const entries=roster(m); if(!entries)return;
-    const power=d=>{const D=d&&d.hp>0?d:null; return D?D.hp*D.dmg:0;};
-    const order=entries.slice(0,10).map((d,i)=>({d,i,p:power(d)})).sort((a,b)=>a.p-b.p||a.i-b.i).map(o=>o.d);
-    const R=m.endRoute, y0=18, y1=Math.max(y0+10,R.entranceY-1);
-    const bandOf=ty=>Math.max(0,Math.min(BANDS-1,Math.floor((ty-y0)/(y1-y0)*BANDS)));
-    const pair=b=>[order[Math.min(order.length-1,2*b)],order[Math.min(order.length-1,2*b+1)]];
+    const order=entries.slice(0,10).map((d,i)=>({d,i,p:(d.hp>0?d.hp*d.dmg:i)})).sort((a,b)=>a.p-b.p||a.i-b.i).map(o=>o.d);
+    const R=m.endRoute, y0=18, y1=Math.max(y0+10,R.entranceY-1), N=order.length;
+    const kindAt=ty=>order[Math.max(0,Math.min(N-1,Math.floor((ty-y0)/(y1-y0)*N)))];
     const at=p=>p&&groups.findLast(g=>g.x===p[0]*16+8&&g.y===p[1]*16+12&&!g.routeEncounter);
-    const bossG=at(R.boss), miniG=at(R.guard), lowG=at(R.lowerGuard), turn=new Array(BANDS).fill(0);
-    const clear=g=>{delete g.pack;delete g.sanctuary;g.champDead=false;g.champ=false;};
-    const one=(g,type)=>{clear(g);g.type=type;g.n=g.left=1;};
-    const lane=groups.filter(g=>g.routeEncounter&&g!==bossG&&g!==miniG&&g!==lowG).sort((a,b)=>a.y-b.y||a.x-b.x);
-    lane.forEach((g,i)=>{
-      clear(g); const ty=Math.floor(g.y/16), b=bandOf(ty), P=pair(b);
-      if(nearSave(m,g.x,g.y,24)||restRow(ty)){g.type=P[0].type;g.n=g.left=1;g.sanctuary=true;return;}
-      const t=turn[b]++;
-      if(g.scatter){g.type=P[t%2].type;g.n=g.left=1;return;}
-      g.type=P[t%2].type; g.n=g.left=2; g.pack=[P[t%2].type,P[(t+1)%2].type]; g.champ=i%7===3;   // จุดบนทางเดิน: คู่ของกลุ่มเดียวกัน • บางคู่มีแม่ทัพนำ
-    });
-    let c=0;
+    const bossG=at(R.boss), miniG=at(R.guard), lowG=at(R.lowerGuard);
     for(const g of groups){
-      if(g===bossG){one(g,entries[11].type);continue;}
-      if(g===miniG){one(g,entries[10].type);continue;}
-      if(g===lowG){const P=pair(BANDS-1);clear(g);g.type=P[1].type;g.n=g.left=2;g.pack=[P[1].type,P[0].type];g.champ=true;continue;}
-      if(g.routeEncounter)continue;
-      // โพรงข้างทาง (ต้องขุดเข้าไป): ใช้ชนิดของกลุ่มเดียวกับระดับความลึกนั้น
-      clear(g); const ty=Math.floor(g.y/16), P=pair(bandOf(ty));
-      if(nearSave(m,g.x,g.y,24)){g.type=P[0].type;g.n=g.left=1;g.sanctuary=true;continue;}
-      c++; g.type=P[c%2].type; g.n=g.left=c%3?2:3; g.pack=[P[c%2].type,P[(c+1)%2].type]; g.champ=c%5===0;
+      delete g.pack; delete g.sanctuary; g.champDead=false;
+      if(g===bossG||g===miniG){g.type=entries[g===bossG?11:10].type;g.n=g.left=1;g.champ=false;continue;}
+      if(g===lowG){g.type=order[N-1].type;g.n=g.left=3;g.champ=true;continue;}
+      g.type=kindAt(Math.floor(g.y/16)).type; g.n=g.left=Math.max(2,Math.min(4,g.n|0));   // ฝูงชนิดเดียวกัน 2–4 ตัว
+      if(nearSave(m,g.x,g.y,24))g.sanctuary=true;
     }
   }
   return {install,roster,byId,regions,nearSave,distribute,scatterSpots};
