@@ -8266,10 +8266,14 @@ function updateKrakenSlam(m, e, def, dt, d) {
   e.wind = e.windMax = enraged ? spec.fastWind : spec.wind;
   return true;
 }
-function updateMonsters(dt) {
+/* บอสคลั่ง (21 พ.ย. 2569): บอสใหญ่/มินิบอส เลือดยิ่งน้อยยิ่งเร็ว — เดิน ง้าง ตี และคูลดาวน์เร็วขึ้นสูงสุด +50% ตอนเลือดใกล้หมด */
+function monRage(e) { const d = MONS[e.type]; if (!(d.boss2 || d.mini || e.type === 'boss') || !e.max) return 1; return 1 + 0.5 * clamp(1 - e.hp / e.max, 0, 1); }
+function updateMonsters(dtAll) {
+  let dt = dtAll;
   const m = G.map; if (!m.vein) { G.mons = []; return; }
   spawnMonsters(dt);
   for (const e of G.mons) {
+    dt = dtAll * monRage(e); if (dt > dtAll * 1.15 && Math.random() < dtAll * 3) G.parts.push({ k: 'star', x: e.x + (Math.random() - 0.5) * 20, y: e.y - 10 - Math.random() * 20, z: 0, vx: 0, vy: -30, vz: 0, life: 0.5, max: 0.5, col: '#ff4030', size: 2 }); /* ไอคลั่งสีแดง */
     if (e.riseT > 0) {
       e.riseT = Math.max(0, e.riseT - dt);
       continue;
@@ -8310,6 +8314,7 @@ function updateMonsters(dt) {
       if (e.wdx || e.wdy) { e.moving = monMove(m, e, e.wdx * def.spd * 0.4 * dt, e.wdy * def.spd * 0.4 * dt); if (!e.moving) e.wt = 0; if (Math.abs(e.wdx) > Math.abs(e.wdy)) e.dir = e.wdx < 0 ? 'left' : 'right'; else e.dir = e.wdy < 0 ? 'up' : 'down'; }
     }
   }
+  dt = dtAll;
   G.mons = G.mons.filter(e => !e.dead);
   updateArrows(dt);
   if (G.clouds && G.clouds.length) { for (const c of G.clouds) { c.t += dt; if (!G.down && Math.hypot(PL.x - c.x, (PL.y - 4) - c.y) < c.r) { if (c.burn) { if (!(G.burnT > G.time)) { G.burnT = G.time + 0.6; hurtPlayer(c.burn, c.x, c.y + 4, 'ลาวา'); } } else if (!c.ink) G.slowT = G.time + 0.35; } } G.clouds = G.clouds.filter(c => c.t < c.life); } /* กลุ่มสปอร์เห็ด: ยืนในวงแล้วเดินช้าลง */
@@ -11787,7 +11792,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795224505";
+window.GAME_BUILD="1795224631";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
