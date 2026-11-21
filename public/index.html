@@ -866,6 +866,7 @@ body.touch .shop2.nolft .shsellfoot{display:flex!important;flex-direction:row!im
 .fixon{display:inline-block;margin-left:4px;padding:0 6px;border-radius:8px;background:#e8b838;color:#3a2408;font-weight:700;font-size:11px}.item.fixworn{box-shadow:inset 0 0 0 1px #e8b838;background:rgba(232,184,56,.08)}
 body.touch #btnSwap::after{content:"";position:absolute;inset:-8px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--durc,#8fe070) var(--durf,100%),rgba(0,0,0,.55) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 calc(100% - 5px));filter:drop-shadow(0 0 1px #000)}
 body.touch #btnSwap::before{content:attr(data-n);position:absolute;left:50%;top:-24px;transform:translateX(-50%);font:bold 13px/1 Tahoma,sans-serif;color:#ffe680;text-shadow:1px 1px 0 #000,-1px 0 0 #000,0 -1px 0 #000;white-space:nowrap;pointer-events:none}body.touch #btnSwap[data-nc="bad"]::before{color:#ff6a5a}
+body.touch #btnSwap[data-nc="ammo"]::before,body.touch #btnSwap[data-nc="warn"]::before,body.touch #btnSwap[data-nc="bad"]::before{top:-30px;padding:3px 9px;border-radius:999px;background:rgba(10,6,2,.82);box-shadow:inset 0 0 0 1px rgba(255,210,90,.6);font:700 15px/1 Mitr,Tahoma,sans-serif;text-shadow:none}body.touch #btnSwap[data-nc="warn"]::before{color:#ffb040}
 body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;color:rgba(255,255,255,.6)!important;border-color:rgba(255,255,255,.35)!important}
 #netAuth{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px;background:radial-gradient(circle at 50% 30%,#3a2414,#140a05 75%);overflow:auto;font:15px 'Mitr',Tahoma,sans-serif;color:#f6ead2}
 #netAuth .na-box{width:min(420px,100%);padding:20px 20px 16px;border:2px solid #d8a848;border-radius:10px;background:linear-gradient(#4a2e1d,#2f1c11);box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,220,160,.2)}
@@ -8905,7 +8906,7 @@ function fireGun() {
   const w = pstats().weapon; G.holdAct = G.holdAct && w.auto; // ปืนสั้น: กดหนึ่งครั้งยิงหนึ่งนัด
   if (G.time - (G.lastShot || -9) < w.rate) { if (w.auto) G.holdAct = true; return; }
   if (w.ammo && !((STATE.cons[w.ammo] || 0) > 0)) { G.holdAct = false; if (G.time - (G.noAmmoT || -9) > 1.2) { G.noAmmoT = G.time; SFX.play('deny'); floatText(PL.x, PL.y - 40, 'กระสุนหมด!', '#ff8a7a', 1.2); toast(`ไม่มี${CONSUMABLES[w.ammo].name}แล้ว — ซื้อได้ที่ร้านอุปกรณ์ (หมวดของใช้) หรือเก็บจากมอนสเตอร์`, 'bad'); } return; }
-  G.lastShot = G.time; if (w.ammo) { STATE.cons[w.ammo]--; if (STATE.cons[w.ammo] === 5) toast(`กระสุนใกล้หมด เหลือ 5 นัด`, 'bad'); } /* ยิง 1 นัดใช้กระสุน 1 นัด */
+  G.lastShot = G.time; if (w.ammo) { STATE.cons[w.ammo]--; if (STATE.cons[w.ammo] === 5) toast(`กระสุนใกล้หมด เหลือ 5 นัด`, 'bad'); try { UI.hud(); } catch (e) {} } /* อัปเดตตัวเลขกระสุนบนปุ่มทันที */ /* ยิง 1 นัดใช้กระสุน 1 นัด */
   wearWeapon();
   const a = (G.mouseAct && PL.aim != null ? PL.aim : gunAim(w.range)) + (Math.random() - 0.5) * w.spread * 2;
   const ca = Math.cos(a), sa = Math.sin(a);
@@ -10393,7 +10394,7 @@ const UI = (() => {
       db.style.display = 'block';
       if (base && base.dur) { const mxd = maxDur(inst), d = inst.dur ?? mxd, f = clamp(d / mxd, 0, 1); db.firstChild.style.width = (f * 100).toFixed(1) + '%'; db.firstChild.style.background = f <= 0 ? '#555' : f < 0.2 ? '#e05a4a' : f < 0.5 ? '#e8c44a' : '#8fe070';
         db.title = `ความทนทาน ${d}/${mxd} — ใช้ได้อีก ${d} ครั้งก่อนต้องซ่อม`; dn.textContent = d <= 0 ? 'พัง!' : ''; dn.className = f <= 0 ? 'bad' : '';
-        if (base.gun === 'xbow') db.title += ' • ไม่ต้องใช้ลูก'; /* ปืน: หลอด/วงแหวน = ความทนทาน • ตัวเลข = กระสุน */ } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
+        if (base.gun === 'xbow') db.title += ' • ไม่ต้องใช้ลูก'; if (base.gun && base.ammo && d > 0) { const na = STATE.cons[base.ammo] || 0; dn.textContent = '🔫 ' + na; dn.className = na <= 0 ? 'bad' : na < 15 ? 'warn' : 'ammo'; db.title += ` • กระสุนเหลือ ${na} นัด`; } /* ปืน: โชว์จำนวนกระสุนที่เหลือเหนือปุ่ม (มือถือ) */ /* ปืน: หลอด/วงแหวน = ความทนทาน • ตัวเลข = กระสุน */ } /* พลั่ว/ดาบ: แสดงแค่หลอด ไม่มีตัวเลข (ชี้เมาส์ที่หลอดยังเห็นจำนวนครั้ง) */
       else { db.firstChild.style.width = '100%'; db.firstChild.style.background = '#6ab8ff'; db.title = 'ไม่มีวันพัง ไม่ต้องซ่อม'; dn.textContent = ''; dn.className = 'inf'; }
       { const ab = $('#btnSwap'); ab.style.setProperty('--durf', db.firstChild.style.width); ab.style.setProperty('--durc', db.firstChild.style.background); ab.dataset.n = dn.textContent; ab.dataset.nc = dn.className; } /* จอสัมผัส: หลอดเดียวกันวาดเป็นวงแหวนรอบปุ่มกลมเล็กที่โชว์ไอคอนของในมือ (ปุ่ม Q ถูกซ่อนบนโทรศัพท์) */
     }
@@ -11778,7 +11779,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795221134";
+window.GAME_BUILD="1795221685";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
