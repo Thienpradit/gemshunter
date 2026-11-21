@@ -8049,6 +8049,45 @@ const MONS = {
   kraken:   { name: 'อสูรหมึกมงกุฎเพชร', sheet: true, lvR: [92, 92], hp: 900, dmg: 34, spd: 18, aggro: 200, r: 16, reach: 34, big: true, boss2: true, slam: { radius: 42, offset: 25, wind: 1.2, fastWind: 0.95, impact: 0.26, recovery: 1.8, fastRecovery: 1.45 }, weakRec: 1.6, coins: [700, 1400], chance: 1, drops: [['wpn5', 20], ['arm6', 16], ['shd4', 14], ['hat4', 12], ['glv4', 12], ['bt4', 12], ['pick5', 16]] }, // บอส: ยกหนวดคู่หน้า → ฟาดพร้อมกัน แล้วเปิดมงกุฎ (ช่วงฟื้นตัวโดนแรงขึ้น 60%)
   spider:   { name: 'นางพญาแมงมุมมรณะ', hp: 85, dmg: 19, spd: 38, aggro: 170, r: 7, reach: 17, big: true, coins: [50, 150], chance: 1, drops: [['arm5', 16], ['wpn4', 14], ['shd3', 14], ['hat3', 12], ['glv3', 12], ['bt3', 12], ['pick4', 10], ['arm6', 6], ['herb', 14]] }, // แมงมุมยักษ์ผลึกม่วงบนหลัง: ตัวใหญ่ วิ่งเร็ว กัดแรง อยู่ตัวเดียวในอุโมงค์ลึก
 };
+const THAI_CAVE_MONSTERS = [
+  {"type":"th_cave_f01_stone_pangolin","filename":"th-cave-f01-stone-pangolin","floor":1,"name":"ลิ่นเกล็ดศิลา","loot":"mud","hp":25,"dmg":8,"spd":27,"r":7,"reach":16,"windT":0.36,"fly":false,"aggro":110,"caveAttack":{"role":"melee","pattern":"melee_arc","color":"#ecbc73","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.4}},
+  {"type":"th_cave_f01_quartz_quail","filename":"th-cave-f01-quartz-quail","floor":1,"name":"นกคุ่มหงอนควอตซ์","loot":"bat","hp":13,"dmg":5,"spd":37,"r":5,"reach":80,"windT":0.36,"fly":false,"aggro":116,"caveAttack":{"role":"ranged","pattern":"quartz_needle","color":"#ede4cb","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.4,"shots":1,"spread":0.0,"speed":88.0}},
+  {"type":"th_cave_f01_jade_toad","filename":"th-cave-f01-jade-toad","floor":1,"name":"คางคกหยกพิษ","loot":"scorpion","hp":20,"dmg":6,"spd":23,"r":6,"reach":32,"windT":0.36,"fly":false,"aggro":110,"caveAttack":{"role":"poison","pattern":"poison_short_cone","color":"#bddd60","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.4,"duration":2.55,"tick":0.5,"areaLife":1.5,"delay":0.0}},
+  {"type":"th_cave_f02_sapphire_ferret","filename":"th-cave-f02-sapphire-ferret","floor":2,"name":"เพียงพอนกรงเล็บไพลิน","loot":"centi","hp":28,"dmg":11,"spd":44,"r":6,"reach":18,"windT":0.31,"fly":false,"aggro":110,"caveAttack":{"role":"melee","pattern":"melee_double_swipe","color":"#73c3ff","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.3,"secondHit":0.09}},
+  {"type":"th_cave_f02_indigo_bell_squid","filename":"th-cave-f02-indigo-bell-squid","floor":2,"name":"หมึกกระดิ่งคราม","loot":"batc","hp":16,"dmg":8,"spd":29,"r":6,"reach":88,"windT":0.31,"fly":true,"aggro":124,"caveAttack":{"role":"ranged","pattern":"sapphire_disk","color":"#67d3ff","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.3,"shots":1,"spread":0.0,"speed":96.0}},
+  {"type":"th_cave_f02_copper_cicada","filename":"th-cave-f02-copper-cicada","floor":2,"name":"จักจั่นทองแดง","loot":"mush","hp":23,"dmg":8,"spd":33,"r":6,"reach":24,"windT":0.31,"fly":false,"aggro":110,"caveAttack":{"role":"poison","pattern":"poison_lingering_patch","color":"#c4db48","walk":150,"active":0.14,"recovery":0.24,"cooldown":1.3,"duration":2.9,"tick":0.5,"areaLife":2.2,"delay":0.0}},
+  {"type":"th_cave_f03_cracked_mask_ghost","filename":"th-cave-f03-cracked-mask-ghost","floor":3,"name":"ผีหน้ากากร้าว","loot":"foreman","hp":42,"dmg":17,"spd":36,"r":8,"reach":19,"windT":0.285,"fly":true,"aggro":110,"caveAttack":{"role":"melee","pattern":"melee_double_claw","color":"#d3a2ff","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.2}},
+  {"type":"th_cave_f03_three_eyed_raven","filename":"th-cave-f03-three-eyed-raven","floor":3,"name":"อีกาสามเนตร","loot":"lantern","hp":19,"dmg":10,"spd":32,"r":6,"reach":96,"windT":0.285,"fly":false,"aggro":132,"caveAttack":{"role":"ranged","pattern":"silver_feather_fan","color":"#e0deff","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.2,"shots":3,"spread":0.62831853,"speed":104.0}},
+  {"type":"th_cave_f03_stitched_sack_ghost","filename":"th-cave-f03-stitched-sack-ghost","floor":3,"name":"ผีกระสอบเย็บม่วง","loot":"worm","hp":29,"dmg":12,"spd":24,"r":6,"reach":48,"windT":0.285,"fly":false,"aggro":110,"caveAttack":{"role":"poison","pattern":"poison_dust_cone","color":"#d49afa","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.2,"duration":3.25,"tick":0.5,"areaLife":1.5,"delay":0.0}},
+  {"type":"th_cave_f04_lava_horn_ram","filename":"th-cave-f04-lava-horn-ram","floor":4,"name":"แกะเขาลาวา","loot":"beetle","hp":42,"dmg":19,"spd":32,"r":8,"reach":32,"windT":0.33,"fly":false,"aggro":110,"caveAttack":{"role":"melee","pattern":"melee_horn_charge","color":"#ff9c38","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.25}},
+  {"type":"th_cave_f04_magma_throat_ibis","filename":"th-cave-f04-magma-throat-ibis","floor":4,"name":"นกกระดูกคอไฟ","loot":"furnace","hp":22,"dmg":12,"spd":30,"r":6,"reach":112,"windT":0.33,"fly":false,"aggro":148,"caveAttack":{"role":"ranged","pattern":"magma_orb","color":"#ff8f35","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.25,"shots":1,"spread":0.0,"speed":112.0}},
+  {"type":"th_cave_f04_sulfur_armadillo","filename":"th-cave-f04-sulfur-armadillo","floor":4,"name":"ตัวนิ่มเกราะกำมะถัน","loot":"slug","hp":36,"dmg":14,"spd":23,"r":7,"reach":40,"windT":0.33,"fly":false,"aggro":110,"caveAttack":{"role":"poison","pattern":"poison_sulfur_ring","color":"#d7ce4d","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.25,"duration":3.6,"tick":0.5,"areaLife":1.5,"delay":0.0}},
+  {"type":"th_cave_f05_crystal_jaw_newt","filename":"th-cave-f05-crystal-jaw-newt","floor":5,"name":"นิวต์ตาบอดกรามผลึก","loot":"nautilus","hp":50,"dmg":22,"spd":31,"r":8,"reach":22,"windT":0.285,"fly":false,"aggro":110,"caveAttack":{"role":"melee","pattern":"melee_snap","color":"#87e8ef","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.15}},
+  {"type":"th_cave_f05_abyssal_lanternfish","filename":"th-cave-f05-abyssal-lanternfish","floor":5,"name":"ปลาตะเกียงบาดาล","loot":"shrimp","hp":26,"dmg":15,"spd":29,"r":7,"reach":120,"windT":0.285,"fly":true,"aggro":156,"caveAttack":{"role":"ranged","pattern":"abyss_light_bead","color":"#56efff","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.15,"shots":1,"spread":0.0,"speed":120.0}},
+  {"type":"th_cave_f05_violet_anemone","filename":"th-cave-f05-violet-anemone","floor":5,"name":"ดอกไม้ทะเลพิษม่วง","loot":"inkoct","hp":38,"dmg":16,"spd":23,"r":7,"reach":40,"windT":0.285,"fly":false,"aggro":110,"caveAttack":{"role":"poison","pattern":"poison_delayed_bubbles","color":"#c084ff","walk":130,"active":0.14,"recovery":0.24,"cooldown":1.15,"duration":3.95,"tick":0.5,"areaLife":1.5,"delay":0.6}},
+];
+const THAI_CAVE_DIRECTIONS = { down: 0, up: 1, left: 2, right: 3 };
+const thaiCaveImages = new Map();
+for (const entry of THAI_CAVE_MONSTERS) {
+  const { type, loot, ...def } = entry;
+  const { coins, chance, drops } = MONS[loot];
+  MONS[type] = { ...def, coins, chance, drops, ranged: def.caveAttack.role === 'ranged' };
+  MON_LV[type] = MON_LV[loot] || [4, 10];
+}
+
+function assignThaiCaveMonsters(m, groups) {
+  if (countryOfMap(m.id) !== 'thai') return;
+  const roster = THAI_CAVE_MONSTERS.filter(entry => entry.floor === m.tier);
+  const trail = groups.filter(group => group.trail);
+  if (!roster.length || trail.length < roster.length) return;
+  // Use existing route slots so group save indexes, counts and boss gates stay valid.
+  const count = Math.min(roster.length * 2, trail.length);
+  for (let i = 0; i < count; i++) {
+    const slot = Math.floor((i + 0.5) * trail.length / count);
+    trail[slot].type = roster[i % roster.length].type;
+  }
+}
+
 for (const k in MONS) { const d = MONS[k]; if (d.mini || d.boss2) { d.sc = (d.sc || 1) * 1.5; d.r = Math.round(d.r * 1.3); d.reach = Math.round(d.reach * 1.2); if (d.aoe) d.aoe = Math.round(d.aoe * 1.2); } } /* มินิบอส/บอสของทุกชั้น: ตัวใหญ่ขึ้น 1.5 เท่า (ระยะชน/ระยะตีขยายตามตัว) */
 const SPAWN_TABLE = {
   gravel: { list: [['snake', 45], ['scorpion', 25], ['bat', 12], ['mud', 18]], cap: 4, every: 4.0 },
@@ -8169,6 +8208,7 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
       let draw = rnd() * list.reduce((t, e) => t + e[1], 0); const [type] = list.find(([, w]) => (draw -= w) < 0) || list[0];
       const n = Math.max(2, Math.round((zz === 'gravel' ? 2 : 2 + Math.floor(rnd() * 2)) * MON_MORE) - 1);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: zz !== 'gravel' && rnd() < 0.15, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true }); } }
+  assignThaiCaveMonsters(m, G2);
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   m.groups = G2; }
 function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
@@ -8268,12 +8308,127 @@ function updateKrakenSlam(m, e, def, dt, d) {
   return true;
 }
 /* บอสคลั่ง (21 พ.ย. 2569): บอสใหญ่/มินิบอส เลือดยิ่งน้อยยิ่งเร็ว — เดิน ง้าง ตี และคูลดาวน์เร็วขึ้นสูงสุด +50% ตอนเลือดใกล้หมด */
+function thaiCaveHit(m, e, def, dmg, who) {
+  const dx = PL.x - e.x, dy = PL.y - e.y, distance = Math.hypot(dx, dy);
+  if (G.down || distance > def.reach + 4 || dx * e.ax + dy * e.ay < distance * 0.35
+      || !losClear(m, e.x, e.y - 4, PL.x, PL.y - 4)) return false;
+  hitFx(e, def);
+  return hurtPlayer(dmg, e.x, e.y, who);
+}
+
+function releaseThaiCaveAttack(m, e, def, attack) {
+  if (G.down) return;
+  const dmg = Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv));
+  const who = e.name || def.name;
+  if (attack.role === 'ranged') {
+    const aim = Math.atan2(e.ay, e.ax);
+    const arrows = G.arrows || (G.arrows = []);
+    for (let i = 0; i < attack.shots; i++) {
+      const offset = attack.shots === 1 ? 0 : (i / (attack.shots - 1) - 0.5) * attack.spread;
+      const angle = aim + offset, vx = Math.cos(angle) * attack.speed, vy = Math.sin(angle) * attack.speed;
+      arrows.push({ x: e.x, y: e.y, vx, vy, life: def.reach / attack.speed, dmg, who,
+        orb: attack.color, caveShot: attack.pattern });
+    }
+    SFX.play('swing', 0.5);
+  } else if (attack.role === 'poison') {
+    const radial = attack.pattern === 'poison_sulfur_ring' || attack.pattern === 'poison_delayed_bubbles';
+    const cone = attack.pattern === 'poison_short_cone' || attack.pattern === 'poison_dust_cone';
+    const distance = radial || cone ? 0 : 12;
+    const clouds = G.clouds || (G.clouds = []);
+    clouds.push({ x: e.x + e.ax * distance, y: e.y - 4 + e.ay * distance,
+      originX: e.x, originY: e.y - 4, ax: e.ax, ay: e.ay, cone, r: def.reach,
+      t: 0, life: attack.areaLife + attack.delay, delay: attack.delay,
+      map: m, poison: { dmg: Math.max(1, Math.round(dmg * 0.55)), who, color: attack.color,
+        duration: attack.duration, tick: attack.tick } });
+  } else {
+    e.caveHit = attack.pattern !== 'melee_horn_charge' && thaiCaveHit(m, e, def, dmg, who);
+  }
+}
+
+function tickThaiCaveAttack(m, e, def, dt) {
+  const attack = def.caveAttack;
+  if (e.wind > 0) {
+    e.wind = Math.max(0, e.wind - dt);
+    if (!e.wind) {
+      e.atkT = attack.active;
+      e.caveSecondHit = !!attack.secondHit;
+      releaseThaiCaveAttack(m, e, def, attack);
+    }
+    return true;
+  }
+  if (e.atkT > 0) {
+    e.atkT = Math.max(0, e.atkT - dt);
+    const secondStrike = e.caveSecondHit && attack.active - e.atkT >= attack.secondHit;
+    const charging = attack.pattern === 'melee_horn_charge';
+    if (charging) monMove(m, e, e.ax * 96 * dt, e.ay * 96 * dt);
+    if (secondStrike) e.caveSecondHit = false;
+    if ((charging || secondStrike) && !e.caveHit && !G.down) {
+      const dmg = Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv));
+      e.caveHit = thaiCaveHit(m, e, def, dmg, e.name || def.name);
+    }
+    if (!e.atkT) { e.recT = attack.recovery; e.cd = attack.recovery + attack.cooldown; }
+    return true;
+  }
+  if (e.recT > 0) {
+    e.recT = Math.max(0, e.recT - dt);
+    return true;
+  }
+  return false;
+}
+
+function updateThaiCavePoison(m, dt) {
+  if (dt <= 0 || G.down || G.trans) return;
+  for (const c of G.clouds || []) {
+    if (!c.poison || c.map !== m || c.t < c.delay || c.t >= c.life) continue;
+    const dx = PL.x - c.x, dy = PL.y - 4 - c.y, distance = Math.hypot(dx, dy);
+    if (distance >= c.r || (c.cone && dx * c.ax + dy * c.ay < distance * 0.65)
+        || !losClear(m, c.originX, c.originY, PL.x, PL.y - 4)) continue;
+    if (!G.cavePoison || G.cavePoison.map !== m) {
+      G.cavePoison = { ...c.poison, map: m, until: c.poison.duration, next: c.poison.tick };
+      floatText(PL.x, PL.y - 28, 'ติดพิษ!', c.poison.color, 0.8);
+    } else {
+      G.cavePoison.until = Math.max(G.cavePoison.until, c.poison.duration);
+      if (c.poison.dmg > G.cavePoison.dmg) Object.assign(G.cavePoison, c.poison);
+    }
+  }
+  const poison = G.cavePoison;
+  if (!poison) return;
+  poison.until -= dt;
+  if (poison.map !== m || poison.until <= 0) { G.cavePoison = null; return; }
+  poison.next -= dt;
+  if (poison.next <= 0) {
+    poison.next += poison.tick;
+    hurtPlayer(poison.dmg, PL.x, PL.y, poison.who, true);
+  }
+}
+
+function drawThaiPoisonCloud(g, c, S, T) {
+  if (c.map !== G.map) return;
+  const pending = c.t < c.delay, opacity = pending ? 0.24 : Math.min(1, (c.life - c.t) * 4);
+  const angle = Math.atan2(c.ay, c.ax), spread = Math.acos(0.65);
+  g.save();
+  g.fillStyle = rgba(c.poison.color, opacity * 0.25);
+  g.strokeStyle = rgba(c.poison.color, opacity * 0.7);
+  g.beginPath();
+  if (c.cone) {
+    g.moveTo(S(c.x), T(c.y));
+    g.arc(S(c.x), T(c.y), c.r, angle - spread, angle + spread);
+    g.closePath();
+  } else {
+    g.arc(S(c.x), T(c.y), c.r, 0, Math.PI * 2);
+  }
+  g.fill();
+  g.stroke();
+  g.restore();
+}
+
 function monRage(e) { const d = MONS[e.type]; if (!(d.boss2 || d.mini || e.type === 'boss') || !e.max) return 1; return 1 + 0.5 * clamp(1 - e.hp / e.max, 0, 1); }
 function updateMonsters(dtAll) {
   let dt = dtAll;
   const m = G.map; if (!m.vein) { G.mons = []; return; }
   spawnMonsters(dt);
   for (const e of G.mons) {
+    if (e.dead || e.hp <= 0) continue;
     dt = dtAll * monRage(e); if (dt > dtAll * 1.15 && Math.random() < dtAll * 3) G.parts.push({ k: 'star', x: e.x + (Math.random() - 0.5) * 20, y: e.y - 10 - Math.random() * 20, z: 0, vx: 0, vy: -30, vz: 0, life: 0.5, max: 0.5, col: '#ff4030', size: 2 }); /* ไอคลั่งสีแดง */
     if (e.riseT > 0) {
       e.riseT = Math.max(0, e.riseT - dt);
@@ -8289,6 +8444,7 @@ function updateMonsters(dtAll) {
     e.moving = false;
     if (e._pl !== (STATE.lv || 1)) monScale(e);
     if (def.boss2 && e.state === 'chase' && !G.down) bossSummon(m, e, dt);
+    if (def.caveAttack && (G.down || G.trans || dt <= 0 || tickThaiCaveAttack(m, e, def, dt))) continue;
     if (def.slam && updateKrakenSlam(m, e, def, dt, d)) continue;
     if (e.chgW > 0) { e.chgW -= dt; if (Math.random() < 0.6) G.parts.push({ k: 'dust', x: e.x + (Math.random() - 0.5) * 14, y: e.y, z: 0, vx: 0, vy: 0, vz: 14, life: 0.4, max: 0.4, col: '#b8a078', size: 2 }); if (e.chgW <= 0) { const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); e.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down'; e.chg = 0.42; e.chgHit = false; e.atkT = 0; SFX.play('swing', 0.7); } continue; } /* ซอมบี้ยักษ์ไพลิน: ทุบพื้นเสร็จ ตั้งหลักครู่หนึ่งแล้วพุ่งชนด้วยไหล่ไปทางผู้เล่น */
     if (e.chg > 0) { e.chg -= dt; const ok2 = monMove(m, e, e.ax * 175 * dt, e.ay * 175 * dt); e.moving = true; if (Math.random() < 0.7) G.parts.push({ k: 'dust', x: e.x - e.ax * 8, y: e.y, z: 0, vx: -e.ax * 20, vy: -e.ay * 20, vz: 16, life: 0.4, max: 0.4, col: '#b8a078', size: 2 });
@@ -8298,9 +8454,9 @@ function updateMonsters(dtAll) {
     if (e.recT > 0 && !(e.wind > 0)) { e.recT -= dt; if (e.atkT <= 0) continue; } /* พักหลังโจมตี: ยืนนิ่ง เปิดช่องให้สวน */
     if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (def.recover) e.recT = def.recover * (def.boss2 && e.hp < e.max * 0.5 ? 0.6 : 1) * (e.champ ? 0.7 : 1); if (def.lava) (G.clouds || (G.clouds = [])).push({ x: e.x - e.ax * 8, y: e.y - 2 - e.ay * 8, r: 13, t: 0, life: 5, burn: Math.max(1, Math.round(def.dmg * 0.35 * (e.dmgMul || 1))) }); /* หยดลาวาค้างบนพื้น */ if (def.push && d < def.reach + 12 && !G.down) { for (let k = 0; k < 6; k++) { const nx = PL.x + e.ax * 6, ny = PL.y + e.ay * 6; if (boxFree(G.map, nx, ny)) { PL.x = nx; PL.y = ny; } } PL.path = null; } /* ลมปีกผลักถอย */ if (def.cloud) { (G.clouds || (G.clouds = [])).push({ x: e.x + e.ax * 14, y: e.y - 4 + e.ay * 14, r: def.ink ? 44 : 26, t: 0, life: def.ink ? 5.5 : 4.5, ink: def.ink }); e.cd = 2.6; continue; } if (def.aoe) { for (let k = 0; k < 14; k++) { const a3 = k / 14 * 6.283; G.parts.push({ k: 'dust', x: e.x + Math.cos(a3) * def.aoe * 0.8, y: e.y + Math.sin(a3) * def.aoe * 0.5, z: 0, vx: Math.cos(a3) * 30, vy: Math.sin(a3) * 18, vz: 30, life: 0.5, max: 0.5, col: def.boss2 ? '#5a8aff' : '#8a8478', size: 2 + Math.random() * 2 }); } G.shake = Math.max(G.shake, def.boss2 ? 5 : 3); if (d < def.aoe && !G.down) hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (def.charge) e.chgW = 0.4; e.cd = e.champ ? 0.6 : 1.1; continue; } if (def.ranged) { if (!G.down) { const a2 = Math.atan2(PL.y - e.y, PL.x - e.x) + (Math.random() - 0.5) * 0.09, sp = 150; (G.arrows || (G.arrows = [])).push({ x: e.x + Math.cos(a2) * 8, y: e.y + Math.sin(a2) * 8, vx: Math.cos(a2) * sp, vy: Math.sin(a2) * sp, life: 1.6, dmg: Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), who: e.name || def.name, orb: def.orb, big: def.beam }); const A0 = G.arrows[G.arrows.length - 1]; if (def.beam) { A0.vx *= 1.7; A0.vy *= 1.7; for (let k = 1; k <= 5; k++) G.arrows.push({ ...A0, x: A0.x - Math.cos(a2) * k * 7, y: A0.y - Math.sin(a2) * k * 7, dmg: Math.round(A0.dmg * 0.25) }); } /* ลำแสง: ลูกพลังเรียงเป็นแถวยาว พุ่งเร็ว */ if (def.fan) for (const da of [-0.34, 0.34]) { const a4 = a2 + da; G.arrows.push({ ...A0, x: e.x + Math.cos(a4) * 8, y: e.y + Math.sin(a4) * 8, vx: Math.cos(a4) * sp, vy: Math.sin(a4) * sp }); } SFX.play('swing', 0.5); } e.cd = e.champ ? 1.3 : 2.1; continue; } /* พลธนู: ปล่อยลูกธนูแทนการตีประชิด แล้วพักขึ้นสายใหม่ */ if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); STATE.coins -= take; e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = e.champ ? 0.6 : 1.1; /* แม่ทัพโจมตีถี่กว่า: พักระหว่างครั้ง 0.6 วิ (ลูกน้อง 1.1 วิ) */ } continue; }
     if (e.state === 'chase') {
-      if (def.ranged && d < def.reach && !losClear(m, e.x, e.y - 6, PL.x, PL.y - 6)) { /* ไม่เห็นตัว: เดินเข้าหาต่อ */ } else
+      if ((def.ranged || def.caveAttack) && d < def.reach && !losClear(m, e.x, e.y - 6, PL.x, PL.y - 6)) { /* ไม่เห็นตัว: เดินเข้าหาต่อ */ } else
       if (!def.slam && d < def.reach && e.cd <= 0) { e.wind = e.windMax = def.windT ? def.windT * (def.boss2 && e.hp < e.max * 0.5 ? 0.7 : 1) : def.ranged ? (e.champ ? 0.5 : 0.75) : e.type === 'bat' ? 0.2 : e.champ ? 0.26 : 0.38; /* แม่ทัพง้างสั้นกว่า */ const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
-      if (d < def.reach * 0.7 && (!(def.ranged || def.slam) || losClear(m, e.x, e.y - 6, PL.x, PL.y - 6))) { if (def.ranged) { if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; } continue; }
+      if (d < def.reach * 0.7 && (!(def.ranged || def.slam || def.caveAttack) || losClear(m, e.x, e.y - 6, PL.x, PL.y - 6))) { if (def.ranged) { if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; } continue; }
       const sp = def.spd * dt * (def.fly ? 1 + Math.sin(e.t * 9) * 0.3 : 1);
       let tx = PL.x, ty = PL.y;
       if (e.path && e.path.length) { [tx, ty] = e.path[0]; if (Math.hypot(tx - e.x, ty - e.y) < 3) e.path.shift(); }
@@ -8318,7 +8474,8 @@ function updateMonsters(dtAll) {
   dt = dtAll;
   G.mons = G.mons.filter(e => !e.dead);
   updateArrows(dt);
-  if (G.clouds && G.clouds.length) { for (const c of G.clouds) { c.t += dt; if (!G.down && Math.hypot(PL.x - c.x, (PL.y - 4) - c.y) < c.r) { if (c.burn) { if (!(G.burnT > G.time)) { G.burnT = G.time + 0.6; hurtPlayer(c.burn, c.x, c.y + 4, 'ลาวา'); } } else if (!c.ink) G.slowT = G.time + 0.35; } } G.clouds = G.clouds.filter(c => c.t < c.life); } /* กลุ่มสปอร์เห็ด: ยืนในวงแล้วเดินช้าลง */
+  updateThaiCavePoison(m, dt);
+  if (G.clouds && G.clouds.length) { for (const c of G.clouds) { c.t += dt; if (c.poison) continue; if (!G.down && Math.hypot(PL.x - c.x, (PL.y - 4) - c.y) < c.r) { if (c.burn) { if (!(G.burnT > G.time)) { G.burnT = G.time + 0.6; hurtPlayer(c.burn, c.x, c.y + 4, 'ลาวา'); } } else if (!c.ink) G.slowT = G.time + 0.35; } } G.clouds = G.clouds.filter(c => c.t < c.life && (!c.poison || c.map === m)); } /* กลุ่มสปอร์เห็ด: ยืนในวงแล้วเดินช้าลง */
 }
 // ลูกธนูของศัตรู: บินตรง ชนผนัง/หินแล้วหยุด โดนผู้เล่นแล้วเจ็บ (วิ่งหลบได้)
 function updateArrows(dt) { const m = G.map; if (!G.arrows || !G.arrows.length) return;
@@ -8327,8 +8484,22 @@ function updateArrows(dt) { const m = G.map; if (!G.arrows || !G.arrows.length) 
       if (!G.down && Math.abs(PL.x - b.x) < 8 && b.y - PL.y > -11 && b.y - PL.y < 8) { /* โดนตัวผู้เล่นทั้งตัว (เดิมเป็นจุดเล็กแถวขา) */ hurtPlayer(b.dmg, b.x - b.vx * 0.1, b.y - b.vy * 0.1, b.who); b.dead = true; } }
     b.life -= dt; if (b.life <= 0) b.dead = true; }
   G.arrows = G.arrows.filter(b => !b.dead); }
-function drawArrows(g, S, T) { if (G.clouds) for (const c of G.clouds) { const a = Math.min(1, c.t * 4) * Math.min(1, (c.life - c.t) * 1.5); if (c.ink) { for (let k = 0; k < 7; k++) { const an = k * 0.9 + c.t * 0.25, rr = k ? c.r * 0.45 : 0; g.fillStyle = `rgba(6,10,16,${0.8 * a})`; g.beginPath(); g.arc(S(c.x + Math.cos(an) * rr), T(c.y + Math.sin(an) * rr * 0.8), c.r * (k ? 0.6 : 0.8), 0, 7); g.fill(); } continue; } /* ม่านหมึก: ก้อนดำทึบบังสายตา */ g.fillStyle = c.burn ? `rgba(255,110,20,${0.55 * a})` : `rgba(40,200,150,${0.16 * a})`; g.beginPath(); g.ellipse(S(c.x), T(c.y), c.r, c.r * 0.9, 0, 0, 7); g.fill(); g.fillStyle = c.burn ? `rgba(255,220,90,${0.85 * a})` : `rgba(90,235,180,${0.75 * a})`; for (let k = 0; k < 16; k++) { const an = k * 2.4 + c.t * (0.5 + (k % 3) * 0.2), rr = c.r * (0.25 + ((k * 37) % 70) / 100); g.fillRect(S(c.x + Math.cos(an) * rr) - 0.6, T(c.y + Math.sin(an) * rr * 0.9 - (c.t * 6 + k * 3) % 8) - 0.6, 1.4, 1.4); } }
-  if (!G.arrows) return; const AZ = ARZ(); for (const b of G.arrows) { if (b.orb) { const x = S(b.x), y = T(b.y - AZ); g.globalAlpha = 0.35; g.fillStyle = b.orb; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.globalAlpha = 0.5; g.beginPath(); g.arc(x - b.vx * 0.03, y - b.vy * 0.03, 3, 0, 7); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 1.3, 0, 7); g.fill(); continue; } const l = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / l, uy = b.vy / l, x1 = S(b.x), y1 = T(b.y - AZ), x0 = S(b.x - ux * 9), y0 = T(b.y - AZ - uy * 9);
+function drawThaiCaveShot(g, b, x, y) {
+  const a = Math.atan2(b.vy, b.vx);
+  g.save();
+  g.translate(x, y);
+  g.rotate(a);
+  g.fillStyle = b.orb;
+  const needle = b.caveShot === 'quartz_needle' || b.caveShot === 'silver_feather_fan';
+  g.beginPath();
+  g.ellipse(0, 0, needle ? 6 : 4, needle ? 1.4 : b.caveShot === 'sapphire_disk' ? 2 : 3, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#fff';
+  g.fillRect(0, -0.5, 2, 1);
+  g.restore();
+}
+function drawArrows(g, S, T) { if (G.clouds) for (const c of G.clouds) { if (c.poison) { drawThaiPoisonCloud(g, c, S, T); continue; } const a = Math.min(1, c.t * 4) * Math.min(1, (c.life - c.t) * 1.5); if (c.ink) { for (let k = 0; k < 7; k++) { const an = k * 0.9 + c.t * 0.25, rr = k ? c.r * 0.45 : 0; g.fillStyle = `rgba(6,10,16,${0.8 * a})`; g.beginPath(); g.arc(S(c.x + Math.cos(an) * rr), T(c.y + Math.sin(an) * rr * 0.8), c.r * (k ? 0.6 : 0.8), 0, 7); g.fill(); } continue; } /* ม่านหมึก: ก้อนดำทึบบังสายตา */ g.fillStyle = c.burn ? `rgba(255,110,20,${0.55 * a})` : `rgba(40,200,150,${0.16 * a})`; g.beginPath(); g.ellipse(S(c.x), T(c.y), c.r, c.r * 0.9, 0, 0, 7); g.fill(); g.fillStyle = c.burn ? `rgba(255,220,90,${0.85 * a})` : `rgba(90,235,180,${0.75 * a})`; for (let k = 0; k < 16; k++) { const an = k * 2.4 + c.t * (0.5 + (k % 3) * 0.2), rr = c.r * (0.25 + ((k * 37) % 70) / 100); g.fillRect(S(c.x + Math.cos(an) * rr) - 0.6, T(c.y + Math.sin(an) * rr * 0.9 - (c.t * 6 + k * 3) % 8) - 0.6, 1.4, 1.4); } }
+  if (!G.arrows) return; const AZ = ARZ(); for (const b of G.arrows) { if (b.caveShot) { drawThaiCaveShot(g, b, S(b.x), T(b.y - AZ)); continue; } if (b.orb) { const x = S(b.x), y = T(b.y - AZ); g.globalAlpha = 0.35; g.fillStyle = b.orb; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.globalAlpha = 0.5; g.beginPath(); g.arc(x - b.vx * 0.03, y - b.vy * 0.03, 3, 0, 7); g.fill(); g.globalAlpha = 1; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 1.3, 0, 7); g.fill(); continue; } const l = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / l, uy = b.vy / l, x1 = S(b.x), y1 = T(b.y - AZ), x0 = S(b.x - ux * 9), y0 = T(b.y - AZ - uy * 9);
     g.strokeStyle = '#3a2414'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = '#b98a52'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
     g.fillStyle = '#d8dce4'; g.beginPath(); g.moveTo(x1 + ux * 2.5, y1 + uy * 2.5); g.lineTo(x1 - uy * 1.5, y1 + ux * 1.5); g.lineTo(x1 + uy * 1.5, y1 - ux * 1.5); g.closePath(); g.fill();
     g.fillStyle = '#e8e0d0'; g.fillRect(x0 - 0.8, y0 - 0.8, 1.6, 1.6); } }
@@ -8457,7 +8628,44 @@ function drawMonster(g, e, S, T) {
   }
   drawMonsterSprite(g, e, S, T);
 }
+function drawThaiCaveMonster(g, e, def, S, T) {
+  let image = thaiCaveImages.get(def.filename);
+  if (!image) {
+    image = new Image();
+    thaiCaveImages.set(def.filename, image);
+    image.src = def.filename + '.webp';
+  }
+  const x = S(e.x), feet = T(e.y);
+  const size = e.champ ? 72 : 48;
+  g.save();
+  g.fillStyle = 'rgba(0,0,0,0.32)';
+  g.beginPath();
+  g.ellipse(x, feet - 1, def.r, def.r * 0.4, 0, Math.PI * 2);
+  g.fill();
+  if (image.complete && image.naturalWidth) {
+    const cell = image.naturalWidth / 4;
+    const row = THAI_CAVE_DIRECTIONS[e.dir] ?? 0;
+    const col = e.wind > 0 || e.recT > 0 ? 2 : e.atkT > 0 ? 3 :
+      e.moving || def.fly ? Math.floor(e.t * 1000 / def.caveAttack.walk) % 2 : 0;
+    const lift = def.fly ? 6 + Math.sin(G.time * 5 + e.x) * 2 : 0;
+    const bottom = T(e.y - lift) + size / 8 / (PIXEL ? G.TILT || 1 : 1);
+    g.imageSmoothingEnabled = false;
+    if (e.flash > 0) g.filter = 'brightness(1.8)';
+    g.drawImage(image, col * cell, row * cell, cell, cell, x - size / 2, bottom - size, size, size);
+    g.filter = 'none';
+    if (e.wind > 0) {
+      g.fillStyle = '#ff7154';
+      g.fillRect(x, T(e.y - size * 0.85 - lift), 1, 4);
+    }
+  } else {
+    g.fillStyle = def.caveAttack.color;
+    g.fillRect(x - 4, feet - 10, 8, 8);
+  }
+  g.restore();
+}
+
 function drawMonsterSprite(g, e, S, T) {
+  if (MONS[e.type].caveAttack) return drawThaiCaveMonster(g, e, MONS[e.type], S, T);
   const def0 = MONS[e.type], IMG = ART.monImg && ART.monImg[e.type], def = IMG ? { ...def0, human: false } : def0, t = G.time; let fr, w, h, sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1);
   // ท่าโจมตี: ง้าง (ถอยหลังเล็กน้อย+สั่น) → พุ่งเข้าใส่ (ท่าฟาด)
   let ox = 0, oy = 0, sq = 1;
@@ -8503,7 +8711,7 @@ function monFlip(c) { if (!_flip.has(c)) _flip.set(c, mirror(c)); return _flip.g
 function drawMonsterEyes(g, camX, camY) {
   g.globalCompositeOperation = 'lighter';
   for (const e of G.mons) {
-    const def = MONS[e.type]; if ((ART.monImg && ART.monImg[e.type]) || e.type === 'bat' || e.type === 'snake' || e.type === 'scorpion' || e.type === 'mud' || e.type === 'ghost' || e.type === 'spider' || def.steal) continue;
+    const def = MONS[e.type]; if (def.caveAttack || (ART.monImg && ART.monImg[e.type]) || e.type === 'bat' || e.type === 'snake' || e.type === 'scorpion' || e.type === 'mud' || e.type === 'ghost' || e.type === 'spider' || def.steal) continue;
     const sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1), fy = def.fly ? -10 + Math.sin(G.time * 6 + e.x) * 3 : 0;
     let ex = e.x, ey = def.human ? e.y - 23.5 * sc / (G.TILT || 1) : e.y - 8 + fy; /* ตาอยู่สูง 23.5 พิกเซลจากเท้า — ภาพตัวละครไม่ถูกบีบตามมุมกล้อง จึงต้องชดเชย TILT (เดิมแสงตาไปโผล่ที่เอว) */ const col = e.type === 'skeleton' ? 'rgba(255,60,40,0.95)' : e.type === 'brute' ? 'rgba(255,220,40,0.95)' : 'rgba(255,40,30,0.9)';
     if (e.dir === 'up') continue;
@@ -9154,20 +9362,23 @@ function floatText(x, y, text, col, dur = 1.4, big = 0, oy = 0) { const f = { x,
 
 // ---------- HP / หมดสติ ----------
 const testGod = () => CONFIG.testGod && !(typeof NET !== 'undefined' && NET.online);
-function hurtPlayer(dmg, fx, fy, who) {
+function hurtPlayer(dmg, fx, fy, who, periodic = false) {
   if (testGod()) return; /* โหมดทดสอบ: อมตะ */
   if (PL.inv > 0 || G.down || G.trans) return false;
   const ps = pstats();
   if (Math.random() < ps.block) { floatText(PL.x, PL.y - 28, 'บล็อก!', '#bfe6ff', 0.8); SFX.play('hit'); PL.inv = 0.4; return false; }
   const d = Math.max(1, Math.round(dmg - ps.def));
-  STATE.hp -= d; PL.inv = 0.8; G.redT = 0.35; G.shake = Math.max(G.shake, 3);
-  const a = Math.atan2(PL.y - fy, PL.x - fx); PL.kx = Math.cos(a) * 160; PL.ky = Math.sin(a) * 160;
+  STATE.hp -= d; G.redT = periodic ? 0.15 : 0.35;
+  if (!periodic) {
+    PL.inv = 0.8; G.shake = Math.max(G.shake, 3);
+    const a = Math.atan2(PL.y - fy, PL.x - fx); PL.kx = Math.cos(a) * 160; PL.ky = Math.sin(a) * 160;
+  }
   floatText(PL.x, PL.y - 28, `-${d}`, '#ff6a50', 0.9); SFX.play('hurt');
   if (STATE.hp <= 0) faint(who);
   UI.hud(); return true;
 }
 function faint(who) {
-  STATE.hp = 0; G.down = true; G.holdAct = false; PL.state = 'idle';
+  STATE.hp = 0; G.cavePoison = null; G.clouds = (G.clouds || []).filter(cloud => !cloud.poison); G.down = true; G.holdAct = false; PL.state = 'idle';
   // หมดสติในเหมือง: ชุดที่สวมอยู่ + พลอยก้อนที่ขุดได้ในการลงเหมืองรอบนี้ ตกอยู่เป็นกระเป๋าตรงจุดที่ล้ม — กลับมาเก็บคืนได้ทั้งหมด
   // (พลอยเจียระไน และพลอยที่มีติดตัวมาก่อนลงเหมือง ไม่ตก • พลั่วกับอาวุธยังอยู่กับตัวเพื่อให้กลับมาเก็บได้)
   const dieMap = G.map, inMine = isMine(dieMap), eq0 = eqIds(); let bag = null; PL.fallT0 = G.time; PL.fallEq = eq0; // ล้มลง: เล่นท่าล้ม แล้วทิ้งร่างไว้ตรงนั้น
@@ -9294,7 +9505,7 @@ function goMap(id, spawnKey) {
     if (spawnKey === 'warpIn' && G.map && isMine(G.map)) G.warpKeep = { map: G.map.id, mons: G.mons, drops: G.drops }; else if (spawnKey !== 'warpBack') G.warpKeep = null;
     { const prev = G.map; G.map = getMap(id); if (isMine(G.map) && !(prev && isMine(prev))) STATE.mineRun = (STATE.mineRun || 1) + 1;
       if (!isMine(G.map) && prev && isMine(prev) && !G.down) { const mx = pstats().maxHp; if (STATE.hp < mx) { STATE.hp = mx; setTimeout(() => { floatText(PL.x, PL.y - 34, 'เลือดเต็ม ♥', '#ff9aa8', 1.8); UI.hud(); }, 700); } } /* ออกจากเหมืองเข้าเมือง (เดินออกหรือใช้ประตูวาร์ป): เลือดกลับมาเต็ม */ } // ลงเหมืองรอบใหม่
-    syncDeathBags(); setTheme(); G.bullets = []; G.arrows = []; G.muzzle = []; setTimeout(climateWarn, 1600);
+    syncDeathBags(); setTheme(); G.bullets = []; G.arrows = []; G.cavePoison = null; G.clouds = (G.clouds || []).filter(cloud => !cloud.poison); G.muzzle = []; setTimeout(climateWarn, 1600);
     G.ignore = new Set(Object.keys(G.keys).filter(k => G.keys[k])); G.keys = {}; G.dpad = {}; document.querySelectorAll('[data-dir].down').forEach(b => b.classList.remove('down'));
     const sp = (spawnKey === 'warpIn' && G.map.spawn_warpDoor) || (spawnKey && G.map['spawn_' + spawnKey]) || (isMine(G.map) ? G.map.spawn : spawnKey === 'airport' ? G.map.spawnAirport : G.map.spawnFromMine);
     PL.x = sp.x; PL.y = sp.y; PL.dir = sp.dir; PL.mvA = PL.faceA = null; G.cam.x = PL.x; G.cam.y = PL.y - 10; G.zone = null; G.motes = []; G.mons = []; G.drops = [];
@@ -9855,7 +10066,7 @@ function drawOverlayText(camX, camY, shx, shy) {
   if (G.joy && G.joy.moved) { const d = dpr, jx = G.joy.ox * d, jy = G.joy.oy * d, kx = G.joy.x * d, ky = G.joy.y * d; c.fillStyle = 'rgba(255,255,255,0.12)'; c.beginPath(); c.arc(jx, jy, 60 * d, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,255,255,0.38)'; c.lineWidth = 2 * d; c.stroke(); c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.arc(kx, ky, 26 * d, 0, 7); c.fill(); }
   if (G.mons && G.mons.length) { /* ป้ายเล็กเหนือหัวศัตรู: ชื่อชนิด + พลังชีวิต */
     const sz = Math.max(8, Math.round(fs * 0.6)); c.font = `bold ${sz}px Tahoma, 'Noto Sans Thai', sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round'; c.lineWidth = Math.max(2, sz * 0.26); c.strokeStyle = 'rgba(0,0,0,0.85)';
-    for (const e of G.mons) { if (e.dead || e.riseT > 0) continue; const def = MONS[e.type], sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1), up = ART.monImg && ART.monImg[e.type] && MONS[e.type].sheet ? (ART.monImg[e.type].down[0].height / ART.monImg[e.type].down[0].k) * (e.champ ? 1.5 : 1) * (MONS[e.type].sc || 1) + 9 + (def.fly ? 10 : 0) : ART.monImg && ART.monImg[e.type] ? (e.champ ? 58 : 35) : def.human ? 31 * sc / (G.TILT || 1) : (e.type === 'ghost' ? (e.champ ? 62 : 46) : e.type === 'snake' ? (e.champ ? 31 : 21) : e.type === 'scorpion' ? (e.champ ? 26 : 17) : e.type === 'spider' || e.type === 'mud' ? (e.champ ? 46 : 29) : (def.fly ? 30 : 17) + (e.champ ? 7 : 0)); /* แมงมุม/โคลนตัวสูง: ยกป้ายชื่อขึ้นพ้นหัว */
+    for (const e of G.mons) { if (e.dead || e.riseT > 0) continue; const def = MONS[e.type], sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1), up = def.caveAttack ? ((e.champ ? 58 : 38) / (G.TILT || 1)) + (def.fly ? 6 : 0) : ART.monImg && ART.monImg[e.type] && MONS[e.type].sheet ? (ART.monImg[e.type].down[0].height / ART.monImg[e.type].down[0].k) * (e.champ ? 1.5 : 1) * (MONS[e.type].sc || 1) + 9 + (def.fly ? 10 : 0) : ART.monImg && ART.monImg[e.type] ? (e.champ ? 58 : 35) : def.human ? 31 * sc / (G.TILT || 1) : (e.type === 'ghost' ? (e.champ ? 62 : 46) : e.type === 'snake' ? (e.champ ? 31 : 21) : e.type === 'scorpion' ? (e.champ ? 26 : 17) : e.type === 'spider' || e.type === 'mud' ? (e.champ ? 46 : 29) : (def.fly ? 30 : 17) + (e.champ ? 7 : 0)); /* แมงมุม/โคลนตัวสูง: ยกป้ายชื่อขึ้นพ้นหัว */
       const [x, y] = W2S(e.x, e.y - up - 3); if (x < -40 || y < -20 || x > screenC.width + 40 || y > screenC.height + 20) continue;
       const t1 = (e.champ ? '★ ' : '') + (e.lv ? 'Lv' + e.lv + ' ' : '') + (e.name || def.name), r = e.max ? clamp(e.hp / e.max, 0, 1) : 1, bw = Math.round(sz * (def.big || e.type === 'boss' ? 4.6 : 3.4)), bh = Math.max(3, Math.round(sz * 0.36)), bx = Math.round(x - bw / 2), by = Math.round(y - bh / 2);
       c.strokeText(t1, x, y - sz * 0.95); { const dl = (e.lv || 1) - (STATE.lv || 1); c.fillStyle = e.champ ? '#ffc040' : dl >= 5 ? '#ff5a4a' : dl >= 1 ? '#ffb050' : dl <= -14 ? '#9a9a9a' : def.steal ? '#ffd27a' : def.big || e.type === 'boss' ? '#ff9a8a' : '#ffffff'; } c.fillText(t1, x, y - sz * 0.95); /* สีชื่อตามเลเวลเทียบกับเรา: แดง = สูงกว่ามาก • ส้ม = สูงกว่า • เทา = ต่ำจนแทบไม่ให้ EXP */
@@ -11798,7 +12009,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795229251";
+window.GAME_BUILD="1795230600";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
