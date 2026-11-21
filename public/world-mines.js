@@ -31,9 +31,9 @@ const WorldMines = (() => {
         const roster=[];
         for(const [slot,design] of MineSpecies[country][floor-1].entries()){
           const rank=slot===10?'mini':slot===11?'boss':'';
-          const role=roles[(slot+floor+regionNo)%3];
+          const role=design.role || roles[(slot+floor+regionNo)%3];   // ชุดใหม่ (กัมพูชา เวียดนาม เมียนมา) ระบุรูปแบบโจมตีมากับข้อมูลของผู้ออกแบบ
           const moves=templates.filter(x=>x.caveAttack.role===role);
-          const move=design.pattern ? templates.find(t=>t.caveAttack.pattern===design.pattern) : moves[(slot+2*floor+regionNo)%moves.length];
+          const move=(design.pattern && templates.find(t=>t.caveAttack.pattern===design.pattern)) || moves[(slot+2*floor+regionNo)%moves.length];
           // Preserve the historic mini/boss IDs used by existing save files.
           const serial=slot+1+(rank?1:0);
           const type='mine_'+country+'_f'+floor+'_'+String(serial).padStart(2,'0');
@@ -48,6 +48,8 @@ const WorldMines = (() => {
             coins:rewards.coins,chance:rewards.chance,drops:rewards.drops,hp:Math.round((rank==='boss'?188:rank==='mini'?85:source.hp)*(1+floor*.075)),
             dmg:Math.round(source.dmg*(rank==='boss'?1.65:rank==='mini'?1.32:1)*(1+floor*.03)),spd:source.spd+(slot%4)-2,
             windT:source.windT+(rank?0.18:0),worldCreature:entry,caveAttack:attack};
+          // ค่าพลังที่ผู้ออกแบบกำหนดมากับมอนสเตอร์ (พลังชีวิต พลังโจมตี ความเร็ว) ใช้แทนค่าที่คำนวณจากแม่แบบ
+          if(design.hp>0){definitions[type].hp=design.hp;definitions[type].dmg=design.dmg;definitions[type].spd=design.spd;}
           levels[type]=levels[rank==='boss'?'golem':rank==='mini'?'rscorp':move.type];
           byId.set(type,entry); roster.push(entry);
         }
@@ -55,36 +57,58 @@ const WorldMines = (() => {
       }
     }
   }
-  // ทุกประเทศใช้ศัตรูชุดเดียวกับเหมืองไทย (ตามชั้น) — ปิดชุดสัตว์ประจำถิ่นไว้ก่อน (ข้อมูลยังเก็บอยู่ เปิดคืนได้ที่ REGIONAL)
-  const REGIONAL=false;
-  function roster(m){return REGIONAL && m ? floors.get(m.country+'/'+(m.tier||1)) : undefined;}
+  // ประเทศที่ใช้สัตว์ประจำถิ่นของตัวเอง (ภาพและค่าพลังชุดใหม่ 21 พ.ย. 2569) — ประเทศอื่นยังใช้ศัตรูชุดเดียวกับเหมืองไทยตามชั้น
+  const REGIONAL=new Set(['cambodia','vietnam','myanmar']);
+  function roster(m){return m && REGIONAL.has(m.country) ? floors.get(m.country+'/'+(m.tier||1)) : undefined;}
   function nearSave(m,x,y,margin=0){return !!(m.cp && regions[m.country] && Math.hypot(x-m.cp.x,y-m.cp.y)<64+margin);}
-  function distribute(m,groups){
-    const entries=roster(m); if(!entries)return;
-    const bossPoint=m.endRoute.boss;
-    const bossGroup=groups.findLast(g=>g.x===bossPoint[0]*16+8 && g.y===bossPoint[1]*16+12 && !g.trail);
-    const lane=groups.filter(g=>g.routeEncounter && !nearSave(m,g.x,g.y,24)).sort((a,b)=>a.y-b.y || a.x-b.x);
-    // One existing slot near the route's midpoint becomes the single miniboss.
-    const mixedPailinFloor=m.country==='cambodia' && (m.tier===1 || m.tier===2);
-    const trail=mixedPailinFloor ? lane.filter(g=>g.trail) : lane;
-    const mid=trail[Math.floor(trail.length/2)] || lane[Math.floor(lane.length/2)];
-    const order=Array.from({length:10},(_,i)=>(i*7+m.tier+entries[0].regionNo)%10);
-    let pathIndex=0, caveIndex=4;
-    const laneTypes=new Map(lane.filter(g=>g!==mid).map(g=>[g,entries[order[pathIndex++%10]].type]));
-    for(const g of groups){
-      if(g===mid || g===bossGroup){
-        g.type=entries[g===mid?10:11].type;g.n=g.left=1;g.champ=false;
-      }else{
-        g.type=laneTypes.get(g)||entries[order[caveIndex++%10]].type;
-        if(nearSave(m,g.x,g.y,24))g.sanctuary=true;
-        if(mixedPailinFloor && !g.sanctuary){
-          const lead=entries.findIndex(d=>d.type===g.type);
-          g.pack=[0,3,7,1,5].map(offset=>entries[(lead+offset)%10].type);
-        }
+  // ช่วงพักบนทางเดิน: ทุก ๆ 26 แถว เว้น 5 แถวสุดท้ายไว้ไม่มีศัตรู (ไม่นับรอบจุดเซฟซึ่งว่างอยู่แล้ว)
+  const REST_EVERY=26, REST_ROWS=5;
+  function restRow(ty){return ((ty-18)%REST_EVERY+REST_EVERY)%REST_EVERY>=REST_EVERY-REST_ROWS;}
+  // จุดวางเพิ่มสำหรับเหมืองสัตว์ประจำถิ่น: ตัวเดี่ยว ๆ สลับซ้าย-ขวาของทางเดินหลักทุก 2 แถว → ศัตรูกระจายเต็มทาง ไม่กระจุกเป็นกอง
+  function scatterSpots(m,taken){
+    const out=[]; if(!roster(m)||!m.pathX||!m.endRoute)return out;
+    let side=1;
+    for(let ty=19;ty<m.endRoute.entranceY-2;ty+=2){
+      if(restRow(ty))continue; const px=m.pathX[ty]; if(!px)continue;
+      for(const dx of [2*side,side,3*side,-side,-2*side,0,-3*side]){
+        const tx=px+dx, i=ty*m.w+tx; if(tx<2||tx>=m.w-2||m.t[i]!==5)continue;
+        if(taken.some(g=>Math.abs(g.x-(tx*16+8))<20&&Math.abs(g.y-(ty*16+12))<14)||out.some(p=>Math.abs(p[0]-tx)<2&&Math.abs(p[1]-ty)<3))continue;
+        out.push([tx,ty]); side=-side; break;
       }
     }
+    return out;
   }
-  return {install,roster,byId,regions,nearSave,distribute};
+  // วางสัตว์ประจำถิ่นลงทุกจุดของชั้น: ล้างชนิดเดิมทั้งหมด → 10 ชนิดสลับกันตลอดทาง (ประชิด ยิงไกล พิษ วนกัน ไม่ซ้ำติดกัน) ตัวเดี่ยวสลับกับกลุ่มเล็กต่างชนิด
+  // มินิบอสเฝ้ากลางทาง บอสอยู่ท้ายชั้น • รอบจุดเซฟและช่วงพักไม่มีศัตรู
+  function distribute(m,groups){
+    const entries=roster(m); if(!entries)return;
+    const normal=entries.slice(0,10), by={melee:[],ranged:[],poison:[]}; for(const d of normal)(by[d.caveAttack.role]||by.melee).push(d);
+    const cyc=[]; for(let i=0;cyc.length<normal.length&&i<10;i++)for(const r of ['melee','ranged','poison'])if(by[r][i])cyc.push(by[r][i]);
+    const R=m.endRoute, at=p=>p&&groups.findLast(g=>g.x===p[0]*16+8&&g.y===p[1]*16+12&&!g.routeEncounter);
+    const bossG=at(R.boss), miniG=at(R.guard), lowG=at(R.lowerGuard);
+    let k=(m.tier*3+entries[0].regionNo)%cyc.length, c=k+5;
+    const one=(g,type)=>{g.type=type;g.n=g.left=1;g.champ=false;g.champDead=false;delete g.pack;delete g.sanctuary;};
+    const lane=groups.filter(g=>g.routeEncounter&&g!==bossG&&g!==miniG&&g!==lowG).sort((a,b)=>a.y-b.y||a.x-b.x);
+    lane.forEach((g,i)=>{
+      delete g.pack; delete g.sanctuary; g.champDead=false;
+      const ty=Math.floor(g.y/16);
+      if(nearSave(m,g.x,g.y,24)||restRow(ty)){g.type=cyc[0].type;g.n=g.left=1;g.champ=false;g.sanctuary=true;return;}
+      const a=cyc[k++%cyc.length];
+      if(g.scatter){one(g,a.type);return;}
+      const b=cyc[(k+3)%cyc.length], c2=cyc[(k+6)%cyc.length]; g.type=a.type; g.n=g.left=2; g.pack=[a.type,b.type,c2.type]; g.champ=i%7===3;   // จุดบนทางเดิน: คู่ต่างชนิด • บางคู่มีแม่ทัพนำ
+    });
+    for(const g of groups){
+      if(g===bossG){one(g,entries[11].type);continue;}
+      if(g===miniG){one(g,entries[10].type);continue;}
+      if(g===lowG){const a=cyc[(k+1)%cyc.length],b=cyc[(k+4)%cyc.length];g.type=a.type;g.n=g.left=2;g.pack=[a.type,b.type];g.champ=true;g.champDead=false;delete g.sanctuary;continue;}
+      if(g.routeEncounter)continue;
+      // โพรงข้างทาง (ต้องขุดเข้าไป): ตัวเดี่ยวหรือคู่ กระจายครบทุกชนิด
+      delete g.pack; delete g.sanctuary; g.champDead=false;
+      if(nearSave(m,g.x,g.y,24)){g.type=cyc[0].type;g.n=g.left=1;g.champ=false;g.sanctuary=true;continue;}
+      const a=cyc[c++%cyc.length]; g.type=a.type; g.n=g.left=c%3?2:3; g.pack=[a.type,cyc[(c+4)%cyc.length].type,cyc[(c+7)%cyc.length].type]; g.champ=c%5===0;
+    }
+  }
+  return {install,roster,byId,regions,nearSave,distribute,scatterSpots};
 })();
 
 // Four aligned rows (front, back, left, right) × two footfalls, wind-up and strike.
@@ -98,7 +122,7 @@ const WorldMineArt = (() => {
     if (!image) {
       image=new Image();
       image.src='mine-atlases/'+key+'.webp';
-      if(sheets.size>=6)sheets.delete(sheets.keys().next().value);
+      if(sheets.size>=3)sheets.delete(sheets.keys().next().value);   // ภาพชุดใหม่ละเอียดขึ้น 4 เท่า: เก็บในหน่วยความจำไม่เกิน 3 ชั้น
       sheets.set(key,image);
     }
     return image;

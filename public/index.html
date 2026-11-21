@@ -967,8 +967,8 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 <div id="flight" class="hidden"><div class="sky"><canvas id="flCanvas"></canvas></div>
   <div class="flbox frame"><h2 id="flTitle"></h2><div class="route"><b id="flFrom"></b><span>✈ · · · · · · ·</span><b id="flTo"></b></div><div class="bar big"><i id="flBar"></i></div><p id="flTime"></p></div></div>
 <div id="fade"></div>
-<script src="mine-species.js"></script>
-<script src="world-mines.js?v=2"></script>
+<script src="mine-species.js?v=3"></script>
+<script src="world-mines.js?v=3"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -7444,8 +7444,10 @@ function buildMine(dugB64, country = 'thai', tier = 1) {
   // ป้ายโซน
   const L = C.layers;
   m.labels.push({ x: 24 * 16 + 8, y: 12 * 16, text: `${L[0]} • ขุดหินได้ทุกก้อน`, col: '#ffe0a0', small: true });
-  m.labels.push({ x: m.pathX[MINE_Z1 + 1] * 16 + 8, y: (MINE_Z1 + 1) * 16, text: `${L[1]} • ${tier === 5 ? 'ระวังม่านหมึกและกระเบนโฉบ' : tier === 4 ? 'ระวังหยดลาวาและลมปีกผีเสื้อเถ้า' : tier === 3 ? 'ระวังลูกไฟผีตะเกียงและหินพลอยปลอม' : tier === 2 ? 'ระวังปู ตะขาบ และเห็ดพ่นผง' : 'ระวังค้างคาวและซอมบี้'}`, col: '#bfe0ff', small: true });
-  m.labels.push({ x: m.pathX[MINE_Z2 + 1] * 16 + 8, y: (MINE_Z2 + 1) * 16, text: `${L[2]} • ${tier === 5 ? 'ผู้พิทักษ์ไข่มุก • อสูรหมึกมงกุฎเพชรรออยู่ก้นเหมือง!' : tier === 4 ? 'ยักษ์ค้อนตะกรัน • บอสแกนทับทิมเฝ้าทางลง!' : tier === 3 ? 'วิญญาณนายเหมือง • บอสเนตรเฝ้าทางลง!' : tier === 2 ? 'ภูติหิน • บอสเฝ้าทางลง!' : 'ซอมบี้และโครงกระดูก!'}`, col: '#e0c8ff', small: true });
+  const RG = (typeof WorldMines !== 'undefined' && WorldMines.roster({ country: m.country || countryOfMap(m.id), tier })) || null; /* เหมืองสัตว์ประจำถิ่น: ป้ายเตือนใช้ชื่อมินิบอส/บอสของประเทศนั้น */
+  if (RG) { m.labels.push({ x: m.pathX[MINE_Z1 + 1] * 16 + 8, y: (MINE_Z1 + 1) * 16, text: `${L[1]} • ระวัง${RG[10].name.replace(/^มินิบอส\s*/, '')}กลางทาง`, col: '#ffe4b4' }); m.labels.push({ x: m.pathX[MINE_Z2 + 1] * 16 + 8, y: (MINE_Z2 + 1) * 16, text: `${L[2]} • ${RG[11].name.replace(/^บอส\s*/, '')}เฝ้าทางลง!`, col: '#ffe4b4' }); }
+  else m.labels.push({ x: m.pathX[MINE_Z1 + 1] * 16 + 8, y: (MINE_Z1 + 1) * 16, text: `${L[1]} • ${tier === 5 ? 'ระวังม่านหมึกและกระเบนโฉบ' : tier === 4 ? 'ระวังหยดลาวาและลมปีกผีเสื้อเถ้า' : tier === 3 ? 'ระวังลูกไฟผีตะเกียงและหินพลอยปลอม' : tier === 2 ? 'ระวังปู ตะขาบ และเห็ดพ่นผง' : 'ระวังค้างคาวและซอมบี้'}`, col: '#bfe0ff', small: true });
+  if (!RG) m.labels.push({ x: m.pathX[MINE_Z2 + 1] * 16 + 8, y: (MINE_Z2 + 1) * 16, text: `${L[2]} • ${tier === 5 ? 'ผู้พิทักษ์ไข่มุก • อสูรหมึกมงกุฎเพชรรออยู่ก้นเหมือง!' : tier === 4 ? 'ยักษ์ค้อนตะกรัน • บอสแกนทับทิมเฝ้าทางลง!' : tier === 3 ? 'วิญญาณนายเหมือง • บอสเนตรเฝ้าทางลง!' : tier === 2 ? 'ภูติหิน • บอสเฝ้าทางลง!' : 'ซอมบี้และโครงกระดูก!'}`, col: '#e0c8ff', small: true });
   /* บันไดขึ้น: ชั้น 1 ออกสู่ผิวดิน • ชั้น 2 ขึ้นไป ขึ้นไปชั้นที่อยู่เหนือขึ้นไปทีละชั้น (5→4→3→2→1) โผล่หน้าบันไดทางลงของชั้นบน */
   const upTier = tier > 1 ? tier - 1 : 0, outTo = upTier ? mineIdTier(mapIdOf(country), upTier) : country === 'thai' ? 'village' : 'out_' + country, upSpawn = upTier ? 'up' : undefined;
   m.labels.push({ x: 24 * 16 + 8, y: 22, text: upTier ? `ทางขึ้น ↑ ชั้น ${upTier} ${MINE_TIERS[upTier - 1].name}` : country === 'thai' ? 'ทางออก ↑ หมู่บ้าน' : `ทางออก ↑ ${C.short} (สนามบิน • ร้านค้า)`, col: '#fff4c0' });
@@ -8341,7 +8343,9 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
       let draw = rnd() * list.reduce((t, e) => t + e[1], 0); const [type] = list.find(([, w]) => (draw -= w) < 0) || list[0];
       const n = Math.max(2, Math.round((zz === 'gravel' ? 2 : 2 + Math.floor(rnd() * 2)) * MON_MORE) - 1);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: zz !== 'gravel' && rnd() < 0.15, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true }); } }
-  if (WorldMines.roster(m)) WorldMines.distribute(m,G2);
+  if (WorldMines.roster(m)) { /* เหมืองสัตว์ประจำถิ่น (กัมพูชา เวียดนาม เมียนมา): เพิ่มจุดวางตัวเดี่ยวสลับซ้ายขวาตลอดทาง แล้วให้ world-mines.js จัดชนิดลงทุกจุด */
+    for (const [tx, ty] of WorldMines.scatterSpots(m, G2)) G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type: 'snake', zz: ZONE_KEYS[mineZoneIdx(ty)], n: 1, left: 1, deadAt: 0, active: false, champ: false, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true, scatter: true });
+    WorldMines.distribute(m, G2); }
   else assignThaiCaveMonsters(m, G2);
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   const local = WorldMines.roster(m);
@@ -12456,7 +12460,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795258990";
+window.GAME_BUILD="1795260428";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {

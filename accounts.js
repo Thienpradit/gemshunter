@@ -129,7 +129,7 @@ const tries = new Map();   // กันเดารหัสผ่าน / ส�
 function limited(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.now(), t = (tries.get(k) || []).filter(x => now - x < 600000); t.push(now); tries.set(k, t); if (tries.size > 20000) tries.clear(); return t.length > n; }
 
 // เซฟที่ส่งมา: ต้องเป็น object ธรรมดา ขนาดไม่เกินกำหนด
-const MIN_BUILD = 1795258990; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
+const MIN_BUILD = 1795260428; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
 function cleanSave(s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return null; let str; try { str = JSON.stringify(s); } catch (e) { return null; } if (str.length > MAX_SAVE) return null; return JSON.parse(str); }
 // ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าหรือตู้เซฟของเซฟนั้นจริง
 function pubOf(save, pub) {
