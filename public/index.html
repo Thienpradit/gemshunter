@@ -969,7 +969,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
   <div class="flbox frame"><h2 id="flTitle"></h2><div class="route"><b id="flFrom"></b><span>✈ · · · · · · ·</span><b id="flTo"></b></div><div class="bar big"><i id="flBar"></i></div><p id="flTime"></p></div></div>
 <div id="fade"></div>
 <script src="mine-species.js?v=3"></script>
-<script src="world-mines.js?v=6"></script>
+<script src="world-mines.js?v=7"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -8345,8 +8345,8 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
       let draw = rnd() * list.reduce((t, e) => t + e[1], 0); const [type] = list.find(([, w]) => (draw -= w) < 0) || list[0];
       const n = Math.max(2, Math.round((zz === 'gravel' ? 2 : 2 + Math.floor(rnd() * 2)) * MON_MORE) - 1);
       G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type, zz, n, left: n, deadAt: 0, active: false, champ: zz !== 'gravel' && rnd() < 0.15, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true }); } }
-  if (WorldMines.roster(m)) { /* เหมืองสัตว์ประจำถิ่น (กัมพูชา เวียดนาม เมียนมา): เพิ่มจุดวางตัวเดี่ยวสลับซ้ายขวาตลอดทาง แล้วให้ world-mines.js จัดชนิดลงทุกจุด */
-    for (const [tx, ty] of WorldMines.scatterSpots(m, G2)) G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type: 'snake', zz: ZONE_KEYS[mineZoneIdx(ty)], n: 1, left: 1, deadAt: 0, active: false, champ: false, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true, scatter: true });
+  if (WorldMines.roster(m)) { /* เหมืองสัตว์ประจำถิ่น (กัมพูชา เวียดนาม เมียนมา): เติมฝูงช่วงล่างก่อนถึงมินิบอส (จุดเดิมของด่านมีน้อย) แล้วให้ world-mines.js จัดชนิดลงทุกจุด */
+    for (const [tx, ty] of WorldMines.scatterSpots(m, G2)) G2.push({ x: tx * 16 + 8, y: ty * 16 + 12, type: 'snake', zz: ZONE_KEYS[mineZoneIdx(ty)], n: 3, left: 3, deadAt: 0, active: false, champ: false, champDead: false, chaseLimit: 110, routeEncounter: true, trail: true, scatter: true });
     WorldMines.distribute(m, G2); }
   else assignThaiCaveMonsters(m, G2);
   if (WorldMines.roster(m) && STATE.grp && (STATE.grpRV | 0) < 3) { for (const k of Object.keys(STATE.grp)) if (/^mine_(cambodia|vietnam|myanmar)/.test(k)) delete STATE.grp[k]; STATE.grpRV = 3; } /* เหมือง 3 ประเทศเปลี่ยนชุดศัตรูและการจัดวางใหม่: ล้างบันทึก "ฝูงที่ฆ่าไปแล้ว" ของเดิมครั้งเดียว ไม่งั้นบางช่วงจะว่างเพราะนับผิดฝูง */
@@ -12474,7 +12474,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795261707";
+window.GAME_BUILD="1795261887";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {

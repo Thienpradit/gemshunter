@@ -66,14 +66,15 @@ const WorldMines = (() => {
   function restRow(ty){return ((ty-18)%REST_EVERY+REST_EVERY)%REST_EVERY>=REST_EVERY-REST_ROWS;}
   // จุดวางเพิ่มสำหรับเหมืองสัตว์ประจำถิ่น: ตัวเดี่ยว ๆ สลับซ้าย-ขวาของทางเดินหลักทุก 2 แถว → ศัตรูกระจายเต็มทาง ไม่กระจุกเป็นกอง
   function scatterSpots(m,taken){
-    const out=[]; return out;   // ปิดการวางตัวเดี่ยวกระจาย: กลับไปใช้จุดรวมฝูงแบบเดิมของด่าน (ผู้เล่นต้องการให้ชนิดเดียวกันอยู่รวมกลุ่ม)
-    if(!roster(m)||!m.pathX||!m.endRoute)return out;
-    let side=1;
-    for(let ty=19;ty<m.endRoute.entranceY-2;ty+=2){
-      if(restRow(ty))continue; const px=m.pathX[ty]; if(!px)continue;
-      for(const dx of [2*side,side,3*side,-side,-2*side,0,-3*side]){
+    // ช่วงล่างของชั้น (ก่อนถึงมินิบอส) จุดวางเดิมของด่านมีน้อย → เติมฝูงเพิ่มบนทางเดินทุก ~3 แถว ตั้งแต่แถว 142 ถึงหน้ามินิบอส
+    const out=[]; if(!roster(m)||!m.endRoute)return out;
+    const R=m.endRoute, end=R.guard[1]-2; let side=1;
+    for(let ty=142;ty<=end;ty+=3){
+      const px=(m.pathX&&m.pathX[ty])||R.guard[0];
+      for(const dx of [side,2*side,0,-side,-2*side,3*side,-3*side]){
         const tx=px+dx, i=ty*m.w+tx; if(tx<2||tx>=m.w-2||m.t[i]!==5)continue;
-        if(taken.some(g=>Math.abs(g.x-(tx*16+8))<20&&Math.abs(g.y-(ty*16+12))<14)||out.some(p=>Math.abs(p[0]-tx)<2&&Math.abs(p[1]-ty)<3))continue;
+        if(nearSave(m,tx*16+8,ty*16+12,16))continue;
+        if(taken.some(g=>Math.abs(g.x-(tx*16+8))<26&&Math.abs(g.y-(ty*16+12))<26)||out.some(p=>Math.abs(p[1]-ty)<3))continue;
         out.push([tx,ty]); side=-side; break;
       }
     }
