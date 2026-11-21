@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const market = require('./market');
+const econ = require('./econ');
 
 const DB_URL = process.env.DATABASE_URL || '';
 const SECRET = process.env.TOKEN_SECRET || crypto.createHash('sha256').update('nlpc:' + (DB_URL || 'dev-secret')).digest('hex');
@@ -34,6 +35,7 @@ function fileStore(note) {
         levels: all.slice().sort((a, b) => b.lv - a.lv || (b.pub.xp || 0) - (a.pub.xp || 0) || a.updated - b.updated).slice(0, n).map(u => ({ name: u.name, lv: u.lv })), n: all.length };
     },
   };
+  const AUD = []; S.audit = async r => { AUD.push({ ...r, t: Date.now() }); if (AUD.length > 2000) AUD.splice(0, 500); }; S.auditList = async n => AUD.slice(-n).reverse();
   market.attachFile(S, raw); return S;
 }
 if (DB_URL) {
@@ -51,7 +53,9 @@ if (DB_URL) {
       created TIMESTAMPTZ NOT NULL DEFAULT now(), updated TIMESTAMPTZ NOT NULL DEFAULT now())`)
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_gval ON gem_players (gval DESC)'))
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_lv ON gem_players (lv DESC)'))
-    .then(async () => { for (const q of market.DDL) await pool.query(q); });   /* ตลาดเทรด: ตารางประกาศขาย + คอลัมน์จดพลอยที่ออกจากบัญชี */
+    .then(async () => { for (const q of market.DDL) await pool.query(q); })
+    .then(() => pool.query('CREATE TABLE IF NOT EXISTS gem_audit (id BIGSERIAL PRIMARY KEY, t TIMESTAMPTZ NOT NULL DEFAULT now(), lname TEXT NOT NULL, name TEXT NOT NULL, mode TEXT NOT NULL, rejected BOOLEAN NOT NULL DEFAULT false, detail JSONB NOT NULL)'))
+    .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_audit_t ON gem_audit (t DESC)'));   /* บันทึกการตรวจเซฟ (กันโกง) */   /* ตลาดเทรด: ตารางประกาศขาย + คอลัมน์จดพลอยที่ออกจากบัญชี */
   // ต่อไม่ติดตอนเริ่ม → ปิดระบบบัญชีชั่วคราว (ไม่ให้เซิร์ฟเวอร์ล่ม) แล้ว "ลองต่อใหม่เองทุก 10 วินาที" จนติด — เดิมพลาดครั้งเดียวแล้วปิดยาวจนกว่าจะรีสตาร์ต
   const retryLater = () => setTimeout(() => initDb().then(() => { store = dbStore; console.log('accounts: database reconnected → using Postgres'); }).catch(e => { if (fallback) fallback.dbError = e.message; console.error('accounts: still no database: ' + e.message); retryLater(); }), 10000);
   const ready = initDb()
@@ -62,7 +66,7 @@ if (DB_URL) {
     });
   dbStore = {
     kind: 'db', ready,
-    async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT lname,name,salt,hash,rhash,ban,save,pub,lv,gval,rev,mkt FROM gem_players WHERE lname=$1', [l]); return r.rows[0] || null; },
+    async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT lname,name,salt,hash,rhash,ban,save,pub,lv,gval,rev,mkt,updated FROM gem_players WHERE lname=$1', [l]); return r.rows[0] || null; },
     async create(u) { await ready; if (store !== dbStore) return store.create(u); const r = await pool.query('INSERT INTO gem_players (lname,name,salt,hash,rhash,pub) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING lname', [u.lname, u.name, u.salt, u.hash, u.rhash, JSON.stringify(u.pub || {})]); return r.rowCount === 1; },
     /* rev = เลขรุ่นที่เครื่องถืออยู่: เขียนได้เฉพาะเมื่อยังตรงกับฐานข้อมูล "ในคำสั่งเดียวกัน" (กันเซฟเก่าเขียนทับหลังตลาดเพิ่งหยิบพลอย/หักเงิน) */
     async save(l, save, pub, lv, gval, rev) { await ready; if (store !== dbStore) return store.save(l, save, pub, lv, gval, rev); const r = await pool.query('UPDATE gem_players SET save=$2, pub=$3, lv=$4, gval=$5, rev=rev+1, updated=now() WHERE lname=$1 AND ($6::int IS NULL OR rev=$6::int) RETURNING rev', [l, JSON.stringify(save), JSON.stringify(pub), lv, gval, rev == null ? null : rev | 0]); return r.rows[0] ? r.rows[0].rev : 0; },
@@ -77,6 +81,8 @@ if (DB_URL) {
       const c = await pool.query('SELECT count(*)::int AS n FROM gem_players WHERE ban IS NULL');
       return { gems: g.rows.map(u => ({ name: u.name, value: +u.gval, gem: u.gem, lv: u.lv })), levels: l.rows.map(u => ({ name: u.name, lv: u.lv })), n: c.rows[0].n }; },
   };
+  dbStore.audit = async r => { await pool.query('INSERT INTO gem_audit (lname,name,mode,rejected,detail) VALUES ($1,$2,$3,$4,$5)', [r.lname, r.name, r.mode, !!r.rejected, JSON.stringify(r.detail)]); };
+  dbStore.auditList = async n => (await pool.query('SELECT t,lname,name,mode,rejected,detail FROM gem_audit ORDER BY id DESC LIMIT $1', [n])).rows;
   market.attachDb(dbStore, pool, rawPool);
   store = dbStore;
 } else {
@@ -123,7 +129,7 @@ const tries = new Map();   // กันเดารหัสผ่าน / ส�
 function limited(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.now(), t = (tries.get(k) || []).filter(x => now - x < 600000); t.push(now); tries.set(k, t); if (tries.size > 20000) tries.clear(); return t.length > n; }
 
 // เซฟที่ส่งมา: ต้องเป็น object ธรรมดา ขนาดไม่เกินกำหนด
-const MIN_BUILD = 1795240000; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
+const MIN_BUILD = 1795255999; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
 function cleanSave(s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return null; let str; try { str = JSON.stringify(s); } catch (e) { return null; } if (str.length > MAX_SAVE) return null; return JSON.parse(str); }
 // ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าหรือตู้เซฟของเซฟนั้นจริง
 function pubOf(save, pub) {
@@ -147,10 +153,18 @@ function onlineList() { onlineCount(); return [...seen.values()].map(o => ({ nam
 let boardCache = null, boardAt = 0;   // อันดับ: คำนวณใหม่ไม่ถี่กว่า 15 วินาที
 async function board() { const now = Date.now(); if (boardCache && now - boardAt < 15000) return boardCache; boardCache = await store.board(50); boardAt = now; return boardCache; }
 
+// บันทึกผลตรวจเซฟ: ขึ้น log ของเซิร์ฟเวอร์ (คำว่า AUDIT) + เก็บลงตาราง gem_audit • ต่อบัญชีไม่ถี่กว่า 20 วินาที (กันบันทึกท่วม)
+const auditAt = new Map();
+function audit(u, A, rejected) { const now = Date.now(), last = auditAt.get(u.lname) || 0; if (!rejected && now - last < (A.viol.length ? 3000 : 600000)) return; auditAt.set(u.lname, now);   /* เซฟที่ถูกปฏิเสธ: บันทึกทุกครั้ง */ if (auditAt.size > 20000) auditAt.clear();
+  const detail = { viol: A.viol, note: A.note }; console.log('AUDIT', A.mode, rejected ? 'REJECTED' : A.viol.length ? 'VIOLATION' : 'note', u.lname, JSON.stringify(detail).slice(0, 1500));
+  if (store.audit) store.audit({ lname: u.lname, name: u.name, mode: A.mode, rejected: !!rejected, detail }).catch(e => console.error('audit write', e.message)); }
+const adminOk = req => { const k = process.env.ADMIN_KEY || '', g = String(req.headers['x-admin-key'] || ''); if (k.length < 8 || g.length !== k.length) return false; return crypto.timingSafeEqual(Buffer.from(g), Buffer.from(k)); };
+
 async function handleApi(req, res, p) {
   const out = (code, obj) => { const b = Buffer.from(JSON.stringify(obj)); res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': b.length }); res.end(b); };
   try {
     if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { gem: true, accounts: !accountsDown(), online: onlineCount(), store: store.kind, dbError: store.dbError || undefined }); }
+    if (p === '/api/admin/audit') { if (limited(req, p, 60) || !adminOk(req)) return out(403, { err: 'forbidden' }); return out(200, { mode: econ.MODE(), build: econ.build, rows: store.auditList ? await store.auditList(300) : [] }); }
     if (p === '/api/board' && req.method === 'GET') return out(200, { ...(await board()), online: onlineCount() });
     if (p === '/api/showcase' && req.method === 'GET') {   // ตู้โชว์คอลเลกชันของผู้เล่น (ดูได้ทุกคน อ่านอย่างเดียว): ส่งเฉพาะชื่อ เลเวล และพลอยในตู้โชว์
       if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดชั่วคราว' });
@@ -218,9 +232,13 @@ async function handleApi(req, res, p) {
         /* ผู้เล่นกดปุ่ม "ถอดออก" เองในตู้โชว์: เครื่องส่งจำนวนที่ตั้งใจถอด (scOut) มาด้วย → ไม่นับเป็นข้อมูลหาย */
         if (oc - nc > 3 + Math.min(1000, Math.max(0, b.scOut | 0))) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
       market.stripGone(save, market.mktOf(u).gone);   /* พลอยที่ฝากขาย/ขายไปแล้วในตลาด ต้องไม่กลับมาอยู่ในเซฟ (กันพลอยงอก) */
+      /* ตรวจเงินและของ (econ.js): เซิร์ฟเวอร์สรุปยอดเงินเองจากสมุดบัญชี • โหมด enforce: พบรายการที่เป็นไปไม่ได้ = ไม่รับเซฟนี้ */
+      const A = econ.check(u, save, Date.now()); if (A.viol.length || A.note.length) audit(u, A, !A.ok);
+      if (!A.ok) return out(409, { err: 'ข้อมูลไม่ผ่านการตรวจสอบ', code: 'audit', rev: u.rev | 0 });
+      delete save.jr;
       const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval, u.rev | 0);
       if (!rev) { const cur = await store.get(u.lname); return out(409, { err: 'มีการเล่นบัญชีนี้จากอีกเครื่อง', rev: cur ? cur.rev | 0 : 0 }); } { const c = ctyOfMap(save.pos && save.pos.map); touch(u.lname, u.name, c, P.lv); } /* ประเทศล่าสุดจากเซฟ */
-      return out(200, { ok: true, rev });
+      return out(200, { ok: true, rev, coins: A.coins });
     }
     if (p === '/api/password' && req.method === 'POST') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       const b = await readBody(req, 8192), old = String(b.old || ''), pass = String(b.pass || '');

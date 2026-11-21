@@ -1002,6 +1002,17 @@ const DEFAULT_CONFIG = {
 const CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 const CONFIG_KEY = 'nlpc_config_v4'; // v2: ตารางโอกาสแบบยากขึ้น (ค่าที่เคยบันทึกแบบเก่าจะไม่ถูกใช้)
 const INF_COINS = 99999999;
+/* ===== สมุดบัญชีเงิน (กันโกง): เงินเปลี่ยนทุกครั้งต้องผ่าน coinTx → จดรายการ [ลำดับ, ชนิด, จำนวน, ข้อมูลอ้างอิง] ส่งให้เซิร์ฟเวอร์พร้อมเซฟ
+   เซิร์ฟเวอร์คิดราคาเองด้วยสูตรเดียวกับเกม (econ.gen.js) แล้วเป็นคนสรุปยอดเงินจริง — เครื่องผู้เล่นตั้งยอดเงินเองไม่ได้ ===== */
+function coinTx(k, d, ...ref) {
+  d = +d; if (!(d === d) || !STATE) return; STATE.coins += d;
+  if (typeof NET === 'undefined' || !NET.online || !d) return;
+  const J = Array.isArray(STATE.jr) ? STATE.jr : (STATE.jr = []), L = J[J.length - 1];
+  if ((k === 'drop' || k === 'steal') && L && L[1] === k && !NET.busy) { L[2] += d; L[3] = (L[3] || 1) + 1; return; }   // เงินดรอป/โดนขโมยติดกัน รวมเป็นรายการเดียว
+  STATE.jq = (STATE.jq | 0) + 1; J.push([STATE.jq, k, d, ...ref]);
+}
+const jGem = g => { const o = { id: g.id, type: g.type, state: g.state, carat: g.carat, color: g.color, flaw: g.flaw, origin: g.origin || 'thai', seed: g.seed }; if (g.state === 'cut') { o.shape = g.shape; o.polish = g.polish; o.rawCarat = g.rawCarat; } if (g.jumbo) o.jumbo = true; return o; };
+const jItem = x => ({ uid: x.uid, id: x.id, q: x.q || 0, g: x.g || 0, lv: x.lv || 0, m: x.mods ? 1 : 0 });
 function topUpCoins() { if (CONFIG.infiniteCoins && typeof STATE !== 'undefined' && STATE && STATE.coins < INF_COINS) STATE.coins = INF_COINS;
   if (CONFIG.testMaxLv && typeof STATE !== 'undefined' && STATE && typeof charState === 'function' && !(typeof NET !== 'undefined' && NET.online)) { const S = charState(); if (S.lv < MAX_LV) { S.pts = (S.pts || 0) + (MAX_LV - S.lv) * PTS_PER_LV; S.lv = MAX_LV; S.xp = 0; try { const ps = pstats(); STATE.hp = ps.maxHp; STATE.sta = ps.maxSta || STATE.sta; } catch (e) {} } } }
 function loadConfigOverride() {
@@ -1988,6 +1999,7 @@ function migrateSave(s) {
   st.questProg = Number(s.questProg ?? s.quest?.progress ?? s.soldCount ?? 0) || 0;
   if (s.stats) Object.assign(st.stats, s.stats);
   if (s.warp && typeof s.warp === 'object' && typeof s.warp.map === 'string') st.warp = { map: s.warp.map, town: String(s.warp.town || 'village'), x: +s.warp.x || 0, y: +s.warp.y || 0, dx: s.warp.dx == null ? +s.warp.x || 0 : +s.warp.dx, dy: s.warp.dy == null ? +s.warp.y || 0 : +s.warp.dy, tx: +s.warp.tx || 0, ty: +s.warp.ty || 0, used: !!s.warp.used, usedAt: +s.warp.usedAt || 0 };
+  st.jq = Math.max(0, Number(s.jq) | 0); if (Array.isArray(s.jr)) st.jr = s.jr.filter(e => Array.isArray(e) && e.length >= 3 && e.length <= 8).slice(-3000); /* สมุดบัญชีเงินที่ยังไม่ได้ส่งขึ้นเซิร์ฟเวอร์ */
   st.clickMove = s.clickMove !== false; st.saver = s.saver === true || s.saver === false ? s.saver : null; /* โหมดประหยัดแบต: null = อัตโนมัติ (มือถือเปิด คอมปิด) */ // ตั้งค่า: คลิกเมาส์เพื่อเดิน (ค่าเริ่มต้น เปิด)
   st.mineRun = Math.max(1, Number(s.mineRun) || 1);
   if (Array.isArray(s.deathBags)) st.deathBags = s.deathBags.filter(b => b && typeof b.map === 'string').map(b => ({ map: b.map, x: +b.x || 0, y: +b.y || 0, t: +b.t || 0, eq: b.eq && typeof b.eq === 'object' ? Object.fromEntries(Object.entries(b.eq).filter(([k, v]) => typeof v === 'string' && ITEMS[v])) : {}, gems: (Array.isArray(b.gems) ? b.gems : []).map(g => normGem(g, st)).filter(Boolean), items: (Array.isArray(b.items) ? b.items : []).filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid) || st.nextUid++, id: x.id, slot: ITEMS[x.id].slot }; if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ return o; }) }));
@@ -8577,7 +8589,7 @@ function updateMonsters(dtAll) {
       if (e.chgHit && e.chg > 0.14) e.chg = 0.14; if (e.chg <= 0 || !ok2) { e.chg = 0; e.recT = def.recover; e.cd = 1.1; } continue; }
     if (e.atkT > 0) e.atkT = Math.max(0, e.atkT - dt);
     if (e.recT > 0 && !(e.wind > 0)) { e.recT -= dt; if (e.atkT <= 0) continue; } /* พักหลังโจมตี: ยืนนิ่ง เปิดช่องให้สวน */
-    if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (def.recover) e.recT = def.recover * (def.boss2 && e.hp < e.max * 0.5 ? 0.6 : 1) * (e.champ ? 0.7 : 1); if (def.lava) (G.clouds || (G.clouds = [])).push({ x: e.x - e.ax * 8, y: e.y - 2 - e.ay * 8, r: 13, t: 0, life: 5, burn: Math.max(1, Math.round(def.dmg * 0.35 * (e.dmgMul || 1))) }); /* หยดลาวาค้างบนพื้น */ if (def.push && d < def.reach + 12 && !G.down) { for (let k = 0; k < 6; k++) { const nx = PL.x + e.ax * 6, ny = PL.y + e.ay * 6; if (boxFree(G.map, nx, ny)) { PL.x = nx; PL.y = ny; } } PL.path = null; } /* ลมปีกผลักถอย */ if (def.cloud) { (G.clouds || (G.clouds = [])).push({ x: e.x + e.ax * 14, y: e.y - 4 + e.ay * 14, r: def.ink ? 44 : 26, t: 0, life: def.ink ? 5.5 : 4.5, ink: def.ink }); e.cd = 2.6; continue; } if (def.aoe) { for (let k = 0; k < 14; k++) { const a3 = k / 14 * 6.283; G.parts.push({ k: 'dust', x: e.x + Math.cos(a3) * def.aoe * 0.8, y: e.y + Math.sin(a3) * def.aoe * 0.5, z: 0, vx: Math.cos(a3) * 30, vy: Math.sin(a3) * 18, vz: 30, life: 0.5, max: 0.5, col: def.boss2 ? '#5a8aff' : '#8a8478', size: 2 + Math.random() * 2 }); } G.shake = Math.max(G.shake, def.boss2 ? 5 : 3); if (d < def.aoe && !G.down) hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (def.charge) e.chgW = 0.4; e.cd = e.champ ? 0.6 : 1.1; continue; } if (def.ranged) { if (!G.down) { const a2 = Math.atan2(PL.y - e.y, PL.x - e.x) + (Math.random() - 0.5) * 0.09, sp = 150; (G.arrows || (G.arrows = [])).push({ x: e.x + Math.cos(a2) * 8, y: e.y + Math.sin(a2) * 8, vx: Math.cos(a2) * sp, vy: Math.sin(a2) * sp, life: 1.6, dmg: Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), who: e.name || def.name, orb: def.orb, big: def.beam }); const A0 = G.arrows[G.arrows.length - 1]; if (def.beam) { A0.vx *= 1.7; A0.vy *= 1.7; for (let k = 1; k <= 5; k++) G.arrows.push({ ...A0, x: A0.x - Math.cos(a2) * k * 7, y: A0.y - Math.sin(a2) * k * 7, dmg: Math.round(A0.dmg * 0.25) }); } /* ลำแสง: ลูกพลังเรียงเป็นแถวยาว พุ่งเร็ว */ if (def.fan) for (const da of [-0.34, 0.34]) { const a4 = a2 + da; G.arrows.push({ ...A0, x: e.x + Math.cos(a4) * 8, y: e.y + Math.sin(a4) * 8, vx: Math.cos(a4) * sp, vy: Math.sin(a4) * sp }); } SFX.play('swing', 0.5); } e.cd = e.champ ? 1.3 : 2.1; continue; } /* พลธนู: ปล่อยลูกธนูแทนการตีประชิด แล้วพักขึ้นสายใหม่ */ if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); STATE.coins -= take; e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = e.champ ? 0.6 : 1.1; /* แม่ทัพโจมตีถี่กว่า: พักระหว่างครั้ง 0.6 วิ (ลูกน้อง 1.1 วิ) */ } continue; }
+    if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) { e.atkT = 0.26; { const aa = Math.atan2(PL.y - e.y, PL.x - e.x); e.ax = Math.cos(aa); e.ay = Math.sin(aa); } if (def.recover) e.recT = def.recover * (def.boss2 && e.hp < e.max * 0.5 ? 0.6 : 1) * (e.champ ? 0.7 : 1); if (def.lava) (G.clouds || (G.clouds = [])).push({ x: e.x - e.ax * 8, y: e.y - 2 - e.ay * 8, r: 13, t: 0, life: 5, burn: Math.max(1, Math.round(def.dmg * 0.35 * (e.dmgMul || 1))) }); /* หยดลาวาค้างบนพื้น */ if (def.push && d < def.reach + 12 && !G.down) { for (let k = 0; k < 6; k++) { const nx = PL.x + e.ax * 6, ny = PL.y + e.ay * 6; if (boxFree(G.map, nx, ny)) { PL.x = nx; PL.y = ny; } } PL.path = null; } /* ลมปีกผลักถอย */ if (def.cloud) { (G.clouds || (G.clouds = [])).push({ x: e.x + e.ax * 14, y: e.y - 4 + e.ay * 14, r: def.ink ? 44 : 26, t: 0, life: def.ink ? 5.5 : 4.5, ink: def.ink }); e.cd = 2.6; continue; } if (def.aoe) { for (let k = 0; k < 14; k++) { const a3 = k / 14 * 6.283; G.parts.push({ k: 'dust', x: e.x + Math.cos(a3) * def.aoe * 0.8, y: e.y + Math.sin(a3) * def.aoe * 0.5, z: 0, vx: Math.cos(a3) * 30, vy: Math.sin(a3) * 18, vz: 30, life: 0.5, max: 0.5, col: def.boss2 ? '#5a8aff' : '#8a8478', size: 2 + Math.random() * 2 }); } G.shake = Math.max(G.shake, def.boss2 ? 5 : 3); if (d < def.aoe && !G.down) hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (def.charge) e.chgW = 0.4; e.cd = e.champ ? 0.6 : 1.1; continue; } if (def.ranged) { if (!G.down) { const a2 = Math.atan2(PL.y - e.y, PL.x - e.x) + (Math.random() - 0.5) * 0.09, sp = 150; (G.arrows || (G.arrows = [])).push({ x: e.x + Math.cos(a2) * 8, y: e.y + Math.sin(a2) * 8, vx: Math.cos(a2) * sp, vy: Math.sin(a2) * sp, life: 1.6, dmg: Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), who: e.name || def.name, orb: def.orb, big: def.beam }); const A0 = G.arrows[G.arrows.length - 1]; if (def.beam) { A0.vx *= 1.7; A0.vy *= 1.7; for (let k = 1; k <= 5; k++) G.arrows.push({ ...A0, x: A0.x - Math.cos(a2) * k * 7, y: A0.y - Math.sin(a2) * k * 7, dmg: Math.round(A0.dmg * 0.25) }); } /* ลำแสง: ลูกพลังเรียงเป็นแถวยาว พุ่งเร็ว */ if (def.fan) for (const da of [-0.34, 0.34]) { const a4 = a2 + da; G.arrows.push({ ...A0, x: e.x + Math.cos(a4) * 8, y: e.y + Math.sin(a4) * 8, vx: Math.cos(a4) * sp, vy: Math.sin(a4) * sp }); } SFX.play('swing', 0.5); } e.cd = e.champ ? 1.3 : 2.1; continue; } /* พลธนู: ปล่อยลูกธนูแทนการตีประชิด แล้วพักขึ้นสายใหม่ */ if (d < def.reach + 8 && !G.down) hitFx(e, def); if (d < def.reach + 8 && !G.down) { const hit = hurtPlayer(Math.round(def.dmg * (e.dmgMul || 1) * lvDmgIn(e.lv)), e.x, e.y, e.name || def.name); if (hit && def.steal && STATE.coins > 0) { const take = Math.min(STATE.coins, Math.max(5, Math.min(60, Math.round(STATE.coins * 0.04)))); coinTx('steal', -take); e.stolen += take; floatText(PL.x, PL.y - 40, `โดนขโมย -${baht(take)} บาท`, '#ff9a50', 1.2); UI.hud(); } } e.cd = e.champ ? 0.6 : 1.1; /* แม่ทัพโจมตีถี่กว่า: พักระหว่างครั้ง 0.6 วิ (ลูกน้อง 1.1 วิ) */ } continue; }
     if (e.state === 'chase') {
       if ((def.ranged || def.caveAttack) && d < def.reach && !losClear(m, e.x, e.y - 6, PL.x, PL.y - 6)) { /* ไม่เห็นตัว: เดินเข้าหาต่อ */ } else
       if (!def.slam && d < def.reach && e.cd <= 0) { e.wind = e.windMax = def.windT ? def.windT * (def.boss2 && e.hp < e.max * 0.5 ? 0.7 : 1) : def.ranged ? (e.champ ? 0.5 : 0.75) : e.type === 'bat' ? 0.2 : e.champ ? 0.26 : 0.38; /* แม่ทัพง้างสั้นกว่า */ const aa = Math.atan2(dy, dx); e.ax = Math.cos(aa); e.ay = Math.sin(aa); if (Math.abs(dx) > Math.abs(dy)) e.dir = dx < 0 ? 'left' : 'right'; else e.dir = dy < 0 ? 'up' : 'down'; continue; }
@@ -8711,7 +8723,7 @@ function updateDrops(dt) {
     if (d.t > 0.4 && Math.hypot(d.x - PL.x, d.y - PL.y) < 16) {
       if (d.kind !== 'coin' && d.kind !== 'cons' && bagFull()) { if (!(d.fullT > G.time)) { d.fullT = G.time + 2.5; floatText(d.x, d.y - 16, 'กระเป๋าเต็ม เก็บไม่ได้', '#ff8a7a', 1.6); SFX.play('deny'); } continue; } /* อุปกรณ์กินที่กระเป๋า: เต็มแล้วของจะกองอยู่ที่พื้น */
       d.got = true; const hiLoot = d.kind !== 'coin' && d.kind !== 'cons' && (d.q === 2 || ITEMS[d.id].tier >= 3); /* ของทอง หรือของยอดเยี่ยม/ตำนาน */ SFX.play(hiLoot ? 'treasure' : 'pickup');
-      if (d.kind === 'coin') { STATE.coins += d.amount; floatText(PL.x, PL.y - 30, `+${baht(d.amount)} บาท`, '#ffe680'); questEvent('coins'); }
+      if (d.kind === 'coin') { coinTx('drop', d.amount); floatText(PL.x, PL.y - 30, `+${baht(d.amount)} บาท`, '#ffe680'); questEvent('coins'); }
       else if (d.kind === 'cons') { STATE.cons[d.id] = (STATE.cons[d.id] || 0) + d.amount; toast(`<img src="${itemIconURL(d.id)}"> ได้ ${CONSUMABLES[d.id].name}${d.amount > 1 ? ' ' + d.amount + ' นัด' : ''}`, 'good'); }
       else { const uid = STATE.nextUid++, o = makeItem(uid, d.id, d.g, d.lv); if (d.mods) { o.q = d.q || 0; o.mods = d.mods;  if (o.dur != null) o.dur = maxDur(o); /* ของดรอปหายาก/ทอง: ความทนทานเต็มตามคุณภาพ */ } o.nw = 1; STATE.items.push(o); /* nw = ของเพิ่งเก็บ ยังไม่เคยเปิดดู → ป้าย NEW */ const it = ITEMS[d.id]; /* ได้อุปกรณ์: แสดงแบบเดียวกับตอนขุดเจอพลอย — ไอคอนเด้งลอยเปล่งแสงแล้วพุ่งเข้าตัว + ข้อความลอยตัวใหญ่ บอกแค่ชื่อ */
         const lc = d.q ? LOOT_Q[d.q].col : TIER_COLORS[it.tier]; G.parts.push({ k: 'gemfly', x: d.x, y: d.y, z: 0, vx: 0, vy: 0, vz: 0, life: 2.2, max: 2.2, icon: PIXUI.icon(d.id), col: lc, plain: !hiLoot }); /* plain = ไม่มีแสงประกาย (เฉพาะของทองขึ้นไปถึงมีประกาย) */ floatText(d.x, d.y - 30, instName(o), shade(lc, 0.25), 3.6, 1); }
@@ -10326,7 +10338,7 @@ function questEvent(kind, n = 1) {
   const q = QUESTS[STATE.questIdx]; if (!q) return;
   if (q.kind === 'coins') STATE.questProg = STATE.coins; else if (q.kind === kind) STATE.questProg += n; else return;
   if (STATE.questProg >= q.goal) {
-    STATE.coins += q.reward; STATE.questIdx++; STATE.questProg = 0;
+    coinTx('quest', q.reward, STATE.questIdx); STATE.questIdx++; STATE.questProg = 0;
     toast(`🎉 ภารกิจสำเร็จ: <b>${q.title}</b> ได้รางวัล ${baht(q.reward)} บาท`, 'quest'); SFX.play('done');
     const nq = QUESTS[STATE.questIdx]; if (nq) { setTimeout(() => toast(`ภารกิจใหม่: <b>${nq.title}</b>`, 'quest'), 900); if (nq.kind === 'coins') questEvent('coins'); }
   }
@@ -10638,21 +10650,21 @@ const NET = (() => {
   N.sync = async function (opt = {}) {
     if (!N.online || !token || N.busy || N.blocked || !N.dirty || !STATE || saveLocked) return;
     N.busy = true; N.dirty = false; travelSyncQueued = false;
-    const p = curPlayer(), body = payload();
+    const p = curPlayer(), body = payload(), jmax = Array.isArray(STATE.jr) && STATE.jr.length ? STATE.jr[STATE.jr.length - 1][0] : 0;
     if (p) ls.set(pendingKey(p.id), (body.rev + 1) + ':' + body.save.savedAt);
     const r = await api('/api/save', body, opt);
     N.busy = false;
-    if (r.status === 200) { N.scOut = Math.max(0, (N.scOut | 0) - (body.scOut | 0)); N.rev = r.data.rev | 0; if (p) { ls.set(revKey(p.id), String(N.rev)); ls.del(pendingKey(p.id)); } N.lastOk = Date.now(); N.err = ''; }
-    else if (r.status === 409) conflict();
+    if (r.status === 200) { if (Array.isArray(STATE.jr)) STATE.jr = STATE.jr.filter(e => e[0] > jmax); if (typeof r.data.coins === 'number' && !CONFIG.infiniteCoins) { let c = r.data.coins; for (const e of STATE.jr || []) c += +e[2] || 0; if (Math.abs(c - STATE.coins) > 0.01) { STATE.coins = Math.max(0, c); try { UI.hud(); } catch (e) {} } } /* ยอดเงินจริง = ยอดที่เซิร์ฟเวอร์สรุป + รายการที่ยังไม่ได้ส่ง */ if (N.saveLocal) { try { N.saveLocal(); } catch (e) {} } N.scOut = Math.max(0, (N.scOut | 0) - (body.scOut | 0)); N.rev = r.data.rev | 0; if (p) { ls.set(revKey(p.id), String(N.rev)); ls.del(pendingKey(p.id)); } N.lastOk = Date.now(); N.err = ''; }
+    else if (r.status === 409) conflict(r.data.code === 'audit' ? r.data.err : '');
     else if (r.status === 426) { saveLocked = true; blockScreen('มีเกมเวอร์ชันใหม่', 'เครื่องนี้ใช้เกมเวอร์ชันเก่า กรุณารีเฟรชหน้าเกมก่อนเล่นต่อ (ป้องกันข้อมูลหาย)', 'รีเฟรช', () => location.reload()); }
     else if (r.status === 401 || r.status === 403) { ls.del(TK); blockScreen('ต้องเข้าสู่ระบบใหม่', r.data.err || 'การเข้าสู่ระบบหมดอายุ (อาจเปลี่ยนรหัสผ่านจากอีกเครื่อง)', 'เข้าสู่ระบบ', () => location.reload()); }
     else { N.dirty = true; N.err = r.data.err || 'ส่งเซฟไม่สำเร็จ'; }
     if (r.status === 200 && travelSyncQueued) N.sync(opt);
   };
   // อีกเครื่องเซฟทับไปแล้ว: หยุดเซฟเครื่องนี้ แล้วให้โหลดของล่าสุด (ไม่เขียนทับความคืบหน้าของอีกเครื่อง)
-  function conflict() {
+  function conflict(audit) {
     saveLocked = true;
-    blockScreen('บัญชีนี้ถูกเล่นจากอีกเครื่อง', 'มีการเล่นและบันทึกบัญชีนี้จากอุปกรณ์อื่นหลังจากที่เครื่องนี้โหลดเกม เครื่องนี้จะโหลดเซฟล่าสุดมาเล่นต่อ', 'โหลดเซฟล่าสุด', async () => {
+    blockScreen(audit ? 'ข้อมูลไม่ผ่านการตรวจสอบ' : 'บัญชีนี้ถูกเล่นจากอีกเครื่อง', audit ? 'เซิร์ฟเวอร์ตรวจพบข้อมูลที่ไม่ตรงกับกติกาของเกม จึงไม่บันทึกความคืบหน้าช่วงล่าสุด เกมจะโหลดเซฟล่าสุดที่ถูกต้องมาเล่นต่อ' : 'มีการเล่นและบันทึกบัญชีนี้จากอุปกรณ์อื่นหลังจากที่เครื่องนี้โหลดเกม เครื่องนี้จะโหลดเซฟล่าสุดมาเล่นต่อ', 'โหลดเซฟล่าสุด', async () => {
       const r = await api('/api/me'); if (r.status !== 200) return;
       const p = curPlayer(); if (p && r.data.save) { ls.set('nlpc_save_' + p.id, JSON.stringify(r.data.save)); ls.set(revKey(p.id), String(r.data.rev | 0)); }
       location.reload();
@@ -10661,7 +10673,7 @@ const NET = (() => {
   N.flush = function () { try { saveGame(); } catch (e) {} if (!N.dirty) return; let small = false; try { small = JSON.stringify(payload()).length < 60000; } catch (e) {} N.sync({ keepalive: small }); };
   N.hook = function () {   // เรียกหลัง boot: ทุกครั้งที่เกมเซฟในเครื่อง = มีของใหม่ต้องส่งขึ้น
     if (!N.online) return;
-    const base = saveGame; saveGame = function () { base(); if (!saveLocked) N.dirty = true; };
+    const base = saveGame; N.saveLocal = base; saveGame = function () { base(); if (!saveLocked) N.dirty = true; };
     setInterval(() => N.sync(), SYNC_MS); setTimeout(() => N.sync(), 2500);
     setInterval(() => N.ping(), 25000); setTimeout(() => N.ping(), 1200); document.addEventListener('visibilitychange', () => { if (!document.hidden) N.ping(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) N.flush(); });
@@ -11171,8 +11183,8 @@ const UI = (() => {
       <div class="row end"><button class="btn" data-a="close">ลาก่อน</button>${mine.length > 1 ? '<button class="btn gold" data-a="all">ขายทั้งหมดที่เจ๊ต้องการ</button>' : ''}</div>`,
       (a, b) => {
         const bonuses = [];
-        const sellOne = g => { const s = jenaSlot(g); if (!s) return 0; const p = jenaPrice(g), k = s.P.k; removeGem(g.id); STATE.coins += p; J.got[s.nd.key] = (J.got[s.nd.key] || 0) + 1; J.paid += p; J.pp[k] = (J.pp[k] || 0) + p; STATE.stats.sold++; STATE.stats.soldCut = (STATE.stats.soldCut || 0) + 1; STATE.stats.earned = (STATE.stats.earned || 0) + p; questEvent('sell', 1);
-          if (s.P.need.every(nd => (J.got[nd.key] || 0) >= nd.n)) { const bonus = Math.max(500, Math.round(J.pp[k] * JENA_BONUS)); J.done[k] = true; J.pp[k] += bonus; J.paid += bonus; STATE.coins += bonus; STATE.stats.earned += bonus; bonuses.push([s.P.name, bonus]); }
+        const sellOne = g => { const s = jenaSlot(g); if (!s) return 0; const p = jenaPrice(g), k = s.P.k; removeGem(g.id); coinTx('gem', p, jGem(g), 'jena'); J.got[s.nd.key] = (J.got[s.nd.key] || 0) + 1; J.paid += p; J.pp[k] = (J.pp[k] || 0) + p; STATE.stats.sold++; STATE.stats.soldCut = (STATE.stats.soldCut || 0) + 1; STATE.stats.earned = (STATE.stats.earned || 0) + p; questEvent('sell', 1);
+          if (s.P.need.every(nd => (J.got[nd.key] || 0) >= nd.n)) { const bonus = Math.max(500, Math.round(J.pp[k] * JENA_BONUS)); J.done[k] = true; J.pp[k] += bonus; J.paid += bonus; coinTx('jb', bonus, k); STATE.stats.earned += bonus; bonuses.push([s.P.name, bonus]); }
           return p; };
         let got = 0;
         if (a === 'sell') { const g = STATE.inv.find(x => x.id === +b.dataset.id); if (g) got = sellOne(g); }
@@ -11186,7 +11198,7 @@ const UI = (() => {
   }
   function mint() { aunt('mint'); } /* น้องมิ้นท์ขายน้ำที่แผงพลอยเจียระไน — เฉพาะเครื่องดื่ม */
   function aunt(who) {
-    const buy = (id, n) => { const c = CONSUMABLES[id], cost = c.price * n; if (STATE.coins < cost) { toast('เงินไม่พอ', 'bad'); SFX.play('deny'); return; } STATE.coins -= cost; STATE.cons[id] = (STATE.cons[id] || 0) + n; SFX.play('coin'); toast(`ซื้อ${c.name} ${n} ชิ้น จ่าย ${baht(cost)} บาท`, 'good'); saveGame(); hud(); aunt(who); };
+    const buy = (id, n) => { const c = CONSUMABLES[id], cost = c.price * n; if (STATE.coins < cost) { toast('เงินไม่พอ', 'bad'); SFX.play('deny'); return; } coinTx('spend', -cost, 'cons', id, n); STATE.cons[id] = (STATE.cons[id] || 0) + n; SFX.play('coin'); toast(`ซื้อ${c.name} ${n} ชิ้น จ่าย ${baht(cost)} บาท`, 'good'); saveGame(); hud(); aunt(who); };
     const conRows = (cat, title) => `<h4 class="conh">${title} <small class="muted">ปุ่ม ${CONS_KEY[cat]} — เกมเลือกชิ้นที่พอดีกับที่ขาดให้เอง</small></h4>` + CONS_CAT[cat].map(id => { const c = CONSUMABLES[id]; return `<div class="item"><img src="${itemIconURL(id)}"><div class="gi"><b>${c.name}</b><small>${c.stamina ? `เติมสเตมินา +${c.stamina}` : `ฟื้น HP +${c.hp}`} • มีอยู่ ${STATE.cons[id] || 0}</small></div><div class="gp">${money(c.price)}<div class="row"><button class="btn small" data-a="b1" data-id="${id}" ${STATE.coins < c.price ? 'disabled' : ''}>ซื้อ 1</button><button class="btn small" data-a="b5" data-id="${id}" ${STATE.coins < c.price * 5 ? 'disabled' : ''}>ซื้อ 5</button></div></div></div>`; }).join('');
     const abroad = !!(G.map && G.map.outpost);
     if (who === 'mint') return show('aunt', dlgHead('mint', abroad ? 'ร้านน้ำดื่ม' : 'น้องมิ้นท์', 'น้ำเย็น ๆ ค่ะ ดื่มก่อนลงเหมืองนะคะ เติมแรงขุดได้เยอะเลย 😊') + `<div class="shmoney fdmoney"><span class="shm-l">เงินของคุณ </span>${money(STATE.coins)}</div><div class="list">${conRows('drink', '⚡ เครื่องดื่มฟื้นสเตมินา')}</div>`, (a, b) => { if (a === 'b1') buy(b.dataset.id, 1); else if (a === 'b5') buy(b.dataset.id, 5); });
@@ -11318,7 +11330,7 @@ const UI = (() => {
         <div class="list">${SAFES.map((B, i) => `<div class="item bagrow ${i === S.lv ? 'cur' : ''}"><div class="bagic" style="--bc:${B.col}">🔐<small>Lv${i + 1}</small></div><div class="gi"><b>${B.name}</b><small>เก็บพลอยได้ ${B.cap} เม็ด${i ? ` (+${B.cap - SAFES[i - 1].cap} จากระดับก่อน)` : ''}</small></div><div class="gp">${i === 0 ? '<span class="muted">ใบเริ่มต้น</span>' : money(B.price)}<br>${i === S.lv ? '<span class="tick">✓ ใช้อยู่</span>' : i < S.lv ? '<span class="muted">มีใบที่ดีกว่าแล้ว</span>' : `<button class="btn small ${STATE.coins >= B.price ? 'gold' : ''}" data-a="buysafe" data-i="${i}" ${STATE.coins >= B.price ? '' : 'disabled'}>อัปเกรด</button>`}</div></div>`).join('')}</div>
         <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
         (a, b) => { if (a === 'stab') { safeTab = b.dataset.t; safeSel.clear(); SFX.play('click'); return safe(); }
-          if (a === 'buysafe') { const i = +b.dataset.i, B = SAFES[i]; if (!B || i <= S.lv || STATE.coins < B.price) return; STATE.coins -= B.price; S.lv = i; SFX.play('coin'); SFX.play('done'); toast(`อัปเกรดเป็น ${B.name} เก็บได้ ${B.cap} เม็ด`, 'good'); saveGame(); hud(); safe(); } });
+          if (a === 'buysafe') { const i = +b.dataset.i, B = SAFES[i]; if (!B || i <= S.lv || STATE.coins < B.price) return; coinTx('spend', -B.price, 'safe', i); S.lv = i; SFX.play('coin'); SFX.play('done'); toast(`อัปเกรดเป็น ${B.name} เก็บได้ ${B.cap} เม็ด`, 'good'); saveGame(); hud(); safe(); } });
       api.onE = null; return;
     }
     const { list, bar } = gemView(all), shownSel = list.filter(g => safeSel.has(g.id)).length, free = Math.max(0, inMode ? cap - S.gems.length : bagCap() - bagUsed()), n = safeSel.size, over = n > free;
@@ -11357,7 +11369,7 @@ const UI = (() => {
     show('travel', `<h3>✈ สนามบินจันทบุรี</h3><div class="tnote">🎫 <b>ตั๋วไป-กลับ ใช้ได้รอบเดียว</b> — บินไป 1 เที่ยว + บินกลับจันทบุรี 1 เที่ยว • ถ้าจะไปอีกครั้ง ต้องซื้อตั๋วใหม่ที่สนามบินจันทบุรี</div><p class="muted small">เงิน ${money(STATE.coins)} • ตั๋วทุกใบเป็นแบบไป-กลับ ที่ต่างประเทศไม่มีร้านรับซื้อพลอย ต้องนำกลับมาขายที่ตลาดจันท์</p><div class="list">${cards}</div>`,
       (a, b) => { if (a === 'go') { const k = b.dataset.c, C = COUNTRIES[k], price = C.ticket;
         show('tripc', `<h3>ยืนยันตั๋วไป-กลับ ${C.name}</h3><p>ราคา ${money(price)} • หลังซื้อเหลือ ${money(STATE.coins - price)}</p><div class="tnote">🎫 <b>ตั๋วไป-กลับ ใช้ได้รอบเดียว</b> — บินไป 1 เที่ยว + บินกลับจันทบุรี 1 เที่ยว • ถ้าจะไปอีกครั้ง ต้องซื้อตั๋วใหม่ที่สนามบินจันทบุรี</div><p class="muted">รวมตั๋วขากลับจันทบุรีแล้ว กลับได้ทุกเมื่อที่สนามบินปลายทางโดยไม่ต้องจ่ายเพิ่ม • กลับถึงไทยแล้วตั๋วใบนี้หมดอายุ</p>${!CLIMATE_ON ? '' : (() => { const ad = climateAdvice(k), cl = CLIMATE[k], w = pstats().warm, d = w < cl.lo ? cl.lo - w : w > cl.hi ? w - cl.hi : 0; return `<div class="climbox ${ad.tag === 'cold' || ad.tag === 'cool' ? 'cold' : ad.tag === 'hot' ? 'hot' : ''}"><b>${cl.icon} ภูมิอากาศ${C.short}: ${cl.name} ${cl.temp}</b><br><b>${ad.title}</b><br>${ad.text}<br><span class="${d ? 'bad' : ''}">ชุดที่คุณใส่ตอนนี้อบอุ่นรวม ${w > 0 ? '+' : ''}${w} → ${d ? (w < cl.lo ? `หนาวเกินไป ${d} ระดับ` : `ร้อนเกินไป ${d} ระดับ`) + (d >= 3 ? ' (จะเสียเลือด!) ควรซื้อชุดที่ร้านอุปกรณ์ก่อนบิน — แท็บ “ชุดตามภูมิอากาศ”' : ' (สเตมินาฟื้นช้า)') : 'พอดีแล้ว ✓'}</span></div>`; })()}
-          <div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อตั๋ว ✈ ออกเดินทาง</button></div>`, a2 => { if (a2 === 'back') return travel(); if (a2 === 'ok' && STATE.coins >= price) { STATE.coins -= price; STATE.stats.trips = (STATE.stats.trips || 0) + 1; SFX.play('coin'); saveGame(); close(); flyTo(k); } }); } }, { wide: true });
+          <div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อตั๋ว ✈ ออกเดินทาง</button></div>`, a2 => { if (a2 === 'back') return travel(); if (a2 === 'ok' && STATE.coins >= price) { coinTx('spend', -price, 'ticket'); STATE.stats.trips = (STATE.stats.trips || 0) + 1; SFX.play('coin'); saveGame(); close(); flyTo(k); } }); } }, { wide: true });
   }
   function agentBack() {
     const c = countryOfMap(G.map.id), C = COUNTRIES[c]; const rl = raws(); const local = g => Math.max(1, Math.round(rawPrice(g) * 0.6));
@@ -11365,9 +11377,9 @@ const UI = (() => {
       `<p class="muted small">เงิน ${money(STATE.coins)} • น้ำดื่ม ${STATE.cons.water || 0} ขวด</p><div class="row end"><button class="btn" data-a="water" ${STATE.coins >= CONSUMABLES.water.price ? '' : 'disabled'}>ซื้อน้ำดื่ม ${baht(CONSUMABLES.water.price)} บาท</button><button class="btn gold" data-a="buy" ${STATE.coins >= C.ticket ? '' : 'disabled'}>ซื้อตั๋วกลับไทย ${baht(C.ticket)} บาท</button></div>
       <h4>พ่อค้าท้องถิ่นรับซื้อพลอยก้อน (60%)</h4><div class="list">${rl.length ? rl.map(g => gemRow(g, `${money(local(g))}<br><button class="btn small" data-a="sell" data-id="${g.id}">ขาย</button>`, false, 'none')).join('') : '<div class="empty">ไม่มีพลอยก้อน</div>'}</div>`,
       (a, b) => {
-        if (a === 'buy' && STATE.coins >= C.ticket) { STATE.coins -= C.ticket; SFX.play('coin'); saveGame(); close(); toast('✈ บินกลับจันทบุรี… เอาพลอยไปเจียที่บ้านได้เลย', 'quest'); goMap('village', 'airport'); }
-        else if (a === 'water' && STATE.coins >= CONSUMABLES.water.price) { STATE.coins -= CONSUMABLES.water.price; STATE.cons.water = (STATE.cons.water || 0) + 1; SFX.play('coin'); saveGame(); hud(); agentBack(); }
-        else if (a === 'sell') { const g = rl.find(x => x.id === +b.dataset.id); if (!g) return; const p2 = local(g); removeGem(g.id); STATE.coins += p2; STATE.stats.sold++; questEvent('sell', 1); SFX.play('coin'); saveGame(); hud(); agentBack(); }
+        if (a === 'buy' && STATE.coins >= C.ticket) { coinTx('spend', -C.ticket, 'ticket'); SFX.play('coin'); saveGame(); close(); toast('✈ บินกลับจันทบุรี… เอาพลอยไปเจียที่บ้านได้เลย', 'quest'); goMap('village', 'airport'); }
+        else if (a === 'water' && STATE.coins >= CONSUMABLES.water.price) { coinTx('spend', -CONSUMABLES.water.price, 'cons', 'water', 1); STATE.cons.water = (STATE.cons.water || 0) + 1; SFX.play('coin'); saveGame(); hud(); agentBack(); }
+        else if (a === 'sell') { const g = rl.find(x => x.id === +b.dataset.id); if (!g) return; const p2 = local(g); removeGem(g.id); coinTx('gem', p2, jGem(g), 'agent'); STATE.stats.sold++; questEvent('sell', 1); SFX.play('coin'); saveGame(); hud(); agentBack(); }
       }, { wide: true });
   }
   // ---------- ร้านอุปกรณ์ลุงเหล็ก ----------
@@ -11525,21 +11537,21 @@ const UI = (() => {
       (a, b) => {
         if (a === 'sec') { const t = b.dataset.t; shopTab = t === 'gear' ? (shopSel._gear || 'pick') : t; SFX.play('click'); shop(); }
         else if (a === 'tab') { shopTab = b.dataset.t; shopSel._gear = shopTab; SFX.play('click'); shop(); }
-        else if (a === 'buybag') { const i = +b.dataset.i, B = BAGS[i]; if (!B || i <= bagLevel()) return; if (STATE.coins < B.price) return toast('เงินไม่พอ', 'bad'); STATE.coins -= B.price; STATE.bag = i; SFX.play('coin'); toast(`🎒 ได้${B.name} ใส่พลอยได้ ${B.cap} เม็ด`, 'good'); saveGame(); hud(); shop(); }
+        else if (a === 'buybag') { const i = +b.dataset.i, B = BAGS[i]; if (!B || i <= bagLevel()) return; if (STATE.coins < B.price) return toast('เงินไม่พอ', 'bad'); coinTx('spend', -B.price, 'bag', i); STATE.bag = i; SFX.play('coin'); toast(`🎒 ได้${B.name} ใส่พลอยได้ ${B.cap} เม็ด`, 'good'); saveGame(); hud(); shop(); }
         else if (a === 'pick') { shopSel[shopTab] = b.dataset.id; SFX.play('click'); const el = panel.querySelector('.shbody'), sc = el ? el.scrollTop : 0; shop(); const e2 = panel.querySelector('.shbody'); if (e2) e2.scrollTop = sc; }
-        else if (a === 'ammo') { const k = b.dataset.id, n = +b.dataset.n, c = CONSUMABLES[k]; if (STATE.coins < c.price * n) return toast('เงินไม่พอ', 'bad'); STATE.coins -= c.price * n; STATE.cons[k] = (STATE.cons[k] || 0) + c.pack * n; SFX.play('coin'); toast(`ได้${c.name} ${c.pack * n} ${c.warp ? 'บาน' : c.reset ? 'ม้วน' : 'นัด'}`, 'good'); saveGame(); hud(); shop(); }
+        else if (a === 'ammo') { const k = b.dataset.id, n = +b.dataset.n, c = CONSUMABLES[k]; if (STATE.coins < c.price * n) return toast('เงินไม่พอ', 'bad'); coinTx('spend', -c.price * n, 'cons', k, n); STATE.cons[k] = (STATE.cons[k] || 0) + c.pack * n; SFX.play('coin'); toast(`ได้${c.name} ${c.pack * n} ${c.warp ? 'บาน' : c.reset ? 'ม้วน' : 'นัด'}`, 'good'); saveGame(); hud(); shop(); }
         else if (a === 'fix' || a === 'fixall') { doRepair(a === 'fixall' ? null : +b.dataset.u); shop(); }
         else if (a === 'buy') { const id = b.dataset.id, BX = shopX(id), it = effItem(BX);
           show('buyc', `<h3>ยืนยันการซื้อ</h3><div class="list">${itemRow(BX, money(it.price))}</div><div class="row end"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok">ซื้อ ${baht(it.price)} บาท</button></div>`, a2 => {
             if (a2 === 'back') return shop();
             if (a2 !== 'ok' || STATE.coins < it.price) return; if (bagFull()) { SFX.play('deny'); toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ซื้ออุปกรณ์เพิ่มไม่ได้ ขายของหรืออัปเกรดกระเป๋าก่อน`, 'bad'); return; }
-            STATE.coins -= it.price; const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g, BX.lv)); SFX.play('coin'); if (ITEMS[id].ammo) { const A = ITEMS[id].ammo, n = CONSUMABLES[A].pack * 2; STATE.cons[A] = (STATE.cons[A] || 0) + n; setTimeout(() => toast(`แถม${CONSUMABLES[A].name} ${n} นัด`, 'good'), 400); } 
+            coinTx('spend', -it.price, 'shop', id); const uid = STATE.nextUid++; STATE.items.push(makeItem(uid, id, BX.g, BX.lv)); SFX.play('coin'); if (ITEMS[id].ammo) { const A = ITEMS[id].ammo, n = CONSUMABLES[A].pack * 2; STATE.cons[A] = (STATE.cons[A] || 0) + n; setTimeout(() => toast(`แถม${CONSUMABLES[A].name} ${n} นัด`, 'good'), 400); } 
             saveGame(); hud();
             show('bought', `<h3>ได้รับ ${it.name}</h3><div class="list">${itemRow(BX, '')}</div><div class="row end"><button class="btn" data-a="back">กลับไปร้าน</button><button class="btn gold" data-a="eq">สวมใส่เลย</button></div>`, a3 => { if (a3 === 'eq') { equipUid(uid); shop(); toast(`สวมใส่ ${it.name} แล้ว`, 'good'); } else shop(); });
           }); }
         else if (a === 'scat') { sellCat = b.dataset.c; SFX.play('click'); shop(); }
         else if (a === 'lock') { const x = STATE.items.find(i => i.uid === +b.dataset.u); if (x) { if (x.lock) delete x.lock; else x.lock = 1; SFX.play('pickup'); saveGame(); } return shop(); }
-        else if (a === 'sell') { const u = +b.dataset.u, x = STATE.items.find(i => i.uid === u); if (!x || x.lock) return; const el = panel.querySelector('.shsell'), st = el ? el.scrollTop : 0; STATE.items = STATE.items.filter(i => i.uid !== u); STATE.coins += itemSellPrice(x); SFX.play('coin'); toast(`ขาย ${ITEMS[x.id].name} ได้ ${baht(itemSellPrice(x))} บาท`, 'good'); saveGame(); hud(); shop(); const e2 = panel.querySelector('.shsell'); if (e2) e2.scrollTop = st; }
+        else if (a === 'sell') { const u = +b.dataset.u, x = STATE.items.find(i => i.uid === u); if (!x || x.lock) return; const el = panel.querySelector('.shsell'), st = el ? el.scrollTop : 0; STATE.items = STATE.items.filter(i => i.uid !== u); coinTx('item', itemSellPrice(x), jItem(x)); SFX.play('coin'); toast(`ขาย ${ITEMS[x.id].name} ได้ ${baht(itemSellPrice(x))} บาท`, 'good'); saveGame(); hud(); shop(); const e2 = panel.querySelector('.shsell'); if (e2) e2.scrollTop = st; }
         else if (a === 'sellall' || a === 'selltier') { const eqU = Object.values(STATE.equip), tq = a === 'selltier' ? b.dataset.t : null, L = STATE.items.filter(x => !x.lock && !eqU.includes(x.uid) && (sellCat === 'all' || ITEMS[x.id].slot === sellCat) && (tq == null || (tq === 'q1' ? x.q === 1 : ITEMS[x.id].tier === +tq && !(x.q > 0)))), tot = L.reduce((s, x) => s + itemSellPrice(x), 0); if (!L.length) return;
           const what = tq == null ? (sellCat === 'all' ? 'ของสำรองทั้งหมด' : SLOT_NAMES[sellCat] + 'สำรอง') : (tq === 'q1' ? 'ของติดออปชันหายาก' : 'ของระดับ' + TIER_NAMES[+tq]) + (sellCat === 'all' ? 'ทั้งหมด' : 'ในหมวด' + SLOT_NAMES[sellCat]);
           /* หน้าตรวจรายการก่อนขาย: เห็นทุกชิ้นพร้อมราคา แตะชิ้นที่ไม่อยากขายเพื่อเอาออก แล้วค่อยกดขายเฉพาะที่ติ๊กไว้ */
@@ -11550,7 +11562,7 @@ const UI = (() => {
               <div class="sellrev">${(() => { const rowOf = x => { const it = ITEMS[x.id], on = pick.has(x.uid); return `<button class="srow ${on ? 'on' : 'off'} tier${it.tier}" data-a="rtog" data-u="${x.uid}"><i class="chk">${on ? '✔' : ''}</i><img src="${itemIconURL(x.id)}" alt=""><span class="srow-tx"><b style="color:${x.q ? LOOT_Q[x.q].col : TIER_COLORS[it.tier]}">${lootTag(x)}${instName(x)}</b><small>${TIER_NAMES[it.tier]} ${reqTag(x)} • ${itemStatText(x)}${x.mods ? ' ✦ ' + modText(x) : ''}</small></span><em>${on ? money(itemSellPrice(x)) : 'เก็บไว้'}</em></button>`; }; const CIC2 = { pick: 'pick2', weapon: 'wpn2', armor: 'arm2', helmet: 'hat1', gloves: 'glv1', boots: 'bt1', shield: 'shd1' }; return SLOTS.map(sl => { const G2 = L.filter(x => ITEMS[x.id].slot === sl).sort((a, b) => ITEMS[b.id].tier - ITEMS[a.id].tier || itemSellPrice(b) - itemSellPrice(a)); if (!G2.length) return ''; const on2 = G2.filter(x => pick.has(x.uid)); return `<h5 class="srev-h"><img src="${itemIconURL(CIC2[sl])}" alt="">${SLOT_NAMES[sl]} <span>เลือก ${on2.length}/${G2.length} ชิ้น • ${money(on2.reduce((s, x) => s + itemSellPrice(x), 0))}</span></h5>` + G2.map(rowOf).join(''); }).join(''); })()}</div>
               <div class="shsellfoot"><span>จะขาย <b>${S.length} ชิ้น</b> • ได้ <b>${money(sum)}</b></span><span class="row" style="gap:6px"><button class="btn" data-a="back">ยกเลิก</button><button class="btn gold" data-a="ok" ${S.length ? '' : 'disabled'}>ขาย ${S.length} ชิ้น</button></span></div>`,
               (a2, b2) => { if (a2 === 'back') return shop(); if (a2 === 'rtog') { const u2 = +b2.dataset.u, el = panel.querySelector('.sellrev'), sc = el ? el.scrollTop : 0; if (pick.has(u2)) pick.delete(u2); else pick.add(u2); SFX.play('click'); review(); const e2 = panel.querySelector('.sellrev'); if (e2) e2.scrollTop = sc; return; } if (a2 === 'rall') { L.forEach(x => pick.add(x.uid)); return review(); } if (a2 === 'rnone') { pick.clear(); return review(); }
-                if (a2 !== 'ok' || !S.length) return; const ids = new Set(S.map(x => x.uid)); STATE.items = STATE.items.filter(x => !ids.has(x.uid)); STATE.coins += sum; SFX.play('coin'); toast(`ขายอุปกรณ์ ${S.length} ชิ้น ได้ ${baht(sum)} บาท`, 'good'); saveGame(); hud(); shop(); }, { wide: true }); };
+                if (a2 !== 'ok' || !S.length) return; const ids = new Set(S.map(x => x.uid)); STATE.items = STATE.items.filter(x => !ids.has(x.uid)); { const c0 = STATE.coins; for (const x of S) coinTx('item', itemSellPrice(x), jItem(x)); if (Math.abs(STATE.coins - c0 - sum) > 0.5) console.warn('sell sum differs', sum, STATE.coins - c0); } SFX.play('coin'); toast(`ขายอุปกรณ์ ${S.length} ชิ้น ได้ ${baht(sum)} บาท`, 'good'); saveGame(); hud(); shop(); }, { wide: true }); };
           review(); }
       }, { xwide: true });
     { // ชี้เมาส์ที่สินค้า = ตัวละครฝั่งซ้ายลองสวมชิ้นนั้นทันที • เลื่อนออก = กลับเป็นชิ้นที่เลือกไว้
@@ -11573,7 +11585,7 @@ const UI = (() => {
   }
   function doRepair(uid) {
     const list = STATE.items.filter(x => ITEMS[x.id].dur && (uid == null || x.uid === uid) && repairCost(x) > 0);
-    let paid = 0; for (const x of list) { const c = repairCost(x); if (STATE.coins < c) break; STATE.coins -= c; paid += c; x.dur = maxDur(x); }
+    let paid = 0; for (const x of list) { const c = repairCost(x); if (STATE.coins < c) break; coinTx('spend', -c, 'repair'); paid += c; x.dur = maxDur(x); }
     if (paid) { SFX.play('coin'); SFX.play('done'); toast(`ซ่อมพลั่วเรียบร้อย จ่าย ${baht(paid)} บาท`, 'good'); saveGame(); hud(); } else toast('เงินไม่พอค่าซ่อม', 'bad');
   }
   function repair() {
@@ -11791,8 +11803,8 @@ const UI = (() => {
   }
   function doSell(items) {
     let total = 0, nCut = 0;
-    for (const x of items) { if (!removeGem(x.gem.id)) continue; total += x.price; if (x.gem.state === 'cut') nCut++; rawSel.delete(x.gem.id); cutSel.delete(x.gem.id); }
-    const n = items.length; STATE.coins += total; STATE.stats.sold += n; STATE.stats.soldCut += nCut; STATE.stats.earned += total;
+    for (const x of items) { if (!removeGem(x.gem.id)) continue; total += x.price; coinTx('gem', x.price, jGem(x.gem), x.gem.state === 'raw' ? 'raw' : 'cut'); if (x.gem.state === 'cut') nCut++; rawSel.delete(x.gem.id); cutSel.delete(x.gem.id); }
+    const n = items.length; STATE.stats.sold += n; STATE.stats.soldCut += nCut; STATE.stats.earned += total;
     SFX.play('coin'); floatText(PL.x, PL.y - 30, `+${baht(total)} บาท`, '#ffe680');
     toast(`${coinImg()} ขายได้ ${baht(total)} บาท`, 'good');
     questEvent('sell', n); if (nCut) questEvent('sellCut', nCut); questEvent('coins');
@@ -11837,7 +11849,7 @@ const UI = (() => {
         else if (a === 'queue') queue();
         else if (a === 'ok') {
           if (!chosen.length || STATE.coins < fee) return;
-          STATE.coins -= fee;
+          coinTx('spend', -fee, 'hire', chosen.length);
           if (!STATE.queue.jobs.length) STATE.queue.startAt = now();
           for (const g of chosen) { removeGem(g.id); const sk = hiredSkill(g); STATE.queue.jobs.push({ gem: g, mode: HIRE.mode[g.id] || 'keep', shape: HIRE.shape[g.id] || bestShape(g.type), dur: secs(g), orient: sk.orient, angle: sk.angle }); HIRE.sel.delete(g.id); }
           SFX.play('coin'); toast(`จ้างช่างเจีย ${chosen.length} เม็ด จ่าย ${baht(fee)} บาท`, 'good');
@@ -11859,7 +11871,7 @@ const UI = (() => {
       return html;
     };
     // ยกเลิกงานเจีย: คืนพลอยก้อนเข้ากระเป๋า • งานที่ยังรอคิวคืนค่าจ้างเต็ม งานที่กำลังเจียคืนครึ่งหนึ่ง
-    const cancelJob = i => { const q = STATE.queue, j = q.jobs[i]; if (!j) return 0; const refund = i === 0 && now() > q.startAt ? Math.floor(CONFIG.hireFeePerGem / 2) : CONFIG.hireFeePerGem; q.jobs.splice(i, 1); STATE.inv.push(j.gem); STATE.coins += refund; if (i === 0) q.startAt = q.jobs.length ? now() : 0; return refund; };
+    const cancelJob = i => { const q = STATE.queue, j = q.jobs[i]; if (!j) return 0; const refund = i === 0 && now() > q.startAt ? Math.floor(CONFIG.hireFeePerGem / 2) : CONFIG.hireFeePerGem; q.jobs.splice(i, 1); STATE.inv.push(j.gem); coinTx('refund', refund); if (i === 0) q.startAt = q.jobs.length ? now() : 0; return refund; };
     show('queue', render(), (a, b) => {
       if (a === 'hire') hire();
       else if (a === 'qcancel') { const r = cancelJob(+b.dataset.i); toast(`ยกเลิกแล้ว คืนพลอยก้อนเข้ากระเป๋า + คืนค่าจ้าง ${baht(r)} บาท`, 'good'); saveGame(); hud(); queue(); }
@@ -12385,7 +12397,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795253663";
+window.GAME_BUILD="1795255999";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
