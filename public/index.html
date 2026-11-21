@@ -8106,9 +8106,10 @@ function applyTownArt(m, key) {
   if (pt.tentHit && typeof addSign === 'function') { const [x0, y0, x1, y1] = pt.tentHit; addSign(m, 'tent', 'ที่พักชั่วคราว', '', WX((x0 + x1) / 2), WY(y0) + 8, { sortY: WY(y1), fs: 9, wood: true }); }
   for (const [x, y] of pt.lights) m.lights.push({ x: WX(x), y: WY(y), r: 26, col: '#ffcc66', flick: 1 });
   { /* ป้ายบอร์ดตลาดเทรด: ตั้งในลานกลางเมือง หน้าบ่อน้ำ (ทุกประเทศ) • pt.market = กำหนดตำแหน่งเองในภาพเมืองได้ */
-    const cx = m.pond ? m.pond.x : WX(POND_CENTER[0]), cy = m.pond ? m.pond.y : WY(POND_CENTER[1]), [bx, by] = pt.market ? P(pt.market) : [cx, m.pond && m.pond.sortY ? Math.max(cy + 56, m.pond.sortY + 30) : cy + 64];
+    const cx = m.pond ? m.pond.x : WX(POND_CENTER[0]), cy = m.pond ? m.pond.y : WY(POND_CENTER[1]), [bx, by] = pt.market ? P(pt.market) : [cx + (window.MKX ?? -31), cy + (window.MKY ?? -72)]   /* มุมซ้ายบนในวงลาน ข้างกระถางดอกไม้ (หน้าตรง) */;
     addObj(m, sprTradeBoard(), bx, by, { solid: [32, 6], kind: 'building' });
-    m.interact.push({ kind: 'market', x: bx, y: by + 9, r: 26, label: 'ป้ายตลาดเทรดพลอย (ซื้อ–ขายกับผู้เล่นอื่น)', verb: 'เปิดตลาด', hit: { x: bx - 20, y: by - 40, w: 40, h: 42 } }); }
+    let ix = bx + 2, iy = by + 12; for (const [ox, oy] of [[0, 10], [-8, 10], [8, 10], [-16, 9], [16, 9], [-26, 6]]) { let ok = false; try { ok = boxFree(m, bx + ox, by + oy); } catch (e) {} if (ok) { ix = bx + ox; iy = by + oy; break; } }   /* จุดยืนคุยต้องเดินถึงได้ (บางเมืองบ่อน้ำใหญ่ชิดป้าย) */
+    m.interact.push({ kind: 'market', x: ix, y: iy, r: 30, label: 'ป้ายตลาดเทรดพลอย (ซื้อ–ขายกับผู้เล่นอื่น)', verb: 'เปิดตลาด', hit: { x: bx - 20, y: by - 40, w: 40, h: 42 } }); }
   if (m.outpost) m.outTrees = ['palm']; buildWalkGrid(m);
 }
 /* =====================================================================
@@ -12397,7 +12398,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795255999";
+window.GAME_BUILD="1795256763";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
