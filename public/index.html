@@ -8334,8 +8334,10 @@ function drawArrows(g, S, T) { if (G.clouds) for (const c of G.clouds) { const a
 function hitMonster(e, dmg, fromX, fromY) {
   if (typeof testGod === 'function' && testGod()) dmg = 1e9; /* โหมดทดสอบ: ตีทีเดียวตาย */
   const def = MONS[e.type];
-  /* มอนหลบได้บางครั้ง (21 พ.ย. 2569): ~10% (บอส/แม่ทัพ 6%) • หลบแล้วกระโดดเลี่ยงข้าง และได้จังหวะสวนกลับทันที */
-  if (!(typeof testGod === 'function' && testGod()) && !(e.riseT > 0) && Math.random() < (def.boss2 || def.mini || e.type === 'boss' || e.champ ? 0.06 : 0.10)) {
+  /* ความยากไล่ตามเลเวลผู้เล่น (21 พ.ย. 2569): Lv 1–10 = แบบเดิม (มือใหม่เล่นง่าย) → เต็มที่ Lv 30+ */
+  const hf = clamp(((STATE.lv || 1) - 10) / 20, 0, 1);
+  /* มอนหลบได้บางครั้ง: สูงสุด ~10% (บอส/แม่ทัพ 6%) ที่ Lv 30+ • หลบแล้วกระโดดเลี่ยงข้าง และได้จังหวะสวนกลับทันที */
+  if (hf > 0 && !(typeof testGod === 'function' && testGod()) && !(e.riseT > 0) && Math.random() < (def.boss2 || def.mini || e.type === 'boss' || e.champ ? 0.06 : 0.10) * hf) {
     const a0 = Math.atan2(e.y - fromY, e.x - fromX) + (Math.random() < 0.5 ? 1.4 : -1.4); e.kx = Math.cos(a0) * 90; e.ky = Math.sin(a0) * 90; e.state = 'chase'; e.cd = Math.min(e.cd || 0, 0.05);
     floatText(e.x, e.y - 22, 'หลบ!', '#9fd8ff', 0.7); SFX.play('swing'); return; }
   const crit = Math.random() < 0.12 + (pstats().crit || 0); dmg = Math.max(1, Math.round(dmg * (0.85 + Math.random() * 0.3) * (crit ? 1.8 : 1) * lvDmgOut(e.lv))); if (STATE.hand === 'weapon') { const lps = pstats(); if (lps.weapon.leech && STATE.hp > 0 && STATE.hp < lps.maxHp) { STATE.hp = Math.min(lps.maxHp, STATE.hp + lps.weapon.leech); floatText(PL.x, PL.y - 34, '+' + lps.weapon.leech, '#7dff9a', 0.7); } } /* ออปชันดูดเลือดของอาวุธประชิด */
@@ -8345,10 +8347,10 @@ function hitMonster(e, dmg, fromX, fromY) {
   e.hp -= dmg; e.flash = 0.14; e.state = 'chase';
   /* ลดการกระเด็น/ขัดจังหวะ (21 พ.ย. 2569): เดิมโดนตีทุกครั้งกระเด็นแรงและท่าโจมตีถูกรีเซ็ต จนมอนไม่ได้ตีกลับ • ตอนนี้กระเด็นน้อยลง และถ้ามอนกำลังง้างตี มีโอกาส 60% ไม่สะดุด ตีใส่เราต่อ */
   const BIGB = def.boss2 || def.mini || e.type === 'boss'; /* บอสใหญ่/มินิบอส: ไม่กระเด็น ไม่สะดุด — ตีอยู่ก็ยังง้างตีใส่เราได้ ต้องเดินหลบท่าโจมตีเอง */
-  const a = Math.atan2(e.y - fromY, e.x - fromX), kb = def.big ? 35 : 75; if (!BIGB && (!def.slam || !(e.wind > 0 || e.atkT > 0 || e.recT > 0))) {
-    e.kx = Math.cos(a) * kb; e.ky = Math.sin(a) * kb; if (!(e.wind > 0) || Math.random() < 0.4) e.wind = 0;
+  const a = Math.atan2(e.y - fromY, e.x - fromX), kb = (def.big ? 60 : 150) * (1 - 0.5 * hf); if (!BIGB && (!def.slam || !(e.wind > 0 || e.atkT > 0 || e.recT > 0))) {
+    e.kx = Math.cos(a) * kb; e.ky = Math.sin(a) * kb; if (!(e.wind > 0) || Math.random() >= 0.6 * hf) e.wind = 0;
   }
-  if (!BIGB) e.cd = Math.max(e.cd, 0.15);
+  if (!BIGB) e.cd = Math.max(e.cd, 0.35 - 0.2 * hf);
   floatText(e.x, e.y - 20, (crit ? 'คริ! ' : '') + dmg, crit ? '#ffd040' : '#ffffff', 0.8);
   for (let i = 0; i < 5; i++) G.parts.push({ k: 'star', x: e.x, y: e.y - 8, z: 0, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 60, vz: 0, life: 0.35, max: 0.35, col: e.type === 'skeleton' ? '#ffffff' : '#ff5040', size: 1 });
   SFX.play('hit'); G.shake = Math.max(G.shake, 1.2);
@@ -11792,7 +11794,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795224631";
+window.GAME_BUILD="1795224975";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
