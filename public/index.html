@@ -11221,14 +11221,14 @@ const UI = (() => {
   // ---------- เลือกระดับเหมืองก่อนลง (5 ระดับ ปลดล็อกตามเลเวล) ----------
   // ---------- คัมภีร์จุดเซฟ: แผนที่ชั้นเหมืองที่เคยไปถึงจุดเซฟ — คลิกแล้ววาร์ปไปจุดนั้น ----------
   function cps() {
-    const S = charState(), here = G.map ? countryOfMap(G.map.id) : 'thai', saved = STATE.cps || {}, cs = ['thai', ...Object.keys(COUNTRIES).filter(c => c !== 'thai')].filter(c => c === here || Object.keys(saved).some(k => countryOfMap(k) === c));
-    const sec = c => { const base = mapIdOf(c), cname = c === 'thai' ? 'เหมืองจันทบุรี' : 'เหมือง' + ((COUNTRIES[c] && (COUNTRIES[c].short || COUNTRIES[c].name)) || c), can = c === here;
-      return `<div class="cp-c"><h4>⛏ ${cname}${can ? '' : ' <small class="muted">(ต้องเดินทางไปประเทศนี้ก่อนจึงวาร์ปได้)</small>'}</h4><div class="cp-shaft">` + MINE_TIERS.map((T, i) => { const t = i + 1; if (t >= MINE_TIERS.length) return `<div class="cp-n end" style="--tc:${T.col}"><span class="cp-dot"></span><div><b>ชั้น ${t} — ${T.name}</b><small>ชั้นลึกสุด (ไม่มีทางลงต่อ)</small></div></div>`;
-        const id = mineIdTier(base, t), ok = !!saved[id], N = MINE_TIERS[t]; return `<div class="cp-n ${ok ? 'ok' : 'no'}" style="--tc:${T.col}"><span class="cp-dot">${ok ? '✦' : ''}</span><div><b>ชั้น ${t} — ${T.name}</b><small>${ok ? `จุดเซฟก้นเหมือง • หน้าทางลงสู่${N.name} (ต้อง Lv ${N.req})` : 'ยังไปไม่ถึงจุดเซฟของชั้นนี้'}</small></div>${ok ? `<button class="btn gold" data-a="go" data-id="${id}" ${can ? '' : 'disabled'}>วาร์ป</button>` : ''}</div>`; }).join('') + '</div></div>'; };
-    show('cps', `<h3>📜 คัมภีร์จุดเซฟ</h3><p class="muted small">เดินไปถึง <b style="color:#9fe8ff">✦ จุดเซฟ</b> (แท่นผลึกฟ้าก่อนถึงทางลงของแต่ละชั้น) แล้วจุดนั้นจะถูกบันทึกไว้ที่นี่ • คลิก "วาร์ป" เพื่อไปโผล่ที่จุดเซฟนั้นได้ทันที ไม่เสียค่าใช้จ่าย</p>
+    const S = charState(), here = G.map ? countryOfMap(G.map.id) : 'thai', saved = STATE.cps || {}, TEST = CONFIG.testGod && !NET.online, /* บัญชีทดลอง (ลิงก์ตัวอย่างเท่านั้น): เปิดทุกจุดเซฟ ทุกประเทศ วาร์ปข้ามประเทศได้ และวาร์ปเข้าเมืองได้ */ cs = ['thai', ...Object.keys(COUNTRIES).filter(c => c !== 'thai')].filter(c => TEST || c === here || Object.keys(saved).some(k => countryOfMap(k) === c));
+    const sec = c => { const base = mapIdOf(c), cname = c === 'thai' ? 'เหมืองจันทบุรี' : 'เหมือง' + ((COUNTRIES[c] && (COUNTRIES[c].short || COUNTRIES[c].name)) || c), can = TEST || c === here;
+      return `<div class="cp-c"><h4>⛏ ${cname}${TEST ? ` <button class="btn small gold" data-a="town" data-id="${c === 'thai' ? 'village' : 'out_' + c}">🏘 วาร์ปเข้าเมือง</button>` : ''}${can ? '' : ' <small class="muted">(ต้องเดินทางไปประเทศนี้ก่อนจึงวาร์ปได้)</small>'}</h4><div class="cp-shaft">` + MINE_TIERS.map((T, i) => { const t = i + 1; if (t >= MINE_TIERS.length) return `<div class="cp-n end ${TEST ? 'ok' : ''}" style="--tc:${T.col}"><span class="cp-dot"></span><div><b>ชั้น ${t} — ${T.name}</b><small>ชั้นลึกสุด (ไม่มีทางลงต่อ)</small></div>${TEST ? `<button class="btn gold" data-a="town" data-id="${mineIdTier(base, t)}" data-t="${t}">วาร์ป</button>` : ''}</div>`;
+        const id = mineIdTier(base, t), ok = TEST || !!saved[id], N = MINE_TIERS[t]; return `<div class="cp-n ${ok ? 'ok' : 'no'}" style="--tc:${T.col}"><span class="cp-dot">${ok ? '✦' : ''}</span><div><b>ชั้น ${t} — ${T.name}</b><small>${ok ? `จุดเซฟก้นเหมือง • หน้าทางลงสู่${N.name} (ต้อง Lv ${N.req})` : 'ยังไปไม่ถึงจุดเซฟของชั้นนี้'}</small></div>${ok ? `<button class="btn gold" data-a="go" data-id="${id}" ${can ? '' : 'disabled'}>วาร์ป</button>` : ''}</div>`; }).join('') + '</div></div>'; };
+    show('cps', `<h3>📜 คัมภีร์จุดเซฟ</h3>${TEST ? '<p class="small" style="color:#ffd890">🧪 บัญชีทดลอง: เปิดทุกจุดเซฟของทุกประเทศ และวาร์ปข้ามประเทศได้</p>' : ''}<p class="muted small">เดินไปถึง <b style="color:#9fe8ff">✦ จุดเซฟ</b> (แท่นผลึกฟ้าก่อนถึงทางลงของแต่ละชั้น) แล้วจุดนั้นจะถูกบันทึกไว้ที่นี่ • คลิก "วาร์ป" เพื่อไปโผล่ที่จุดเซฟนั้นได้ทันที ไม่เสียค่าใช้จ่าย</p>
       <style>.cp-c h4{margin:10px 0 6px;color:#ffd77a}.cp-shaft{border-left:3px solid #5a4a30;margin-left:12px;padding-left:0}.cp-n{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 0;margin-left:-11px}.cp-n>div{flex:1;display:flex;flex-direction:column}.cp-n small{color:#c8bca0}.cp-dot{width:18px;height:18px;border-radius:50%;border:3px solid var(--tc);background:#1d1712;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9fe8ff;flex:none}.cp-n.ok .cp-dot{background:#0e3a50;box-shadow:0 0 8px #6ad8ff}.cp-n.no{opacity:.55}.cp-n b{color:var(--tc)}</style>
       <div class="list">${cs.map(sec).join('')}</div><div class="row end"><button class="btn" data-a="cancel">ปิด</button></div>`,
-      (a, b) => { if (a === 'cancel') return dismiss(); if (a === 'go') { if (G.down) return toast('ตอนนี้วาร์ปไม่ได้', 'bad'); const id = b.dataset.id; STATE.mineTier = mineTierOf(id); close(); goMap(id, 'cp'); } });
+      (a, b) => { if (a === 'cancel') return dismiss(); if (a === 'town' && TEST) { const id = b.dataset.id; if (+b.dataset.t) STATE.mineTier = +b.dataset.t; close(); return goMap(id); } if (a === 'go') { if (G.down) return toast('ตอนนี้วาร์ปไม่ได้', 'bad'); const id = b.dataset.id; STATE.mineTier = mineTierOf(id); close(); goMap(id, 'cp'); } });
   }
   function mineSelect(to, onCancel) {
     const S = charState(), base = to.split('~')[0], c = countryOfMap(base), cname = c === 'thai' ? 'เหมืองจันทบุรี' : 'เหมือง' + (COUNTRIES[c].short || COUNTRIES[c].name);
@@ -12472,7 +12472,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795261085";
+window.GAME_BUILD="1795261188";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
