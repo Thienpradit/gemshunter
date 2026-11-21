@@ -956,6 +956,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
 <div id="flight" class="hidden"><div class="sky"><canvas id="flCanvas"></canvas></div>
   <div class="flbox frame"><h2 id="flTitle"></h2><div class="route"><b id="flFrom"></b><span>✈ · · · · · · ·</span><b id="flTo"></b></div><div class="bar big"><i id="flBar"></i></div><p id="flTime"></p></div></div>
 <div id="fade"></div>
+<script src="mine-species.js"></script>
 <script src="world-mines.js"></script>
 <script>
 'use strict';
@@ -8169,7 +8170,7 @@ function tryDigHaunt(m, x, y, zone) {
   haunt.breaks++;
   if (haunt.breaks < DIG_HAUNT_MIN_BREAKS || G.time < haunt.nextAt || Math.random() >= DIG_HAUNT_CHANCE) return;
   const local=WorldMines.roster(m);
-  const type = local ? local[Math.floor(Math.random()*11)].type : Math.random() < 0.5 ? 'skeleton' : 'ghost';
+  const type = local ? local[Math.floor(Math.random()*(local.length-2))].type : Math.random() < 0.5 ? 'skeleton' : 'ghost';
   if (!monBoxFree(m, x, y, MONS[type].r)) return;
 
   const e = mkMon(m, type, x, y, zone);
@@ -8218,7 +8219,7 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
   else assignThaiCaveMonsters(m, G2);
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
   const local = WorldMines.roster(m);
-  if (local) for (const shape of new Set(local.map(d=>d.shape))) WorldMineArt.sheetFor(shape);
+  if (local) WorldMineArt.sheetFor(local[0]);
   m.groups = G2; }
 function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
 function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now(), present = new Set(); for (const o of G.mons) if (o.grp) present.add(o.grp);
@@ -8232,12 +8233,12 @@ function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now()
 /* แม่ทัพ: ตัวเดียวกับลูกน้องแต่ตัวใหญ่กว่า เลือด 3.2 เท่า ตีแรง 1.5 เท่า เลเวล +3 ให้ EXP/เงิน 3 เท่า ดรอปของเสมอและมีโอกาสได้ของดีสูงกว่า */
 function makeChamp(o) { const def = MONS[o.type]; o.champ = true; o.name = 'แม่ทัพ' + (o.name || def.name); monScale(o, true); /* แม่ทัพ: เลเวลผู้เล่น +4 เลือด ×3.2 ตีแรง ×1.5 */ o.xp = Math.round((o.xp || 1) * 3); o.coinMul = (o.coinMul || 1) * 3; return o; }
 // ประตูวิเศษหน้าบันไดทางลง: ชั้นที่มีบอส ต้องฆ่าบอสของชั้นนั้นก่อน ประตูจึงสลาย (ฆ่าแล้วเปิดถาวรสำหรับเหมืองชั้นนั้น — เก็บใน STATE.gates)
-function gateBoss(m) { const local = WorldMines.roster(m); if (local) return local[12].type; const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : (m && (m.tier || 1) === 1 && m.descend ? 'brute' : null); } /* ชั้น 1 ไม่มีบอส: ใช้มินิบอสซอมบี้ยักษ์ไพลินเป็นผู้เฝ้าประตู */
+function gateBoss(m) { const local = WorldMines.roster(m); if (local) return local[local.length-1].type; const S = m && typeof TIER_SETS !== 'undefined' && TIER_SETS[m.tier || 1]; return S ? S.boss : (m && (m.tier || 1) === 1 && m.descend ? 'brute' : null); } /* ชั้น 1 ไม่มีบอส: ใช้มินิบอสซอมบี้ยักษ์ไพลินเป็นผู้เฝ้าประตู */
 function gateLocked(m) { return !!(m && m.descend && gateBoss(m) && !(STATE.gates && STATE.gates[m.id])); }
 // บอสใหญ่ประจำชั้นเรียกลูกสมุน (ศัตรูธรรมดาของชั้นนั้น) ออกมาช่วยเป็นช่วง ๆ: ครั้งแรกหลังเริ่มสู้ 8 วิ จากนั้นทุก 20 วิ ครั้งละ 2 ตัว มีพร้อมกันได้ไม่เกิน 4 ตัว • บอสตาย ลูกสมุนสลายตาม
 const SUMMON_FIRST = 8, SUMMON_EVERY = 20, SUMMON_N = 2, SUMMON_MAX = 4;
 function bossSummon(m, e, dt) { if (e.sumT == null) e.sumT = SUMMON_FIRST; e.sumT -= dt; if (e.sumT > 0) return; e.sumT = SUMMON_EVERY;
-  const S = t2Mine(m), local=WorldMines.roster(m); if (!S && !local) return; const list = local ? local.slice(0,11).map(d=>[d.type,1]) : S.table.deep.filter(a => !MONS[a[0]].big && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) return;
+  const S = t2Mine(m), local=WorldMines.roster(m); if (!S && !local) return; const list = local ? local.slice(0,-2).map(d=>[d.type,1]) : S.table.deep.filter(a => !MONS[a[0]].big && !MONS[a[0]].mini && !MONS[a[0]].boss2); if (!list.length) return;
   let alive = 0; for (const o of G.mons) if (o.sumBy === e && !o.dead && o.hp > 0) alive++; let made = 0;
   for (let k = 0; k < 14 && made < SUMMON_N && alive + made < SUMMON_MAX; k++) { const type = list[pickWeighted(list.map(a => a[1]))][0], a = Math.random() * 6.283, rr = 34 + Math.random() * 22, x = e.x + Math.cos(a) * rr, y = e.y + Math.sin(a) * rr * 0.8;
     if (!monBoxFree(m, x, y, MONS[type].r) || Math.hypot(x - PL.x, y - PL.y) < 20) continue; const o = mkMon(m, type, x, y, 'deep'); o.sumBy = e; o.riseT = 0.65; o.state = 'chase'; made++;
