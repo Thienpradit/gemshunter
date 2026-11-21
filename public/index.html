@@ -959,7 +959,7 @@ body.touch #btnAct.dim{filter:none;background:rgba(255,255,255,.1)!important;col
   <div class="flbox frame"><h2 id="flTitle"></h2><div class="route"><b id="flFrom"></b><span>✈ · · · · · · ·</span><b id="flTo"></b></div><div class="bar big"><i id="flBar"></i></div><p id="flTime"></p></div></div>
 <div id="fade"></div>
 <script src="mine-species.js"></script>
-<script src="world-mines.js"></script>
+<script src="world-mines.js?v=2"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -8147,15 +8147,27 @@ for (const entry of THAI_CAVE_MONSTERS) {
 WorldMines.install(THAI_CAVE_MONSTERS, MONS, MON_LV);
 
 function assignThaiCaveMonsters(m, groups) {
-  if (countryOfMap(m.id) !== 'thai') return;
-  const roster = THAI_CAVE_MONSTERS.filter(entry => entry.floor === m.tier);
-  const trail = groups.filter(group => group.trail);
-  if (!roster.length || trail.length < roster.length) return;
-  // Use existing route slots so group save indexes, counts and boss gates stay valid.
-  const count = Math.min(roster.length * 2, trail.length);
-  for (let i = 0; i < count; i++) {
-    const slot = Math.floor((i + 0.5) * trail.length / count);
-    trail[slot].type = roster[i % roster.length].type;
+  /* ทุกประเทศใช้ศัตรูชุดเดียวกับเหมืองไทยตามชั้น • จัดกลุ่มบนทางเดินหลักใหม่ให้แต่ละชนิดกระจายสม่ำเสมอตลอดทาง:
+     ในแต่ละโซน (ปากเหมือง/อุโมงค์/ชั้นลึก) แบ่งจำนวนจุดตามน้ำหนักของตารางชั้นนั้น แล้ววางชนิดเดียวกันให้ห่างกันเท่า ๆ กัน (ไม่กระจุก ไม่มีชนิดไหนหาย)
+     ใช้จุดเดิมทั้งหมด → ลำดับกลุ่มในเซฟ ประตูบอส และผู้เฝ้าทางไม่เปลี่ยน */
+  const cave = THAI_CAVE_MONSTERS.filter(entry => entry.floor === m.tier).map(entry => entry.type);
+  const T2 = t2Mine(m), tier = m.tier || 1;
+  for (const zz of ['gravel', 'tunnel', 'deep']) {
+    const slots = groups.filter(g => g.routeEncounter && g.zz === zz).sort((a, b) => a.y - b.y || a.x - b.x); if (!slots.length) continue;
+    const base = (T2 ? T2.table[zz] : SPAWN_TABLE[zz].list).filter(a => !MONS[a[0]].mini && !MONS[a[0]].boss2 && a[0] !== 'brute');
+    const total = base.reduce((t, a) => t + a[1], 0), list = base.concat(cave.map(type => [type, total * 0.15]));
+    const N = slots.length;
+    // จำนวนจุดของแต่ละชนิด: ตามสัดส่วนน้ำหนัก อย่างน้อยชนิดละ 1 จุดถ้าจุดพอ
+    const order = list.map((a, i) => ({ type: a[0], w: a[1], i })).sort((a, b) => b.w - a.w).slice(0, N);
+    const osum = order.reduce((t, a) => t + a.w, 0); let left = N;
+    for (const o of order) { o.n = Math.max(1, Math.floor(o.w / osum * N)); left -= o.n; }
+    for (let k = 0; left > 0; k++, left--) order[k % order.length].n++;
+    for (let k = 0; left < 0 && k < 999; k++) { const o = order[k % order.length]; if (o.n > 1) { o.n--; left++; } }
+    // วางชนิดเดียวกันห่างเท่า ๆ กันตลอดโซน
+    const seq = []; order.forEach((o, k) => { for (let q = 0; q < o.n; q++) seq.push([(q + 0.5 + ((k * 0.37 + tier * 0.13) % 1 - 0.5) * 0.6) / o.n, o.type]); }); seq.sort((a, b) => a[0] - b[0]);
+    slots.forEach((g, i) => { const type = seq[i][1], def = MONS[type], was = g.n; g.type = type;
+      if (def.big) { g.n = 1; g.champ = false; } else if (was <= 1) g.n = Math.round((zz === 'gravel' ? 2 : 3) * MON_MORE);
+      g.left = g.n; });
   }
 }
 
@@ -12100,7 +12112,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795247911";
+window.GAME_BUILD="1795248388";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {

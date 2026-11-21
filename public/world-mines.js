@@ -55,7 +55,9 @@ const WorldMines = (() => {
       }
     }
   }
-  function roster(m){return m && floors.get(m.country+'/'+(m.tier||1));}
+  // ทุกประเทศใช้ศัตรูชุดเดียวกับเหมืองไทย (ตามชั้น) — ปิดชุดสัตว์ประจำถิ่นไว้ก่อน (ข้อมูลยังเก็บอยู่ เปิดคืนได้ที่ REGIONAL)
+  const REGIONAL=false;
+  function roster(m){return REGIONAL && m ? floors.get(m.country+'/'+(m.tier||1)) : undefined;}
   function nearSave(m,x,y,margin=0){return !!(m.cp && regions[m.country] && Math.hypot(x-m.cp.x,y-m.cp.y)<64+margin);}
   function distribute(m,groups){
     const entries=roster(m); if(!entries)return;
