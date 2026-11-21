@@ -205,15 +205,52 @@ const WorldMineArt = (() => {
     frames.set(key,tile);
     return tile;
   }
+  // Sizes use the same world-pixel scale as the miner. Quadrupeds read by body length.
+  const bodySizes = {bug:22,moth:26,toad:24,bat:28,bird:27,crab:29,scorp:30,snake:34,
+    lizard:32,arm:33,turtle:35,cat:40,wolf:38,ram:40,boar:42,bear:47,elephant:50,dragon:48,golem:49};
+  const thaiSizes = {stone_pangolin:33,quartz_quail:24,jade_toad:24,sapphire_ferret:29,indigo_bell_squid:32,
+    copper_cicada:22,cracked_mask_ghost:39,three_eyed_raven:30,stitched_sack_ghost:37,lava_horn_ram:40,
+    magma_throat_ibis:32,sulfur_armadillo:34,crystal_jaw_newt:31,abyssal_lanternfish:30,violet_anemone:27};
+  function displaySize(def, champion) {
+    const creature=def.worldCreature;
+    let base=creature ? bodySizes[creature.shape] : thaiSizes[def.filename?.slice(12).replaceAll('-','_')];
+    if (!base) base=34;
+    if (def.boss2) return Math.round(59+base*.45);
+    if (def.mini) return Math.round(45+base*.42);
+    if (champion) return Math.round(29+base*.44);
+    return base;
+  }
+  function groundLight(g,x,y,radius,time,rank) {
+    const pulse=1+Math.sin(time*5)*.08, r=radius*pulse;
+    g.save();
+    g.strokeStyle=rank==='boss'?'#ff6943':'#ffb030';
+    g.lineWidth=1.2;g.globalAlpha=.8;
+    g.beginPath();g.ellipse(x,y,r,r*.38,0,0,Math.PI*2);g.stroke();
+    g.globalAlpha=.22;g.fillStyle='#ff8020';g.fill();
+    g.globalAlpha=.65;g.strokeStyle='#ffe080';g.lineWidth=.7;
+    g.beginPath();g.ellipse(x,y,r*.67,r*.25,0,0,Math.PI*2);g.stroke();
+    if(rank==='mini'||rank==='boss'){
+      const beams=rank==='boss'?6:4;
+      for(let i=0;i<beams;i++){
+        const angle=i*Math.PI*2/beams, h=(.22+.13*Math.sin(time*3+i))*r;
+        const bx=x+Math.cos(angle)*r*.88, by=y+Math.sin(angle)*r*.33;
+        const fade=g.createLinearGradient(bx,by,bx,by-h);
+        fade.addColorStop(0,rank==='boss'?'#ff8654':'#ffcd71');fade.addColorStop(1,'rgba(255,205,113,0)');
+        g.fillStyle=fade;g.fillRect(bx-1,by-h,2,h);
+      }
+    }
+    g.restore();
+  }
   function draw(g,e,def,S,T) {
-    const x=S(e.x), y=T(e.y), size=def.boss2?86:def.mini?68:e.champ?60:48;
+    const x=S(e.x), y=T(e.y), size=displaySize(def,e.champ);
     const d=def.worldCreature;
     const stride = def.fly ? e.t * 1000 / def.caveAttack.walk : (e.walkPixels || 0) / 4.8;
     const col=e.atkT>0?3:e.wind>0?2:(e.moving||def.fly)?Math.floor(stride)%2:0;
     const img=sprite(d,e.dir,col);
     g.save();
     g.fillStyle='rgba(12,9,18,.32)';
-    g.beginPath();g.ellipse(x,y-1,def.r+2,def.r*.43,0,0,Math.PI*2);g.fill();
+    g.beginPath();g.ellipse(x,y-1,(def.r+2)*5/6,def.r*.43*5/6,0,0,Math.PI*2);g.fill();
+    if (d.rank || e.champ) groundLight(g,x,y-1,size*.37,e.t,d.rank || 'champion');
     if (img) {
       g.imageSmoothingEnabled=false;
       const lift=def.fly?4+Math.sin(e.t*5)*1.1:0;
@@ -223,5 +260,5 @@ const WorldMineArt = (() => {
     }
     g.restore();
   }
-  return {draw,sprite,sheetFor};
+  return {draw,sprite,sheetFor,displaySize,groundLight};
 })();

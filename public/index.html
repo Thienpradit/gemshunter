@@ -8647,12 +8647,13 @@ function drawThaiCaveMonster(g, e, def, S, T) {
     image.src = def.filename + '.webp';
   }
   const x = S(e.x), feet = T(e.y);
-  const size = e.champ ? 72 : 48;
+  const size = WorldMineArt.displaySize(def, e.champ);
   g.save();
   g.fillStyle = 'rgba(0,0,0,0.32)';
   g.beginPath();
-  g.ellipse(x, feet - 1, def.r, def.r * 0.4, 0, 0, Math.PI * 2);
+  g.ellipse(x, feet - 1, def.r * 5/6, def.r / 3, 0, 0, Math.PI * 2);
   g.fill();
+  if (e.champ) WorldMineArt.groundLight(g,x,feet-1,size*.37,e.t,'champion');
   if (image.complete && image.naturalWidth) {
     const cell = image.naturalWidth / 4;
     const row = THAI_CAVE_DIRECTIONS[e.dir] ?? 0;
@@ -10078,7 +10079,7 @@ function drawOverlayText(camX, camY, shx, shy) {
   if (G.joy && G.joy.moved) { const d = dpr, jx = G.joy.ox * d, jy = G.joy.oy * d, kx = G.joy.x * d, ky = G.joy.y * d; c.fillStyle = 'rgba(255,255,255,0.12)'; c.beginPath(); c.arc(jx, jy, 60 * d, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,255,255,0.38)'; c.lineWidth = 2 * d; c.stroke(); c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.arc(kx, ky, 26 * d, 0, 7); c.fill(); }
   if (G.mons && G.mons.length) { /* ป้ายเล็กเหนือหัวศัตรู: ชื่อชนิด + พลังชีวิต */
     const sz = Math.max(8, Math.round(fs * 0.6)); c.font = `bold ${sz}px Tahoma, 'Noto Sans Thai', sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round'; c.lineWidth = Math.max(2, sz * 0.26); c.strokeStyle = 'rgba(0,0,0,0.85)';
-    for (const e of G.mons) { if (e.dead || e.riseT > 0) continue; const def = MONS[e.type], sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1), up = def.caveAttack ? ((e.champ ? 58 : 38) / (G.TILT || 1)) + (def.fly ? 6 : 0) : ART.monImg && ART.monImg[e.type] && MONS[e.type].sheet ? (ART.monImg[e.type].down[0].height / ART.monImg[e.type].down[0].k) * (e.champ ? 1.5 : 1) * (MONS[e.type].sc || 1) + 9 + (def.fly ? 10 : 0) : ART.monImg && ART.monImg[e.type] ? (e.champ ? 58 : 35) : def.human ? 31 * sc / (G.TILT || 1) : (e.type === 'ghost' ? (e.champ ? 62 : 46) : e.type === 'snake' ? (e.champ ? 31 : 21) : e.type === 'scorpion' ? (e.champ ? 26 : 17) : e.type === 'spider' || e.type === 'mud' ? (e.champ ? 46 : 29) : (def.fly ? 30 : 17) + (e.champ ? 7 : 0)); /* แมงมุม/โคลนตัวสูง: ยกป้ายชื่อขึ้นพ้นหัว */
+    for (const e of G.mons) { if (e.dead || e.riseT > 0) continue; const def = MONS[e.type], sc = (def.big ? 1.6 : def.scale || 1) * (e.champ ? 1.5 : 1), up = def.caveAttack ? (WorldMineArt.displaySize(def, e.champ) * 0.8 / (G.TILT || 1)) + (def.fly ? 6 : 0) : ART.monImg && ART.monImg[e.type] && MONS[e.type].sheet ? (ART.monImg[e.type].down[0].height / ART.monImg[e.type].down[0].k) * (e.champ ? 1.5 : 1) * (MONS[e.type].sc || 1) + 9 + (def.fly ? 10 : 0) : ART.monImg && ART.monImg[e.type] ? (e.champ ? 58 : 35) : def.human ? 31 * sc / (G.TILT || 1) : (e.type === 'ghost' ? (e.champ ? 62 : 46) : e.type === 'snake' ? (e.champ ? 31 : 21) : e.type === 'scorpion' ? (e.champ ? 26 : 17) : e.type === 'spider' || e.type === 'mud' ? (e.champ ? 46 : 29) : (def.fly ? 30 : 17) + (e.champ ? 7 : 0)); /* แมงมุม/โคลนตัวสูง: ยกป้ายชื่อขึ้นพ้นหัว */
       const [x, y] = W2S(e.x, e.y - up - 3); if (x < -40 || y < -20 || x > screenC.width + 40 || y > screenC.height + 20) continue;
       const t1 = (e.champ ? '★ ' : '') + (e.lv ? 'Lv' + e.lv + ' ' : '') + (e.name || def.name), r = e.max ? clamp(e.hp / e.max, 0, 1) : 1, bw = Math.round(sz * (def.big || e.type === 'boss' ? 4.6 : 3.4)), bh = Math.max(3, Math.round(sz * 0.36)), bx = Math.round(x - bw / 2), by = Math.round(y - bh / 2);
       c.strokeText(t1, x, y - sz * 0.95); { const dl = (e.lv || 1) - (STATE.lv || 1); c.fillStyle = e.champ ? '#ffc040' : dl >= 5 ? '#ff5a4a' : dl >= 1 ? '#ffb050' : dl <= -14 ? '#9a9a9a' : def.steal ? '#ffd27a' : def.big || e.type === 'boss' ? '#ff9a8a' : '#ffffff'; } c.fillText(t1, x, y - sz * 0.95); /* สีชื่อตามเลเวลเทียบกับเรา: แดง = สูงกว่ามาก • ส้ม = สูงกว่า • เทา = ต่ำจนแทบไม่ให้ EXP */
