@@ -129,7 +129,7 @@ const tries = new Map();   // กันเดารหัสผ่าน / ส�
 function limited(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.now(), t = (tries.get(k) || []).filter(x => now - x < 600000); t.push(now); tries.set(k, t); if (tries.size > 20000) tries.clear(); return t.length > n; }
 
 // เซฟที่ส่งมา: ต้องเป็น object ธรรมดา ขนาดไม่เกินกำหนด
-const MIN_BUILD = 1795255999; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
+const MIN_BUILD = 1795258990; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
 function cleanSave(s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return null; let str; try { str = JSON.stringify(s); } catch (e) { return null; } if (str.length > MAX_SAVE) return null; return JSON.parse(str); }
 // ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าหรือตู้เซฟของเซฟนั้นจริง
 function pubOf(save, pub) {
@@ -231,7 +231,7 @@ async function handleApi(req, res, p) {
         const oc = o.showcase && typeof o.showcase === 'object' ? Object.keys(o.showcase).length : 0, nc = save.showcase && typeof save.showcase === 'object' ? Object.keys(save.showcase).length : 0;
         /* ผู้เล่นกดปุ่ม "ถอดออก" เองในตู้โชว์: เครื่องส่งจำนวนที่ตั้งใจถอด (scOut) มาด้วย → ไม่นับเป็นข้อมูลหาย */
         if (oc - nc > 3 + Math.min(1000, Math.max(0, b.scOut | 0))) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
-      market.stripGone(save, market.mktOf(u).gone);   /* พลอยที่ฝากขาย/ขายไปแล้วในตลาด ต้องไม่กลับมาอยู่ในเซฟ (กันพลอยงอก) */
+      { const mk = market.mktOf(u); market.stripGone(save, mk.gone, mk.goneI); }   /* พลอยที่ฝากขาย/ขายไปแล้วในตลาด ต้องไม่กลับมาอยู่ในเซฟ (กันพลอยงอก) */
       /* ตรวจเงินและของ (econ.js): เซิร์ฟเวอร์สรุปยอดเงินเองจากสมุดบัญชี • โหมด enforce: พบรายการที่เป็นไปไม่ได้ = ไม่รับเซฟนี้ */
       const A = econ.check(u, save, Date.now()); if (A.viol.length || A.note.length) audit(u, A, !A.ok);
       if (!A.ok) return out(409, { err: 'ข้อมูลไม่ผ่านการตรวจสอบ', code: 'audit', rev: u.rev | 0 });

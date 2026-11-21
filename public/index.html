@@ -8109,7 +8109,7 @@ function applyTownArt(m, key) {
     const cx = m.pond ? m.pond.x : WX(POND_CENTER[0]), cy = m.pond ? m.pond.y : WY(POND_CENTER[1]), [bx, by] = pt.market ? P(pt.market) : [cx + (window.MKX ?? -31), cy + (window.MKY ?? -72)]   /* มุมซ้ายบนในวงลาน ข้างกระถางดอกไม้ (หน้าตรง) */;
     addObj(m, sprTradeBoard(), bx, by, { solid: [32, 6], kind: 'building' });
     let ix = bx + 2, iy = by + 12; for (const [ox, oy] of [[0, 10], [-8, 10], [8, 10], [-16, 9], [16, 9], [-26, 6]]) { let ok = false; try { ok = boxFree(m, bx + ox, by + oy); } catch (e) {} if (ok) { ix = bx + ox; iy = by + oy; break; } }   /* จุดยืนคุยต้องเดินถึงได้ (บางเมืองบ่อน้ำใหญ่ชิดป้าย) */
-    m.interact.push({ kind: 'market', x: ix, y: iy, r: 30, label: 'ป้ายตลาดเทรดพลอย (ซื้อ–ขายกับผู้เล่นอื่น)', verb: 'เปิดตลาด', hit: { x: bx - 20, y: by - 40, w: 40, h: 42 } }); }
+    m.interact.push({ kind: 'market', x: ix, y: iy, r: 30, label: 'ป้ายตลาดเทรด (ซื้อ–ขายพลอยและอุปกรณ์กับผู้เล่นอื่น)', verb: 'เปิดตลาด', hit: { x: bx - 20, y: by - 40, w: 40, h: 42 } }); }
   if (m.outpost) m.outTrees = ['palm']; buildWalkGrid(m);
 }
 /* =====================================================================
@@ -10763,7 +10763,7 @@ const UI = (() => {
   const api = { grinding: false, onE: null };
 
   const scrollMem = {};
-  const WTITLE = { market: 'ตลาดเทรดพลอย', mkpick: 'เลือกพลอยที่จะลงขาย', mkprice: 'ตั้งราคาขาย', bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
+  const WTITLE = { market: 'ตลาดเทรด', mkpick: 'เลือกของที่จะลงขาย', mkprice: 'ตั้งราคาขาย', bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
   function show(name, html, onAct, opts = {}) {
     if (openName) scrollMem[openName] = { p: panel.scrollTop, l: [...panel.querySelectorAll('.list')].map(x => x.scrollTop) };
     const restore = (openName === name || ['gem', 'confirm'].includes(openName)) && scrollMem[name];
@@ -12274,51 +12274,59 @@ const UI = (() => {
       for (let i = 0; i < 64; i++) { const bot = WORLD_BOTS[i % WORLD_BOTS.length], g = { ...botGemAt(bot, 4000 + i * 13) }; delete g.open; delete g.reserveF;
         if (i % 3 === 1) { g.state = 'raw'; g.carat = g.rawCarat; delete g.shape; delete g.polish; delete g.mode; delete g.by; delete g.rawCarat; g.flaw = Math.min(5, g.flaw + 1 + (rnd() < 0.5 ? 1 : 0)); g.clean = cleanPct(g.flaw, g.seed); }
         else if (rnd() < 0.4) g.shape = SHAPE_KEYS[Math.floor(rnd() * SHAPE_KEYS.length)];
-        rows.push({ id: ++seq, seller: bot.name, gem: g, price: Math.max(1, Math.round(estValue(g) * (0.8 + rnd() * 0.9))), t: Date.now() - Math.floor(rnd() * 2.5 * 864e5), exp: Date.now() + 864e5 * 3 }); } };
+        rows.push({ id: ++seq, seller: bot.name, gem: g, price: Math.max(1, Math.round(estValue(g) * (0.8 + rnd() * 0.9))), t: Date.now() - Math.floor(rnd() * 2.5 * 864e5), exp: Date.now() + 864e5 * 3 }); } genI(); };
+    const genI = () => { const rnd = mulberry32(777), ids = Object.keys(ITEMS).filter(id => MOD_POOL[ITEMS[id].slot]); for (let i = 0; i < 40; i++) { const bot = WORLD_BOTS[(i * 3) % WORLD_BOTS.length], id = ids[Math.floor(rnd() * ids.length)], lv = 5 + Math.floor(rnd() * 90), x = makeItem(9000 + i, id, 0, lv); Object.assign(x, rollLoot(id, 3 + rnd() * 4, rnd, lv / 10, 40));
+        rows.push({ id: ++seq, kind: 'item', seller: bot.name, gem: x, price: Math.max(3, Math.round(itemSellPrice(x) * (4 + rnd() * 10))), t: Date.now() - Math.floor(rnd() * 2.5 * 864e5), exp: Date.now() + 864e5 * 3 }); } };
     const dueN = () => mine.filter(x => x.status === 'sold' && !x.paid).length, ok = d => Promise.resolve({ ok: true, d }), no = err => Promise.resolve({ err });
     return {
-      browse(f) { if (!rows) gen(); let L = [...rows, ...mine.filter(x => x.status === 'active').map(x => ({ ...x, seller: (curPlayer() || {}).name || 'คุณ', mine: true }))];
+      browse(f) { if (!rows) gen(); const K = f.kind === 'item' ? 'item' : 'gem'; let L = [...rows, ...mine.filter(x => x.status === 'active').map(x => ({ ...x, seller: (curPlayer() || {}).name || 'คุณ', mine: true }))].filter(r => (r.kind || 'gem') === K);
+        if (K === 'item') { const types = {}; for (const r of L) { const k = ITEMS[r.gem.id].slot; types[k] = (types[k] || 0) + 1; } if (f.type) L = L.filter(r => ITEMS[r.gem.id].slot === f.type); if (f.color !== '' && f.color != null) L = L.filter(r => (r.gem.q || 0) === +f.color); if (f.lvmax) L = L.filter(r => itemReq(r.gem) <= f.lvmax);
+          L.sort({ new: (a, b) => b.t - a.t, cheap: (a, b) => a.price - b.price, dear: (a, b) => b.price - a.price, big: (a, b) => itemReq(b.gem) - itemReq(a.gem) }[f.sort] || ((a, b) => b.t - a.t)); return ok({ rows: L.slice(f.page * MK_PER, f.page * MK_PER + MK_PER), total: L.length, page: f.page, per: MK_PER, types, due: dueN(), rule: MK_RULE }); }
         const types = {}; for (const r of L) types[r.gem.type] = (types[r.gem.type] || 0) + 1;
         if (f.type) L = L.filter(r => r.gem.type === f.type); if (f.state) L = L.filter(r => r.gem.state === f.state); if (f.origin) L = L.filter(r => r.gem.origin === f.origin); if (f.color !== '') L = L.filter(r => r.gem.color === +f.color); if (f.shape) L = L.filter(r => r.gem.shape === f.shape);
         L.sort({ new: (a, b) => b.t - a.t, cheap: (a, b) => a.price - b.price, dear: (a, b) => b.price - a.price, big: (a, b) => b.gem.carat - a.gem.carat, clean: (a, b) => a.gem.flaw - b.gem.flaw || a.price - b.price }[f.sort]);
         return ok({ rows: L.slice(f.page * MK_PER, f.page * MK_PER + MK_PER), total: L.length, page: f.page, per: MK_PER, types, due: dueN(), rule: MK_RULE }); },
       mine() { return ok({ open: mine.filter(x => x.status === 'active' || (x.status === 'sold' && !x.paid)), hist: hist.slice(0, 20), now: Date.now(), rule: MK_RULE }); },
-      recent(type, state) { if (!rows) gen(); return ok({ rows: rows.filter(r => r.gem.type === type && r.gem.state === state).slice(0, 5).map(r => ({ gem: r.gem, price: Math.round(r.price * 0.93), t: Date.now() - 3600e3 * 5 })) }); },
+      recent(type, state) { if (!rows) gen(); if (state === 'item') return ok({ rows: rows.filter(r => r.kind === 'item' && ITEMS[r.gem.id].slot === type).slice(0, 4).map(r => ({ gem: r.gem, price: Math.round(r.price * 0.9), t: Date.now() - 3600e3 * 3 })) }); return ok({ rows: rows.filter(r => (r.kind || 'gem') === 'gem' && r.gem.type === type && r.gem.state === state).slice(0, 5).map(r => ({ gem: r.gem, price: Math.round(r.price * 0.93), t: Date.now() - 3600e3 * 5 })) }); },
       op(op, b, apply) {
-        if (op === 'list') { if (mine.filter(x => x.status === 'active').length >= MK_RULE.max) return no(`ลงขายได้พร้อมกันไม่เกิน ${MK_RULE.max} เม็ด`); const g = [...STATE.inv, ...safeState().gems].find(x => x.id === b.gid); if (!g) return no('ไม่พบพลอยเม็ดนี้');
-          const L = { id: ++seq, gem: { ...g }, price: b.price, status: 'active', t: Date.now(), exp: Date.now() + 864e5 * 3, paid: false }; mine.unshift(L); apply({ id: L.id, exp: L.exp });
-          setTimeout(() => { if (L.status !== 'active') return; const bot = WORLD_BOTS[L.id % WORLD_BOTS.length]; L.status = 'sold'; L.buyer = bot.name; L.sold = Date.now(); L.net = L.price - Math.floor(L.price * MK_RULE.fee); NET.mktDue = dueN(); toast(`💰 <b>${esc(bot.name)}</b> ซื้อ${esc(gemName(L.gem))}ของคุณแล้ว — ไปรับเงินที่ป้ายตลาดเทรด`, 'good'); SFX.play('coin'); if (openName === 'market') mkRefresh(); }, 15000 + Math.random() * 25000);
+        if (op === 'list') { if (mine.filter(x => x.status === 'active').length >= MK_RULE.max) return no(`ลงขายได้พร้อมกันไม่เกิน ${MK_RULE.max} เม็ด`); const I = b.kind === 'item', g = I ? STATE.items.find(x => x.uid === b.gid) : [...STATE.inv, ...safeState().gems].find(x => x.id === b.gid); if (!g) return no('ไม่พบของชิ้นนี้');
+          const L = { id: ++seq, kind: I ? 'item' : 'gem', gem: { ...g }, price: b.price, status: 'active', t: Date.now(), exp: Date.now() + 864e5 * 3, paid: false }; mine.unshift(L); apply({ id: L.id, exp: L.exp });
+          setTimeout(() => { if (L.status !== 'active') return; const bot = WORLD_BOTS[L.id % WORLD_BOTS.length]; L.status = 'sold'; L.buyer = bot.name; L.sold = Date.now(); L.net = L.price - Math.floor(L.price * MK_RULE.fee); NET.mktDue = dueN(); toast(`💰 <b>${esc(bot.name)}</b> ซื้อ${esc(L.kind === 'item' ? ITEMS[L.gem.id].name : gemName(L.gem))}ของคุณแล้ว — ไปรับเงินที่ป้ายตลาดเทรด`, 'good'); SFX.play('coin'); if (openName === 'market') mkRefresh(); }, 15000 + Math.random() * 25000);
           return ok({}); }
         if (op === 'buy') { const i = rows.findIndex(r => r.id === b.id); if (i < 0) return no('พลอยเม็ดนี้ถูกซื้อไปแล้ว'); const L = rows[i]; if (STATE.coins < L.price && !CONFIG.infiniteCoins) return no('เงินไม่พอ'); rows.splice(i, 1);
-          const d = { gem: { ...L.gem, id: STATE.nextId }, nextId: STATE.nextId + 1, price: CONFIG.infiniteCoins ? 0 : L.price }; apply(d); hist.unshift({ ...L, status: 'sold', bought: true, sold: Date.now() }); return ok(d); }
-        if (op === 'cancel') { const L = mine.find(x => x.id === b.id && x.status === 'active'); if (!L) return no('ประกาศนี้ปิดไปแล้ว'); L.status = 'returned'; const d = { gem: { ...L.gem }, nextId: STATE.nextId }; apply(d); return ok(d); }
+          if (L.kind === 'item' && itemReq(L.gem) > (STATE.lv | 0) + 1) { rows.splice(i, 0, L); return no('เลเวลตัวละครยังไม่ถึง'); } const d = L.kind === 'item' ? { kind: 'item', gem: { ...L.gem, uid: STATE.nextUid }, nextUid: STATE.nextUid + 1, price: CONFIG.infiniteCoins ? 0 : L.price } : { gem: { ...L.gem, id: STATE.nextId }, nextId: STATE.nextId + 1, price: CONFIG.infiniteCoins ? 0 : L.price }; apply(d); hist.unshift({ ...L, status: 'sold', bought: true, sold: Date.now() }); return ok(d); }
+        if (op === 'cancel') { const L = mine.find(x => x.id === b.id && x.status === 'active'); if (!L) return no('ประกาศนี้ปิดไปแล้ว'); L.status = 'returned'; const d = L.kind === 'item' ? { kind: 'item', gem: { ...L.gem }, nextUid: STATE.nextUid } : { gem: { ...L.gem }, nextId: STATE.nextId }; apply(d); return ok(d); }
         if (op === 'claim') { const L = mine.filter(x => x.status === 'sold' && !x.paid); if (!L.length) return no('ยังไม่มีเงินรอรับ'); let net = 0; for (const x of L) { x.paid = true; net += x.net; hist.unshift(x); } const d = { net, n: L.length, cut: L.filter(x => x.gem.state === 'cut').length }; apply(d); NET.mktDue = 0; return ok(d); }
         return no('ไม่รู้จักรายการ'); } };
   })();
   const MK = {
     browse: f => NET.online ? NET.mkGet('/api/market?' + Object.entries(f).filter(([, v]) => v !== '' && v != null).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&')) : MKDEMO.browse(f),
     mine: () => NET.online ? NET.mkGet('/api/market/mine') : MKDEMO.mine(),
-    recent: (type, state) => NET.online ? NET.mkGet(`/api/market/recent?type=${type}&state=${state}`) : MKDEMO.recent(type, state),
+    recent: (type, state) => NET.online ? NET.mkGet(state === 'item' ? `/api/market/recent?kind=item&type=${type}` : `/api/market/recent?type=${type}&state=${state}`) : MKDEMO.recent(type, state),
     op: (op, b, apply) => NET.online ? NET.mkOp(op, b, apply) : MKDEMO.op(op, b, apply),
   };
+  let mkKind = 'gem'; const mkFI = { type: '', color: '', lv: '', sort: 'new', page: 0 };   /* ตลาดอุปกรณ์: ตัวกรองประเภท คุณภาพ เลเวล */
   let mkTab = 'buy', mkB = null, mkM = null, mkErr = '', mkLoad = false, mkSeq = 0, mkBusy = false, mkPickTab = 'cut';
   const mkF = { type: '', state: '', origin: '', color: '', shape: '', sort: 'new', page: 0 };
   const mkGem = (L) => { const g = normGem(L.gem, { nextId: 2e9 }); if (!g) return null; g.id = -L.id; if (L.gem.jumbo) g.jumbo = true; return g; };   // พลอยในประกาศ: ใช้เลขประกาศ (ติดลบ) เป็นเลขอ้างอิงบนหน้าจอ
+  const mkItem = L => { const x = L.gem; if (!x || !ITEMS[x.id]) return null; const o = { uid: -L.id, id: x.id }; if (x.g) o.g = x.g; if (x.lv) o.lv = x.lv; if (x.mods && typeof x.mods === 'object') { o.q = clamp(x.q | 0, 0, LOOT_Q.length - 1); o.mods = x.mods; } if (ITEMS[x.id].dur) o.dur = x.dur ?? maxDur(o); return o; };   // อุปกรณ์ในประกาศ
+  const mkOwnItem = d => { const x = d.gem; if (!x || !ITEMS[x.id]) return; const o = { uid: x.uid, id: x.id }; if (x.g) o.g = x.g; if (x.lv) o.lv = x.lv; if (x.mods) { o.q = x.q | 0; o.mods = x.mods; } if (ITEMS[x.id].dur) o.dur = x.dur ?? maxDur(o); STATE.items.push(o); STATE.nextUid = Math.max(STATE.nextUid | 0, d.nextUid | 0, (x.uid | 0) + 1); };   // อุปกรณ์ที่ซื้อ/รับคืนจากตลาด → เข้ากระเป๋า
   const mkLeft = (exp, now) => { const ms = exp - now; if (ms <= 0) return 'หมดอายุแล้ว'; const h = Math.floor(ms / 3600e3); return h >= 24 ? `เหลือ ${Math.floor(h / 24)} วัน ${h % 24} ชม.` : h >= 1 ? `เหลือ ${h} ชม.` : `เหลือ ${Math.max(1, Math.round(ms / 60000))} นาที`; };
   const mkAgo = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? 'เมื่อสักครู่' : m < 60 ? `${m} นาทีก่อน` : m < 1440 ? `${Math.floor(m / 60)} ชม.ก่อน` : `${Math.floor(m / 1440)} วันก่อน`; };
   const mkName = t => { const x = GEMS[t].name, i = x.indexOf(' ('); return i > 0 ? [x.slice(0, i), x.slice(i + 2).replace(/\)$/, '')] : [x, '']; };
   const mkPay = () => { if (mkBusy) return; mkBusy = true; mkDraw();
     MK.op('claim', {}, d => { if (!CONFIG.infiniteCoins) STATE.coins += d.net; STATE.stats.sold = (STATE.stats.sold || 0) + d.n; STATE.stats.soldCut = (STATE.stats.soldCut || 0) + (d.cut || 0); STATE.stats.earned = (STATE.stats.earned || 0) + d.net; NET.mktDue = 0; })
       .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('coin'); toast(`💰 รับเงินจากตลาด <b>${baht(r.d.net)} บาท</b> (ขายได้ ${r.d.n} เม็ด หักค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% แล้ว)`, 'good'); try { questEvent('coins'); } catch (e) {} hud(); } if (openName === 'market') mkRefresh(); }); };
-  async function mkRefresh() { const seq = ++mkSeq; mkLoad = true; mkDraw(); const r = mkTab === 'buy' ? await MK.browse(mkF) : await MK.mine(); if (seq !== mkSeq || openName !== 'market') return; mkLoad = false;
+  async function mkRefresh() { const seq = ++mkSeq; mkLoad = true; mkDraw(); const r = mkTab === 'buy' ? await MK.browse(mkKind === 'item' ? { kind: 'item', type: mkFI.type, color: mkFI.color, lvmax: mkFI.lv === 'can' ? (STATE.lv | 0) + 1 : '', sort: mkFI.sort, page: mkFI.page } : mkF) : await MK.mine(); if (seq !== mkSeq || openName !== 'market') return; mkLoad = false;
     if (r.err) mkErr = r.err; else { mkErr = ''; if (r.d.rule) Object.assign(MK_RULE, r.d.rule); if (mkTab === 'buy') { mkB = r.d; NET.mktDue = r.d.due | 0; } else { mkM = r.d; NET.mktDue = r.d.open.filter(x => x.status === 'sold' && !x.paid).length; } } mkDraw(); }
   function market(tab) { if (tab === 'buy' || tab === 'sell') mkTab = tab; mkErr = ''; mkRefresh(); }
   function mkDraw() {
     const due = NET.mktDue | 0, demo = !NET.online;
-    const head = `<h3>🏪 ตลาดเทรดพลอย</h3><div class="sctool mkbar"><div class="scseg">${[['buy', '🛒 ซื้อพลอย'], ['sell', `📦 ขายของฉัน${due ? ` <i class="mkdot">${due}</i>` : ''}`]].map(([k, t]) => `<button class="${mkTab === k ? 'on' : ''}" data-a="mktab" data-t="${k}">${t}</button>`).join('')}</div><span class="mkcoin">เงินของคุณ <b>${CONFIG.infiniteCoins ? '∞' : money(STATE.coins)}</b></span>${demo ? '<span class="mkdemo">โหมดตัวอย่าง • ผู้ขายเป็นผู้เล่นจำลอง</span>' : ''}</div>`;
+    const head = `<h3>🏪 ตลาดเทรด</h3><div class="sctool mkbar"><div class="scseg">${[['buy', '🛒 ซื้อ'], ['sell', `📦 ขายของฉัน${due ? ` <i class="mkdot">${due}</i>` : ''}`]].map(([k, t]) => `<button class="${mkTab === k ? 'on' : ''}" data-a="mktab" data-t="${k}">${t}</button>`).join('')}</div>${mkTab === 'buy' ? `<div class="scseg">${[['gem', '💎 พลอย'], ['item', '⚔ อุปกรณ์']].map(([k, t]) => `<button class="${mkKind === k ? 'on' : ''}" data-a="mkkind" data-t="${k}">${t}</button>`).join('')}</div>` : ''}<span class="mkcoin">เงินของคุณ <b>${CONFIG.infiniteCoins ? '∞' : money(STATE.coins)}</b></span>${demo ? '<span class="mkdemo">โหมดตัวอย่าง • ผู้ขายเป็นผู้เล่นจำลอง</span>' : ''}</div>`;
     const dueBar = due ? `<div class="mkdue"><span>💰 พลอยของคุณขายได้แล้ว <b>${due}</b> เม็ด — มีเงินรอรับ</span><button class="btn small gold" data-a="mkclaim" ${mkBusy ? 'disabled' : ''}>รับเงิน</button></div>` : '';
     const wait = mkLoad ? '<div class="empty">กำลังโหลด…</div>' : mkErr ? `<div class="empty">${esc(mkErr)}<br><button class="btn small" data-a="mkreload">ลองใหม่</button></div>` : '';
-    const common = (a, b) => { if (a === 'mktab') { mkTab = b.dataset.t; mkErr = ''; mkRefresh(); return true; } if (a === 'mkreload') { mkRefresh(); return true; } if (a === 'mkclaim') { mkPay(); return true; } return false; };
+    const common = (a, b) => { if (a === 'mkkind') { mkKind = b.dataset.t === 'item' ? 'item' : 'gem'; mkB = null; mkErr = ''; mkRefresh(); return true; } if (a === 'mktab') { mkTab = b.dataset.t; mkErr = ''; mkRefresh(); return true; } if (a === 'mkreload') { mkRefresh(); return true; } if (a === 'mkclaim') { mkPay(); return true; } return false; };
+    if (mkTab === 'buy' && mkKind === 'item') return mkDrawItems(head, dueBar, wait, common);
     if (mkTab === 'buy') {
       const D = mkB, T = (D && D.types) || {}, tot = Object.values(T).reduce((a, b) => a + b, 0), tk = Object.keys(T).filter(t => GEMS[t]); if (mkF.type && GEMS[mkF.type] && !tk.includes(mkF.type)) tk.push(mkF.type);
       tk.sort((a, b) => (mkName(a)[1] || a).localeCompare(mkName(b)[1] || b, 'en'));
@@ -12345,26 +12353,76 @@ const UI = (() => {
       api.onE = null; return; }
     // ---- แท็บ "ขายของฉัน": ประกาศที่ลงไว้ + เงินรอรับ + ประวัติ ----
     const M = mkM, now = (M && M.now) || Date.now(), open = (M && M.open) || [], act = open.filter(x => x.status === 'active'), hist = (M && M.hist) || [];
-    const row = L => { const g = mkGem(L); if (!g) return ''; const exp = L.exp <= now;
+    const row = L => { const I = L.kind === 'item', g = I ? mkItem(L) : mkGem(L); if (!g) return ''; const exp = L.exp <= now;
       const right = L.status === 'sold' ? (L.bought ? `<b>${money(L.price)}</b><br><small class="muted">คุณซื้อจาก ${esc(L.seller || '')}</small><br><small class="muted">${mkAgo(L.sold)}</small>` : `<b>${money(L.net != null ? L.net : L.price)}</b><br><small class="muted">ขายให้ ${esc(L.buyer || '')} ${baht(L.price)}</small><br>${L.paid ? `<small class="muted">รับเงินแล้ว • ${mkAgo(L.sold)}</small>` : '<span class="mkst ok">ขายได้แล้ว • รอรับเงิน</span>'}`)
         : `<b>${money(L.price)}</b><br><span class="mkst ${exp ? 'bad' : ''}">${mkLeft(L.exp, now)}</span><br><button class="btn small" data-a="mkcancel" data-l="${L.id}" ${mkBusy ? 'disabled' : ''}>${exp ? 'รับพลอยคืน' : 'ยกเลิกขาย'}</button>`;
-      return gemRow(g, right, false, 'mkview'); };
-    const body = wait || `${open.length ? open.map(row).join('') : '<div class="empty">คุณยังไม่ได้ลงขายพลอย — กด “➕ ลงขายพลอย” เพื่อเลือกพลอยจากกระเป๋าหรือตู้เซฟ แล้วตั้งราคาเอง</div>'}${hist.length ? `<div class="mkh">ประวัติล่าสุด</div>${hist.map(row).join('')}` : ''}`;
-    show('market', `${head}${dueBar}<div class="sctool mkflt"><span>ลงขายอยู่ <b>${act.length}</b>/${MK_RULE.max} เม็ด</span><span class="muted small">ประกาศอยู่ได้ ${MK_RULE.days} วัน • ขายได้หักค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% • ยกเลิกแล้วพลอยกลับเข้ากระเป๋า</span></div><div class="list mklist">${body}</div>
-      <div class="row end"><button class="btn gold" data-a="mkadd" ${act.length >= MK_RULE.max || !M ? 'disabled' : ''}>➕ ลงขายพลอย</button><button class="btn" data-a="close">ปิด</button></div>`,
+      return I ? itemRow(g, right, '', g) : gemRow(g, right, false, 'mkview'); };
+    const body = wait || `${open.length ? open.map(row).join('') : '<div class="empty">คุณยังไม่ได้ลงขายอะไร — กด “➕ ลงขาย” เพื่อเลือกพลอยหรืออุปกรณ์จากกระเป๋า แล้วตั้งราคาเอง</div>'}${hist.length ? `<div class="mkh">ประวัติล่าสุด</div>${hist.map(row).join('')}` : ''}`;
+    show('market', `${head}${dueBar}<div class="sctool mkflt"><span>ลงขายอยู่ <b>${act.length}</b>/${MK_RULE.max} รายการ</span><span class="muted small">ประกาศอยู่ได้ ${MK_RULE.days} วัน • ขายได้หักค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% • ยกเลิกแล้วของกลับเข้ากระเป๋า</span></div><div class="list mklist">${body}</div>
+      <div class="row end"><button class="btn gold" data-a="mkadd" ${act.length >= MK_RULE.max || !M ? 'disabled' : ''}>➕ ลงขาย</button><button class="btn" data-a="close">ปิด</button></div>`,
       (a, b) => { if (common(a, b)) return;
         if (a === 'mkadd') return mkPick();
         if (a === 'mkview') { const L = [...open, ...hist].find(x => -x.id === +b.dataset.id), g = L && mkGem(L); if (g) return gemDetail(g, () => market()); return; }
         if (a === 'mkcancel') { const L = open.find(x => x.id === +b.dataset.l); if (!L || mkBusy) return; if (bagFull()) { toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ทำที่ว่างก่อนรับพลอยคืน`, 'bad'); SFX.play('deny'); return; } mkBusy = true; mkDraw();
-          MK.op('cancel', { id: L.id }, d => { const g = normGem(d.gem, { nextId: 2e9 }); if (g) { if (d.gem.jumbo) g.jumbo = true; STATE.inv.push(g); } STATE.nextId = Math.max(STATE.nextId | 0, d.nextId | 0); })
-            .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('click'); toast('ยกเลิกประกาศแล้ว พลอยกลับเข้ากระเป๋า', 'good'); hud(); } if (openName === 'market') mkRefresh(); }); } }, { wide: true });
+          MK.op('cancel', { id: L.id }, d => { if (L.kind === 'item') return mkOwnItem(d); const g = normGem(d.gem, { nextId: 2e9 }); if (g) { if (d.gem.jumbo) g.jumbo = true; STATE.inv.push(g); } STATE.nextId = Math.max(STATE.nextId | 0, d.nextId | 0); })
+            .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('click'); toast('ยกเลิกประกาศแล้ว ของกลับเข้ากระเป๋า', 'good'); hud(); } if (openName === 'market') mkRefresh(); }); } }, { wide: true });
     api.onE = null;
+  }
+  // ---- แท็บซื้อ: อุปกรณ์ (กรองตามประเภท คุณภาพ เลเวล) • ซื้อได้เฉพาะชิ้นที่เลเวลไม่เกินตัวละคร +1 ----
+  function mkDrawItems(head, dueBar, wait, common) {
+    const D = mkB, T = (D && D.types) || {}, tot = Object.values(T).reduce((a, b) => a + b, 0), myLv = STATE.lv | 0, O = (v, t, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${t}</option>`;
+    const flt = `<div class="sctool mkflt">
+      <label>ประเภท <select class="sel" data-f="type">${O('', `ทุกประเภท (${tot})`, mkFI.type)}${Object.keys(SLOT_NAMES).map(k => O(k, `${SLOT_NAMES[k]} (${T[k] || 0})`, mkFI.type)).join('')}</select></label>
+      <label>คุณภาพ <select class="sel" data-f="color">${O('', 'ทุกคุณภาพ', mkFI.color)}${LOOT_Q.map((q, i) => O(i, q.name, mkFI.color)).join('')}</select></label>
+      <label>เลเวล <select class="sel" data-f="lv">${O('', 'ทุกเลเวล', mkFI.lv)}${O('can', `ที่ฉันซื้อได้ (ไม่เกิน Lv ${myLv + 1})`, mkFI.lv)}</select></label>
+      <label>เรียง <select class="sel" data-f="sort">${[['new', 'ลงขายล่าสุด'], ['cheap', 'ราคาถูก → แพง'], ['dear', 'ราคาแพง → ถูก'], ['big', 'เลเวลสูงสุด']].map(([k, t]) => O(k, t, mkFI.sort)).join('')}</select></label></div>`;
+    const rows = (D && D.rows || []).filter(L => L.kind === 'item').map(L => ({ L, x: mkItem(L) })).filter(r => r.x), pages = D ? Math.max(1, Math.ceil(D.total / (D.per || MK_PER))) : 1;
+    const body = wait || (rows.length ? rows.map(({ L, x }) => { const poor = !CONFIG.infiniteCoins && STATE.coins < L.price, low = itemReq(x) > myLv + 1;
+      return itemRow(x, `<b class="mkprice">${money(L.price)}</b><br><small class="muted">ผู้ขาย ${esc(L.seller)}</small><br>${L.mine ? '<span class="mkmine">ของคุณ</span>' : `<button class="btn small ${poor || low ? '' : 'gold'}" data-a="mkbuyi" data-l="${L.id}" ${poor || low ? 'disabled' : ''}>${low ? `ต้อง Lv ${itemReq(x) - 1}` : poor ? 'เงินไม่พอ' : 'ซื้อ'}</button>`}`, '', x); }).join('') : `<div class="empty">${!tot ? 'ยังไม่มีใครลงขายอุปกรณ์ในตลาด — ลงขายได้ที่แท็บ “ขายของฉัน”' : 'ไม่มีอุปกรณ์ที่ตรงกับตัวกรองนี้'}</div>`);
+    show('market', `${head}${dueBar}${flt}<div class="list mklist">${body}</div>
+      <div class="row end"><span class="muted small scnote">${D ? `พบ ${D.total} ชิ้น • หน้า ${mkFI.page + 1}/${pages}` : ''}<i class="mkhint"> • ซื้อได้เฉพาะอุปกรณ์ที่เลเวลไม่เกินตัวละคร +1</i></span><button class="btn small" data-a="mkprev" ${mkFI.page > 0 ? '' : 'disabled'}>◀</button><button class="btn small" data-a="mknext" ${mkFI.page + 1 < pages ? '' : 'disabled'}>▶</button><button class="btn" data-a="close">ปิด</button></div>`,
+      (a, b) => { if (common(a, b)) return;
+        if (a === 'mkprev' || a === 'mknext') { mkFI.page = Math.max(0, mkFI.page + (a === 'mknext' ? 1 : -1)); return mkRefresh(); }
+        if (a === 'mkbuyi') { const f = rows.find(r => r.L.id === +b.dataset.l); if (!f || mkBusy) return; if (bagFull()) { toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ซื้ออุปกรณ์เพิ่มไม่ได้`, 'bad'); SFX.play('deny'); return; }
+          const nm = instName(f.x) || ITEMS[f.x.id].name;
+          return confirmBox(`ซื้อ <b>${esc(nm)}</b>${` (Lv ${itemReq(f.x)})`}${f.x.mods ? `<br><small>✦ ${esc(modText(f.x))}</small>` : ''}<br>จาก <b>${esc(f.L.seller)}</b> ในราคา <b>${baht(f.L.price)} บาท</b> ?<br><small class="muted">ซื้อแล้วคืนไม่ได้ • ขายตามสภาพความทนทานที่เห็น</small>`, 'ซื้อเลย', () => { mkBusy = true; market();
+            MK.op('buy', { id: f.L.id, price: f.L.price }, d => { if (!CONFIG.infiniteCoins) STATE.coins -= d.price; mkOwnItem(d); })
+              .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('done'); toast(`ซื้อ <b>${esc(nm)}</b> แล้ว จ่าย ${baht(f.L.price)} บาท • อยู่ในกระเป๋า (หมวดอุปกรณ์)`, 'good'); hud(); } if (openName === 'market' || openName === 'wconfirm') market(); }); }, () => market()); } }, { wide: true });
+    panel.querySelectorAll('.mkflt select').forEach(el => el.addEventListener('change', e => { mkFI[el.dataset.f] = e.target.value; mkFI.page = 0; SFX.play('click'); mkRefresh(); }));
+    api.onE = null;
+  }
+  // ตั้งราคาอุปกรณ์: ตั้งได้อิสระ (ขั้นต่ำ 1 เหรียญ) — ราคารับซื้อของร้านแสดงไว้เป็นข้อมูล
+  function mkPriceItem(x, msg) {
+    const sp = itemSellPrice(x), start = Math.max(1, sp * 5), slot = ITEMS[x.id].slot;
+    show('mkprice', `<h3>🏷 ตั้งราคาขาย</h3><div class="list">${itemRow(x, `<small class="muted">ร้านในเกมรับซื้อ</small><br><b>${money(sp)}</b>`, '', x)}</div>
+      <div class="wreg mkreg"><input id="mkp" type="number" min="1" step="1" value="${start * BAHT}" inputmode="numeric"><span class="bunit">บาท</span><button class="btn small" data-a="pc" data-f="0.5">÷2</button><button class="btn small" data-a="pc" data-f="2">×2</button></div>
+      <p class="mknet" id="mknet"></p>${msg ? `<p class="bad">${esc(msg)}</p>` : ''}
+      <p class="muted small">อุปกรณ์ตั้งราคาได้อิสระ • ประกาศอยู่ได้ ${MK_RULE.days} วัน • ผู้ซื้อต้องเลเวลไม่ต่ำกว่าเลเวลของชิ้น −1 • ขายตามสภาพความทนทานที่เหลือ</p>
+      <p class="muted small" id="mkrecent">กำลังดูราคาที่ขายกันล่าสุด…</p>
+      <div class="row end"><button class="btn" data-a="back">◀ กลับ</button><button class="btn gold" data-a="go" id="mkgo">ลงขาย</button></div>`,
+      (a, b) => { const inp = $('#mkp');
+        if (a === 'input') return upd();
+        if (a === 'pc') { inp.value = Math.max(BAHT, Math.round((+inp.value || start * BAHT) * +b.dataset.f)); return upd(); }
+        if (a === 'back') { mkPickTab = 'item'; return mkPick(); }
+        if (a === 'go') { const price = Math.round(+inp.value / BAHT); if (!(price >= 1 && price <= 3e10)) return mkPriceItem(x, 'ใส่ราคาที่ต้องการก่อน'); if (mkBusy) return; mkBusy = true; $('#mkgo').disabled = true; $('#mkgo').textContent = 'กำลังลงขาย…';
+          MK.op('list', { kind: 'item', gid: x.uid, price }, () => { STATE.items = STATE.items.filter(i => i !== x); })
+            .then(r => { mkBusy = false; if (r.err) { SFX.play('deny'); if (openName === 'mkprice') mkPriceItem(x, r.err); else toast(esc(r.err), 'bad'); return; } SFX.play('done'); toast(`ลงขาย <b>${esc(instName(x) || ITEMS[x.id].name)}</b> ราคา ${baht(price)} บาท แล้ว`, 'good'); hud(); market('sell'); }); } }, { wide: true });
+    const upd = () => { const el = $('#mknet'), inp = $('#mkp'); if (!el || !inp) return; const price = Math.round(+inp.value / BAHT), fee = Math.floor(price * MK_RULE.fee);
+      el.innerHTML = price > 0 ? `ราคาที่ลงขาย <b>${baht(price)} บาท</b> • ค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% = ${baht(fee)} บาท • <span class="good">ขายได้คุณรับ <b>${baht(price - fee)} บาท</b></span>${price < sp ? ' <span class="muted">(ต่ำกว่าราคาที่ร้านในเกมรับซื้อ)</span>' : ''}` : 'ใส่ราคาที่ต้องการ'; };
+    upd(); api.onE = null;
+    MK.recent(slot, 'item').then(r => { const el = $('#mkrecent'); if (!el || openName !== 'mkprice') return; const R = ((r.d && r.d.rows) || []).filter(q => q.gem && ITEMS[q.gem.id]);
+      el.innerHTML = R.length ? `ขายกันล่าสุด (${SLOT_NAMES[slot]}): ` + R.slice(0, 5).map(q => `${esc(ITEMS[q.gem.id].name)}${q.gem.lv ? ' Lv ' + q.gem.lv : ''} <b>${baht(q.price)}</b>`).join(' • ') : 'ยังไม่มีประวัติการขายอุปกรณ์ประเภทนี้ในตลาด'; });
   }
   // เลือกพลอยที่จะลงขาย (จากกระเป๋า + ตู้เซฟ)
   function mkPick() {
-    const S = safeState(), all = [...STATE.inv.map(g => ({ g, src: 'bag' })), ...S.gems.map(g => ({ g, src: 'safe' }))], cnt = k => all.filter(x => x.g.state === k).length; if (!cnt(mkPickTab) && cnt(mkPickTab === 'cut' ? 'raw' : 'cut')) mkPickTab = mkPickTab === 'cut' ? 'raw' : 'cut';
+    const S = safeState(), all = [...STATE.inv.map(g => ({ g, src: 'bag' })), ...S.gems.map(g => ({ g, src: 'safe' }))], cnt = k => all.filter(x => x.g.state === k).length; if (mkPickTab !== 'item' && !cnt(mkPickTab) && cnt(mkPickTab === 'cut' ? 'raw' : 'cut')) mkPickTab = mkPickTab === 'cut' ? 'raw' : 'cut';
+    const eqU = Object.values(STATE.equip || {}), gear = (STATE.items || []).filter(x => ITEMS[x.id] && !eqU.includes(x.uid) && !x.lock);
+    if (mkPickTab === 'item') { show('mkpick', `<h3>📦 เลือกของที่จะลงขาย</h3><div class="sctool"><div class="scseg">${[['cut', `เจียระไนแล้ว (${cnt('cut')})`], ['raw', `พลอยก้อน (${cnt('raw')})`], ['item', `อุปกรณ์ (${gear.length})`]].map(([k, t]) => `<button class="${mkPickTab === k ? 'on' : ''}" data-a="pktab" data-t="${k}">${t}</button>`).join('')}</div><span class="muted small">อุปกรณ์ที่สวมอยู่หรือล็อกไว้ไม่แสดง • ขายตามสภาพความทนทานที่เหลือ</span></div>
+      <div class="list">${gear.length ? gear.map(x => itemRow(x, `<small class="muted">ร้านรับซื้อ ${baht(itemSellPrice(x))}</small><br><button class="btn small gold" data-a="pkitem" data-u="${x.uid}">เลือก</button>`, '', x)).join('') : '<div class="empty">ไม่มีอุปกรณ์ที่ลงขายได้ในกระเป๋า (ชิ้นที่สวมอยู่ต้องถอดก่อน)</div>'}</div>
+      <div class="row end"><button class="btn" data-a="pkback">◀ กลับ</button></div>`,
+      (a, b) => { if (a === 'pktab') { mkPickTab = b.dataset.t; return mkPick(); } if (a === 'pkback') return market('sell'); if (a === 'pkitem') { const x = gear.find(i => i.uid === +b.dataset.u); if (x) return mkPriceItem(x); } }, { wide: true }); api.onE = null; return; }
     const L = all.filter(x => x.g.state === mkPickTab).sort((a, b) => gemSort(a.g, b.g));
-    show('mkpick', `<h3>📦 เลือกพลอยที่จะลงขาย</h3><div class="sctool"><div class="scseg">${[['cut', `เจียระไนแล้ว (${cnt('cut')})`], ['raw', `พลอยก้อน (${cnt('raw')})`]].map(([k, t]) => `<button class="${mkPickTab === k ? 'on' : ''}" data-a="pktab" data-t="${k}">${t}</button>`).join('')}</div><span class="muted small">พลอยจากกระเป๋าและตู้เซฟ • พลอยในตู้โชว์ต้องถอดออกก่อน</span></div>
+    show('mkpick', `<h3>📦 เลือกของที่จะลงขาย</h3><div class="sctool"><div class="scseg">${[['cut', `เจียระไนแล้ว (${cnt('cut')})`], ['raw', `พลอยก้อน (${cnt('raw')})`], ['item', `อุปกรณ์ (${gear.length})`]].map(([k, t]) => `<button class="${mkPickTab === k ? 'on' : ''}" data-a="pktab" data-t="${k}">${t}</button>`).join('')}</div><span class="muted small">พลอยจากกระเป๋าและตู้เซฟ • พลอยในตู้โชว์ต้องถอดออกก่อน</span></div>
       <div class="list">${L.length ? L.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>ประเมิน ${money(estValue(g))}<br><button class="btn small gold" data-a="pkgo" data-id="${g.id}">เลือก</button>`, false, 'pkgo')).join('') : '<div class="empty">ไม่มีพลอยแบบนี้ในกระเป๋าหรือตู้เซฟ</div>'}</div>
       <div class="row end"><button class="btn" data-a="pkback">◀ กลับ</button></div>`,
       (a, b) => { if (a === 'pktab') { mkPickTab = b.dataset.t; return mkPick(); } if (a === 'pkback') return market('sell'); if (a === 'pkgo') { const f = L.find(x => x.g.id === +b.dataset.id); if (f) return mkPrice(f.g); } }, { wide: true });
@@ -12398,7 +12456,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795256763";
+window.GAME_BUILD="1795258990";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {

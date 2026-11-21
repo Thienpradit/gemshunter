@@ -2,7 +2,7 @@
 // รันทุกครั้งที่แก้เกม (คู่กับการสร้าง index.html.br/.gz):  NODE_PATH=/opt/npm-tools/node_modules node tools/gen-econ.js
 const fs = require('fs'), path = require('path'), acorn = require('acorn'), walk = require('acorn-walk');
 const ROOT = path.join(__dirname, '..'), html = fs.readFileSync(path.join(ROOT, 'public/index.html'), 'utf8');
-const ROOTS = (process.env.ROOTS || 'rawPrice,cutOffers,jenaPrice,JENA_BONUS,itemSellPrice,repairCost,maxDur,originKeys,CONSUMABLES,BAGS,SAFES,QUESTS,GEMS,SHAPES,JUMBO_TYPES,ITEMS,MONS,MAX_LV,BAHT').split(',');
+const ROOTS = (process.env.ROOTS || 'rawPrice,cutOffers,jenaPrice,JENA_BONUS,itemSellPrice,repairCost,maxDur,originKeys,CONSUMABLES,BAGS,SAFES,QUESTS,GEMS,SHAPES,JUMBO_TYPES,ITEMS,MONS,MAX_LV,BAHT,MOD_POOL,LOOT_Q,LOOT_FOCUS,itemReq').split(',');
 let src = null; for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) if (m[1].includes('function rawPrice(')) src = m[1];
 if (!src) throw new Error('main script not found');
 const ast = acorn.parse(src, { ecmaVersion: 'latest' }), decl = new Map();
