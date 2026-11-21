@@ -33,15 +33,15 @@ const WorldMines = (() => {
           const rank=slot===10?'mini':slot===11?'boss':'';
           const role=roles[(slot+floor+regionNo)%3];
           const moves=templates.filter(x=>x.caveAttack.role===role);
-          const move=moves[(slot+2*floor+regionNo)%moves.length];
+          const move=design.pattern ? templates.find(t=>t.caveAttack.pattern===design.pattern) : moves[(slot+2*floor+regionNo)%moves.length];
           // Preserve the historic mini/boss IDs used by existing save files.
           const serial=slot+1+(rank?1:0);
           const type='mine_'+country+'_f'+floor+'_'+String(serial).padStart(2,'0');
           const name=design.name;
           const gem=MineGems.stone(country);
           const attack={...move.caveAttack,color:gem[3]};
-          if(rank && role==='ranged'){attack.shots=rank==='boss'?5:3;attack.spread=rank==='boss'?0.75:0.46;}
-          if(rank && role==='poison'){attack.duration+=1;attack.areaLife+=0.55;}
+          if(rank && move.caveAttack.role==='ranged'){attack.shots=rank==='boss'?5:3;attack.spread=rank==='boss'?0.75:0.46;}
+          if(rank && move.caveAttack.role==='poison'){attack.duration+=1;attack.areaLife+=0.55;}
           const source=definitions[move.type], rewards=definitions[rank==='boss'?'golem':rank==='mini'?'rscorp':move.type];
           const entry={...design,country,floor,type,name,rank,place,slot,regionNo,gem,caveAttack:attack};
           definitions[type]={...source,name,boss2:rank==='boss',mini:rank==='mini',big:!!rank,fly:design.fly,
@@ -63,7 +63,9 @@ const WorldMines = (() => {
     const bossGroup=groups.findLast(g=>g.x===bossPoint[0]*16+8 && g.y===bossPoint[1]*16+12 && !g.trail);
     const lane=groups.filter(g=>g.routeEncounter && !nearSave(m,g.x,g.y,24)).sort((a,b)=>a.y-b.y || a.x-b.x);
     // One existing slot near the route's midpoint becomes the single miniboss.
-    const mid=lane[Math.floor(lane.length/2)];
+    const pailinEntrance=m.country==='cambodia' && m.tier===1;
+    const trail=pailinEntrance ? lane.filter(g=>g.trail) : lane;
+    const mid=trail[Math.floor(trail.length/2)] || lane[Math.floor(lane.length/2)];
     const order=Array.from({length:10},(_,i)=>(i*7+m.tier+entries[0].regionNo)%10);
     let pathIndex=0, caveIndex=4;
     const laneTypes=new Map(lane.filter(g=>g!==mid).map(g=>[g,entries[order[pathIndex++%10]].type]));
@@ -73,6 +75,10 @@ const WorldMines = (() => {
       }else{
         g.type=laneTypes.get(g)||entries[order[caveIndex++%10]].type;
         if(nearSave(m,g.x,g.y,24))g.sanctuary=true;
+        if(pailinEntrance && !g.sanctuary){
+          const lead=entries.findIndex(d=>d.type===g.type);
+          g.pack=[0,3,7,1,5].map(offset=>entries[(lead+offset)%10].type);
+        }
       }
     }
   }
@@ -83,7 +89,7 @@ const WorldMines = (() => {
 const WorldMineArt = (() => {
   const sheets = new Map();
   const rowFor = {down:0,up:1,left:2,right:3};
-  const frameSize=80;
+
   function sheetFor(d) {
     const key=d.country+'-'+d.floor;
     let image=sheets.get(key);
@@ -142,7 +148,8 @@ const WorldMineArt = (() => {
       g.imageSmoothingEnabled=false;
       const lift=def.fly?4+Math.sin(e.t*5)*1.1:0;
       if(e.flash>0)g.filter='brightness(1.5)';
-      const bottom=y-lift+size*(6/frameSize)/(G.TILT||1);
+      const bottom=y-lift+size*.075/(G.TILT||1);
+      const frameSize=img.naturalWidth/16;
       const facing=rowFor[e.dir] ?? 0;
       g.drawImage(img,(4*facing+col)*frameSize,d.slot*frameSize,frameSize,frameSize,x-size/2,bottom-size,size,size);
     }

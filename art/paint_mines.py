@@ -324,7 +324,8 @@ def bake(task):
 
 if __name__=='__main__':
     data={region[0]:[[species(r,f,k) for k in range(12)] for f in range(5)] for r,region in enumerate(REGIONS)}
+    data['cambodia'][0]=json.loads(Path(__file__).with_name('pailin-floor-one.json').read_text())
     (PUBLIC/'mine-species.js').write_text('const MineSpecies = '+json.dumps(data,ensure_ascii=False,separators=(',',':'))+';\n')
     (PUBLIC/'mine-atlases').mkdir(exist_ok=True)
     with ProcessPoolExecutor(max_workers=8) as pool:
-        for name in pool.map(bake,[(r,f) for r in range(13) for f in range(5)]):print(name,flush=True)
+        for name in pool.map(bake,[(r,f) for r in range(13) for f in range(5) if (r,f)!=(0,0)]):print(name,flush=True)

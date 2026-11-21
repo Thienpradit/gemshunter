@@ -1,0 +1,110 @@
+[
+  {
+    "art": "pailin-beetle",
+    "name": "ด้วงคีมเกราะไพลิน",
+    "size": 26,
+    "fly": false,
+    "pattern": "melee_snap",
+    "move": "ก้ามคู่หนีบประชิด",
+    "detail": "กระดองทองสัมฤทธิ์มีสายไพลินสีน้ำเงิน"
+  },
+  {
+    "art": "pailin-kingfisher",
+    "name": "นกกะเต็นเข็มคราม",
+    "size": 26,
+    "fly": true,
+    "pattern": "quartz_needle",
+    "move": "ยิงเข็มไพลินหนึ่งนัด",
+    "detail": "ขนหงอนสีน้ำเงินและอกสีน้ำตาลแดง"
+  },
+  {
+    "art": "pailin-toad",
+    "name": "คางคกถุงพิษตะกอน",
+    "size": 24,
+    "fly": false,
+    "pattern": "poison_short_cone",
+    "move": "พ่นพิษรูปกรวย",
+    "detail": "ถุงพิษเขียวอ่อนขนาบลำคอ"
+  },
+  {
+    "art": "pailin-boar",
+    "name": "หมูป่าเขี้ยวบะซอลต์",
+    "size": 42,
+    "fly": false,
+    "pattern": "melee_horn_charge",
+    "move": "ก้มเขี้ยวพุ่งชน",
+    "detail": "เขี้ยวงาช้างฝังหินบะซอลต์และผลึกที่ไหล่"
+  },
+  {
+    "art": "pailin-porcupine",
+    "name": "เม่นพู่หนามแก้ว",
+    "size": 32,
+    "fly": false,
+    "pattern": "silver_feather_fan",
+    "move": "สลัดหนามไพลินสามแฉก",
+    "detail": "ขนหนามงาช้างคาดดำปลายผลึกคราม"
+  },
+  {
+    "art": "pailin-centipede",
+    "name": "ตะขาบเขี้ยวกำมะถัน",
+    "size": 32,
+    "fly": false,
+    "pattern": "poison_dust_cone",
+    "move": "พ่นฝุ่นพิษจากเขี้ยว",
+    "detail": "ลำตัวเป็นปล้องแดงสนิมตัดเขี้ยวสีเหลือง"
+  },
+  {
+    "art": "pailin-crab",
+    "name": "ปูหินก้ามมหานิล",
+    "size": 29,
+    "fly": false,
+    "pattern": "melee_arc",
+    "move": "ฟาดก้ามผลึกเป็นวง",
+    "detail": "ก้ามผลึกน้ำเงินม่วงข้างหนึ่งใหญ่เด่น"
+  },
+  {
+    "art": "pailin-bat",
+    "name": "ค้างคาวสะท้อนผลึก",
+    "size": 29,
+    "fly": true,
+    "pattern": "sapphire_disk",
+    "move": "ยิงวงคลื่นไพลิน",
+    "detail": "ปีกหนังสีถ่านและผลึกเล็กตรงปลายหู"
+  },
+  {
+    "art": "pailin-orchid",
+    "name": "กล้วยไม้หม้อหมอกพิษ",
+    "size": 31,
+    "fly": false,
+    "pattern": "poison_lingering_patch",
+    "move": "ทิ้งกลุ่มละอองพิษบนพื้น",
+    "detail": "กลีบงาช้างลายเส้นครามเหนือหม้อสีแดงเข้ม"
+  },
+  {
+    "art": "pailin-pangolin",
+    "name": "ลิ่นหางดาบคู่",
+    "size": 35,
+    "fly": false,
+    "pattern": "melee_double_swipe",
+    "move": "กวาดหางดาบสองจังหวะ",
+    "detail": "เกล็ดซ้อนสีทองแดงและใบมีดไพลินคู่ที่หาง"
+  },
+  {
+    "art": "pailin-croc",
+    "name": "มินิบอส กุมภีล์สันคราม",
+    "size": 47,
+    "fly": false,
+    "pattern": "melee_snap",
+    "move": "พุ่งงับด้วยขากรรไกร",
+    "detail": "จระเข้สยามเกล็ดมะกอกมีสันไพลินหยักตลอดหลัง"
+  },
+  {
+    "art": "pailin-tiger",
+    "name": "บอส พยัคฆ์ดาวไพลิน",
+    "size": 49,
+    "fly": false,
+    "pattern": "melee_double_claw",
+    "move": "ตะปบกรงเล็บสองจังหวะ",
+    "detail": "เสือลายดำมีไพลินรูปดาวหกแฉกที่หน้าผาก"
+  }
+]

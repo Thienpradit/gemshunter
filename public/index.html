@@ -8226,8 +8226,8 @@ function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now()
   for (const g of m.groups) { if (g.sanctuary) continue; if (g.active && !present.has(g)) g.active = false;
     if (g.left <= 0) { if (now - g.deadAt >= GROUP_RESPAWN_MIN * 60000) { g.left = g.n; g.deadAt = 0; g.champDead = false; grpSave(m, g); } else continue; }
     if (g.active) continue; const d = Math.hypot(g.x - PL.x, g.y - PL.y); if (d > GROUP_NEAR || d < 90) continue; /* ไม่โผล่ทับตัวผู้เล่น */
-    const def = MONS[g.type]; let made = 0; const spots = [[0, 0], [18, 4], [-18, -4], [4, 18], [-4, -18], [16, 16], [-16, 16], [16, -16], [-16, -16], [32, 0], [-32, 0], [0, 32], [0, -32]];
-    for (const [ox, oy] of spots) { if (made >= g.left) break; const x = g.x + ox, y = g.y + oy, i = MI(m, Math.floor(x / 16), Math.floor(y / 16)); if (m.t[i] !== TILE.FLOOR || !monBoxFree(m, x, y, def.r)) continue; const o = mkMon(m, g.type, x, y, g.zz, g); if (g.champ && !g.champDead && made === 0) makeChamp(o); made++; }
+    let made = 0; const spots = [[0, 0], [18, 4], [-18, -4], [4, 18], [-4, -18], [16, 16], [-16, 16], [16, -16], [-16, -16], [32, 0], [-32, 0], [0, 32], [0, -32]];
+    for (const [ox, oy] of spots) { if (made >= g.left) break; const type=g.pack ? g.pack[made%g.pack.length] : g.type, def=MONS[type]; const x = g.x + ox, y = g.y + oy, i = MI(m, Math.floor(x / 16), Math.floor(y / 16)); if (m.t[i] !== TILE.FLOOR || !monBoxFree(m, x, y, def.r)) continue; const o = mkMon(m, type, x, y, g.zz, g); if (g.champ && !g.champDead && made === 0) makeChamp(o); made++; }
     if (made) g.active = true; else if (!made && d < GROUP_NEAR) { g.x += (Math.random() - 0.5) * 32; g.y += (Math.random() - 0.5) * 32; } }
   for (let i = G.mons.length - 1; i >= 0; i--) { const o = G.mons[i]; if (!o.grp || o.dying || o.hp <= 0) continue; if (Math.hypot(o.x - PL.x, o.y - PL.y) > GROUP_FAR && o.state !== 'chase') G.mons.splice(i, 1); } /* เดินห่างแล้ว เก็บตัวกลับเข้ากลุ่ม (จำนวนที่เหลือของกลุ่มไม่เปลี่ยน) */ }
 /* แม่ทัพ: ตัวเดียวกับลูกน้องแต่ตัวใหญ่กว่า เลือด 3.2 เท่า ตีแรง 1.5 เท่า เลเวล +3 ให้ EXP/เงิน 3 เท่า ดรอปของเสมอและมีโอกาสได้ของดีสูงกว่า */
