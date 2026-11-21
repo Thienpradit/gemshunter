@@ -1,0 +1,110 @@
+[
+  {
+    "art": "pailin-f2-mole",
+    "name": "ตุ่นพลั่วทองสัมฤทธิ์",
+    "size": 29,
+    "fly": false,
+    "pattern": "melee_arc",
+    "move": "ปาดอุ้งเท้าเป็นวง",
+    "detail": "อุ้งเท้ากว้างเหมือนพลั่ว ปลายจมูกฝังไพลิน"
+  },
+  {
+    "art": "pailin-f2-archerfish",
+    "name": "ปลาเสือพ่นหยดคราม",
+    "size": 27,
+    "fly": true,
+    "pattern": "abyss_light_bead",
+    "move": "ยิงหยดน้ำไพลิน",
+    "detail": "ลำตัวคาดแถบทองดำ ครีบหลังเป็นแผงผลึกสีน้ำเงิน"
+  },
+  {
+    "art": "pailin-f2-slowloris",
+    "name": "นางอายศอกพิษ",
+    "size": 26,
+    "fly": false,
+    "pattern": "poison_short_cone",
+    "move": "ส่งไอพิษจากศอกไปด้านหน้า",
+    "detail": "ขนสีน้ำตาลสนิม ขอบตาดำ ต่อมพิษสีหยกอยู่ที่ข้อศอก"
+  },
+  {
+    "art": "pailin-f2-mantis",
+    "name": "ตั๊กแตนเคียวใบแก้ว",
+    "size": 31,
+    "fly": false,
+    "pattern": "melee_double_swipe",
+    "move": "สับเคียวสองจังหวะ",
+    "detail": "แขนทรงใบไม้สีเขียว ขอบเคียวเป็นคมไพลิน"
+  },
+  {
+    "art": "pailin-f2-spider",
+    "name": "แมงมุมกระสวยอำพัน",
+    "size": 26,
+    "fly": false,
+    "pattern": "quartz_needle",
+    "move": "ยิงเส้นใยผลึก",
+    "detail": "ท้องสีน้ำตาลอำพัน มีกระสวยไพลินเหนือส่วนชักใย"
+  },
+  {
+    "art": "pailin-f2-snail",
+    "name": "หอยขดวงมาลาไคต์",
+    "size": 25,
+    "fly": false,
+    "pattern": "poison_lingering_patch",
+    "move": "ทิ้งเมือกพิษบนพื้น",
+    "detail": "เปลือกหินปูนขดลายเขียว มีเมือกสีเขียวอมฟ้า"
+  },
+  {
+    "art": "pailin-f2-mouse-deer",
+    "name": "กระจงเขี้ยวคราม",
+    "size": 31,
+    "fly": false,
+    "pattern": "melee_horn_charge",
+    "move": "ก้มเขี้ยวพุ่งแทง",
+    "detail": "กีบเล็ก คอมีลายขาว เขี้ยวสั้นคู่สีคราม"
+  },
+  {
+    "art": "pailin-f2-gecko",
+    "name": "ตุ๊กแกเสียงศิลา",
+    "size": 29,
+    "fly": false,
+    "pattern": "sapphire_disk",
+    "move": "ยิงวงเสียงสะท้อน",
+    "detail": "ผิวสีเทาน้ำเงินแต้มจุดอำพัน ปลายนิ้วเป็นแผ่นผลึก"
+  },
+  {
+    "art": "pailin-f2-jelly",
+    "name": "แมงกะพรุนระฆังม่วง",
+    "size": 27,
+    "fly": true,
+    "pattern": "poison_delayed_bubbles",
+    "move": "ปล่อยฟองพิษหน่วงเวลา",
+    "detail": "ลำตัวโปร่งแสงทรงระฆังสีม่วง หนวดสีเขียวมิ้นต์"
+  },
+  {
+    "art": "pailin-f2-otter",
+    "name": "นากกรวดเงิน",
+    "size": 34,
+    "fly": false,
+    "pattern": "melee_double_claw",
+    "move": "ตะปบด้วยอุ้งเท้าคู่",
+    "detail": "ขนสีน้ำตาลแดง แนวกรวดไพลินแววเงินพาดบ่า"
+  },
+  {
+    "art": "pailin-f2-gaur",
+    "name": "มินิบอส กระทิงเขาจันทร์",
+    "size": 47,
+    "fly": false,
+    "pattern": "melee_horn_charge",
+    "move": "ก้มเขาจันทร์พุ่งชน",
+    "detail": "กระทิงบ่าหนาสีดำ ขาท่อนล่างสีงาช้าง ปลายเขาโค้งเป็นผลึก"
+  },
+  {
+    "art": "pailin-f2-naga",
+    "name": "บอส นาคราชเนตรดารา",
+    "size": 54,
+    "fly": false,
+    "pattern": "poison_short_cone",
+    "move": "แผ่แม่เบี้ยพ่นพิษรูปกรวย",
+    "detail": "เกล็ดลายทองบนแผ่แม่เบี้ย ไพลินดาวหกแฉกประดับลำคอ"
+  }
+]

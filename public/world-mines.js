@@ -63,8 +63,8 @@ const WorldMines = (() => {
     const bossGroup=groups.findLast(g=>g.x===bossPoint[0]*16+8 && g.y===bossPoint[1]*16+12 && !g.trail);
     const lane=groups.filter(g=>g.routeEncounter && !nearSave(m,g.x,g.y,24)).sort((a,b)=>a.y-b.y || a.x-b.x);
     // One existing slot near the route's midpoint becomes the single miniboss.
-    const pailinEntrance=m.country==='cambodia' && m.tier===1;
-    const trail=pailinEntrance ? lane.filter(g=>g.trail) : lane;
+    const mixedPailinFloor=m.country==='cambodia' && (m.tier===1 || m.tier===2);
+    const trail=mixedPailinFloor ? lane.filter(g=>g.trail) : lane;
     const mid=trail[Math.floor(trail.length/2)] || lane[Math.floor(lane.length/2)];
     const order=Array.from({length:10},(_,i)=>(i*7+m.tier+entries[0].regionNo)%10);
     let pathIndex=0, caveIndex=4;
@@ -75,7 +75,7 @@ const WorldMines = (() => {
       }else{
         g.type=laneTypes.get(g)||entries[order[caveIndex++%10]].type;
         if(nearSave(m,g.x,g.y,24))g.sanctuary=true;
-        if(pailinEntrance && !g.sanctuary){
+        if(mixedPailinFloor && !g.sanctuary){
           const lead=entries.findIndex(d=>d.type===g.type);
           g.pack=[0,3,7,1,5].map(offset=>entries[(lead+offset)%10].type);
         }
