@@ -641,6 +641,7 @@ body.touch .toast img{width:18px;height:18px}
 .scbadge{position:absolute;top:5px;right:5px;background:#3f9a4c;color:#fff;font-size:10px;font-weight:bold;padding:1px 6px;border-radius:8px}
 .scdots{display:flex;gap:4px;margin:4px 0 1px}.scdots i{width:10px;height:10px;border-radius:50%;background:var(--dc);opacity:.2;border:1px solid rgba(0,0,0,.6)}.scdots i.on{opacity:1;box-shadow:0 0 5px var(--dc)}
 .scgrid .schd{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 4px 3px;border-bottom:1px solid #6b3a16}.scgrid .schd:first-child{padding-top:0}.scgrid .schd b{color:#ffd77a;font-size:14px}.scgrid .schd em{font-style:normal;font-weight:normal;font-size:11px;opacity:.6;color:#e9d3a8}.scgrid .schd span{font-size:12px;opacity:.85;white-space:nowrap}
+.twrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;border-bottom:1px dashed rgba(255,230,160,.2)}.twrow b{flex:0 0 96px;color:#ffe9a8;font-size:14px}.twrow .btn{flex:0 0 auto}
 .mkbar{justify-content:flex-start}.mkcoin{font-size:13.5px}.mkcoin b{color:#ffe9a8}.mkdemo{font-size:12px;color:#ffd890;background:rgba(160,90,20,.35);border:1px dashed #d9a441;border-radius:6px;padding:2px 8px}
 .mkdot{display:inline-block;min-width:17px;padding:0 4px;border-radius:9px;background:#e0443a;color:#fff;font-size:11.5px;font-style:normal;line-height:17px;text-align:center}
 .mkdue{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;padding:7px 10px;border:1px solid #7fd16a;border-radius:8px;background:rgba(60,120,40,.28);color:#eaffd8;font-size:14px}
@@ -10767,7 +10768,7 @@ const UI = (() => {
   const api = { grinding: false, onE: null };
 
   const scrollMem = {};
-  const WTITLE = { market: 'ตลาดเทรด', mkpick: 'เลือกของที่จะลงขาย', mkprice: 'ตั้งราคาขาย', bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
+  const WTITLE = { twarp: 'วาร์ปทดสอบ', market: 'ตลาดเทรด', mkpick: 'เลือกของที่จะลงขาย', mkprice: 'ตั้งราคาขาย', bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
   function show(name, html, onAct, opts = {}) {
     if (openName) scrollMem[openName] = { p: panel.scrollTop, l: [...panel.querySelectorAll('.list')].map(x => x.scrollTop) };
     const restore = (openName === name || ['gem', 'confirm'].includes(openName)) && scrollMem[name];
@@ -12210,12 +12211,22 @@ const UI = (() => {
 
   // ---------- เมนู ----------
   function hintSync() { const el = $('#hint'); if (!el || G.touch) return; el.textContent = STATE.clickMove !== false ? 'คลิกซ้าย = เดินไปจุดนั้น • คลิกหิน = ขุด • คลิกศัตรู = ฟัน/ยิง (ค้างได้) • คลิกขวา = ฟัน/ยิงไปทางเมาส์ • WASD ก็เดินได้ • E = คุย/เข้าร้าน • Q = สลับพลั่ว⇄อาวุธ • 1 เลือด • 2 น้ำ • 3 อาหาร • I กระเป๋า (พลอย+อุปกรณ์) • T ประตูวาร์ป (ในเหมือง)' : 'WASD = เดิน • คลิกซ้าย (ค้างได้) = ขุด/ฟัน/ยิง ไปทางเมาส์ • E = คุย/เข้าร้าน • Q = สลับพลั่ว⇄อาวุธ • 1 เลือด • 2 น้ำ • 3 อาหาร • I กระเป๋า (พลอย+อุปกรณ์) • T ประตูวาร์ป (ในเหมือง) • เปิดคลิกเพื่อเดินได้ในเมนู ☰'; }
+  /* วาร์ปทดสอบ (เฉพาะตัวละครทดลองบนลิงก์ตัวอย่าง): ไปเมืองหรือเหมืองชั้นไหนของประเทศไหนก็ได้ทันที ไม่ต้องขึ้นเครื่องบิน — เกมจริงออนไลน์ไม่มีปุ่มนี้ */
+  function testWarp() {
+    if (!CONFIG.testGod || NET.online) return;
+    show('twarp', `<h3>🧪 วาร์ปทดสอบ</h3><p class="muted small">เฉพาะตัวละครทดลอง • แตะเมืองหรือชั้นเหมืองที่ต้องการไป</p>
+      <div class="list twlist">${COUNTRY_KEYS.map(c => `<div class="twrow"><b>${esc(COUNTRIES[c].short || COUNTRIES[c].name)}</b><button class="btn small gold" data-a="go" data-m="${c === 'thai' ? 'village' : 'out_' + c}">🏘 เมือง</button>${MINE_TIERS.map((T, i) => `<button class="btn small" data-a="go" data-m="${mineIdTier(mapIdOf(c), i + 1)}" data-t="${i + 1}">⛏ ชั้น ${i + 1}</button>`).join('')}</div>`).join('')}</div>
+      <div class="row end"><button class="btn" data-a="close">ปิด</button></div>`,
+      (a, b) => { if (a !== 'go') return; const id = b.dataset.m, t = +b.dataset.t || 0; close(); if (t) STATE.mineTier = t; try { goMap(id); } catch (e) { toast('ไปแผนที่นี้ไม่ได้: ' + esc(e.message), 'bad'); } }, { wide: true });
+    api.onE = null;
+  }
   function menu() {
     show('menu', `<h3>เมนู</h3><div class="opts col">
       <button class="btn" data-a="snd">เสียง: ${STATE.muted ? 'ปิด' : 'เปิด'}</button>
       <button class="btn" data-a="mus">🎵 เพลงบรรเลง: ${STATE.music === false ? 'ปิด' : 'เปิด'}</button>
       <button class="btn" data-a="cmove">🖱 คลิกเมาส์เพื่อเดิน: ${STATE.clickMove !== false ? 'เปิด' : 'ปิด'}</button>
       <p class="muted small" style="margin:-2px 0 4px">${STATE.clickMove !== false ? 'คลิกซ้ายที่พื้น = เดินไป • คลิกหิน = เดินไปขุด • คลิกขวา = ฟัน/ยิง' : 'เดินด้วย WASD อย่างเดียว • คลิกซ้าย (ค้างได้) = ขุด/ฟัน/ยิง ไปทางเมาส์ โดยไม่เดิน'}</p>
+      ${CONFIG.testGod && !NET.online ? '<button class="btn gold" data-a="twarp">🧪 วาร์ปทดสอบ: ไปได้ทุกเมือง ทุกชั้น</button>' : ''}
       <button class="btn" data-a="saver">🔋 โหมดประหยัดแบต: ${saverOn() ? 'เปิด' : 'ปิด'}</button>
       <p class="muted small" style="margin:-2px 0 4px">${saverOn() ? 'ภาพ 30 เฟรม/วินาที ความละเอียดลดลงเล็กน้อย — เครื่องร้อนน้อยลง แบตอยู่นานขึ้น' : 'ภาพลื่น 60 เฟรม/วินาที ความละเอียดเต็ม — ใช้แบตมากกว่า'}</p>
       <button class="btn" data-a="board">🏆 บอร์ดโชว์พลอยทั้งเกม</button>
@@ -12227,6 +12238,7 @@ const UI = (() => {
       a => {
         if (a === 'snd') { STATE.muted = !STATE.muted; saveGame(); menu(); }
         else if (a === 'mus') { STATE.music = STATE.music === false; saveGame(); menu(); }
+        else if (a === 'twarp') testWarp();
         else if (a === 'saver') { STATE.saver = !saverOn(); SFX.play('click'); saveGame(); menu(); }
         else if (a === 'cmove') { STATE.clickMove = STATE.clickMove === false; G.mouseTap = false; PL.path = null; PL.act = null; SFX.play('click'); saveGame(); hintSync(); menu(); }
         else if (a === 'board') board();
@@ -12460,7 +12472,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795260942";
+window.GAME_BUILD="1795261085";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
