@@ -2003,7 +2003,7 @@ function migrateSave(s) {
   st.jq = Math.max(0, Number(s.jq) | 0); if (Array.isArray(s.jr)) st.jr = s.jr.filter(e => Array.isArray(e) && e.length >= 3 && e.length <= 8).slice(-3000); /* สมุดบัญชีเงินที่ยังไม่ได้ส่งขึ้นเซิร์ฟเวอร์ */
   st.clickMove = s.clickMove !== false; st.saver = s.saver === true || s.saver === false ? s.saver : null; /* โหมดประหยัดแบต: null = อัตโนมัติ (มือถือเปิด คอมปิด) */ // ตั้งค่า: คลิกเมาส์เพื่อเดิน (ค่าเริ่มต้น เปิด)
   st.mineRun = Math.max(1, Number(s.mineRun) || 1);
-  if (Array.isArray(s.deathBags)) st.deathBags = s.deathBags.filter(b => b && typeof b.map === 'string').map(b => ({ map: b.map, x: +b.x || 0, y: +b.y || 0, t: +b.t || 0, eq: b.eq && typeof b.eq === 'object' ? Object.fromEntries(Object.entries(b.eq).filter(([k, v]) => typeof v === 'string' && ITEMS[v])) : {}, gems: (Array.isArray(b.gems) ? b.gems : []).map(g => normGem(g, st)).filter(Boolean), items: (Array.isArray(b.items) ? b.items : []).filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid) || st.nextUid++, id: x.id, slot: ITEMS[x.id].slot }; if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ return o; }) }));
+  if (Array.isArray(s.deathBags)) st.deathBags = s.deathBags.filter(b => b && typeof b.map === 'string').map(b => ({ map: b.map, x: +b.x || 0, y: +b.y || 0, t: +b.t || 0, eq: b.eq && typeof b.eq === 'object' ? Object.fromEntries(Object.entries(b.eq).filter(([k, v]) => typeof v === 'string' && ITEMS[v])) : {}, gems: (Array.isArray(b.gems) ? b.gems : []).map(g => normGem(g, st)).filter(Boolean), items: (Array.isArray(b.items) ? b.items : []).filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid) || st.nextUid++, id: x.id, slot: ITEMS[x.id].slot }; if (x.g > 0) o.g = Number(x.g) | 0; if (x.lv > 0) o.lv = Number(x.lv) | 0; if (x.lock) o.lock = 1; if (x.mods && typeof x.mods === 'object') { o.q = Number(x.q) | 0; o.mods = x.mods; } /* เก็บเลเวล ขั้น และออปชันของชิ้นในกระเป๋าตกไว้ด้วย (เดิมหายตอนโหลดเซฟ) */ if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ return o; }) }));
   if (s.board && typeof s.board === 'object') { const B = s.board; st.board = { open: !!B.open, openAt: +B.openAt || 0, gemId: B.gemId ?? null, top: typeof B.top === 'string' ? B.top : null, offers: Array.isArray(B.offers) ? B.offers.filter(o => o && typeof o.bot === 'string').slice(0, 20) : [], my: Array.isArray(B.my) ? B.my.filter(o => o && typeof o.bot === 'string').slice(-12) : [], taken: B.taken && typeof B.taken === 'object' ? { ...B.taken } : {}, given: {} }; if (B.given && typeof B.given === 'object') for (const k in B.given) { const gv = B.given[k], gg = gv && normGem(gv.gem, st); if (gg) st.board.given[k] = { idx: +gv.idx || 0, gem: gg }; } }
   if (s.jena && typeof s.jena === 'object' && s.jena.done && typeof s.jena.done === 'object') st.jena = { w: Number(s.jena.w) || 0, got: { ...(s.jena.got || {}) }, paid: Number(s.jena.paid) || 0, done: { ...s.jena.done }, pp: { ...(s.jena.pp || {}) } };
   if (s.queue && Array.isArray(s.queue.jobs)) {
@@ -9539,12 +9539,13 @@ function hurtPlayer(dmg, fx, fy, who, periodic = false) {
   if (STATE.hp <= 0) faint(who);
   UI.hud(); return true;
 }
+const DEATH_BAG = false; /* 21 พ.ย. 2569: ตายแล้วไม่ทำของตก ไม่ต้องกลับไปเก็บกระเป๋า — ฟื้นที่เมืองพร้อมของครบ (เปิดระบบกระเป๋าตกคืนได้ที่นี่) */
 function faint(who) {
   STATE.hp = 0; G.cavePoison = null; G.clouds = (G.clouds || []).filter(cloud => !cloud.poison); G.down = true; G.holdAct = false; PL.state = 'idle';
   // หมดสติในเหมือง: ชุดที่สวมอยู่ + พลอยก้อนที่ขุดได้ในการลงเหมืองรอบนี้ ตกอยู่เป็นกระเป๋าตรงจุดที่ล้ม — กลับมาเก็บคืนได้ทั้งหมด
   // (พลอยเจียระไน และพลอยที่มีติดตัวมาก่อนลงเหมือง ไม่ตก • พลั่วกับอาวุธยังอยู่กับตัวเพื่อให้กลับมาเก็บได้)
   const dieMap = G.map, inMine = isMine(dieMap), eq0 = eqIds(); let bag = null; PL.fallT0 = G.time; PL.fallEq = eq0; // ล้มลง: เล่นท่าล้ม แล้วทิ้งร่างไว้ตรงนั้น
-  if (inMine) {
+  if (inMine && DEATH_BAG) {
     const gems = STATE.inv.filter(g => g.state === 'raw' && g.run === (STATE.mineRun || 1)), items = [];
     for (const sl of ['armor', 'helmet', 'gloves', 'boots', 'shield']) { const u = STATE.equip[sl], it = u && STATE.items.find(x => x.uid === u); if (!it || it.id === 'arm1') continue; items.push({ ...it, slot: sl }); STATE.items = STATE.items.filter(x => x !== it); STATE.equip[sl] = 0; }
     if (!STATE.equip.armor) { let base = STATE.items.find(x => x.id === 'arm1'); if (!base) { base = makeItem(STATE.nextUid++, 'arm1'); STATE.items.push(base); } STATE.equip.armor = base.uid; }
@@ -9558,7 +9559,7 @@ function faint(who) {
       const ps = pstats(); STATE.hp = Math.round(ps.maxHp * 0.6); STATE.sta = ps.maxSta; G.down = false;
       saveGame(); NET.syncTravel(); setTimeout(() => { try { NET.ping && NET.ping(); } catch (e) {} }, 400);
       fade.classList.remove('on');
-      UI.show('faint', `<h3>หมดสติ…</h3><p>${who === 'cold' ? 'คุณหนาวจัดจนหมดสติ เพราะใส่ชุดไม่อุ่นพอ' : who === 'hot' ? 'คุณร้อนจนเป็นลมแดด เพราะใส่ชุดหนาเกินไป' : `คุณถูก${who || 'สัตว์ร้าย'}โจมตีจนหมดสติ`} — ฟื้นขึ้นมาที่กลางเมือง</p>${who === 'cold' || who === 'hot' ? `<p class="muted">${who === 'cold' ? 'ก่อนไปเมืองหนาว ซื้อเสื้อโค้ท/ชุดกันหนาว หมวกขนสัตว์ ถุงมือขนแกะ รองเท้าบุขน ที่ร้านอุปกรณ์ (แท็บ ชุดตามภูมิอากาศ)' : 'ก่อนไปเมืองร้อน ถอดเสื้อเกราะหนา ใส่ชุดระบายอากาศ หมวกสานกันแดด รองเท้าตาข่าย (แท็บ ชุดตามภูมิอากาศ)'}</p>` : ''}${bag ? `<p class="bad">🎒 กระเป๋าของคุณตกอยู่ตรงจุดที่หมดสติในเหมือง ข้างในมี${bag.items.length ? ` ชุดที่สวมอยู่ ${bag.items.length} ชิ้น` : ''}${bag.items.length && bag.gems.length ? ' และ' : ''}${bag.gems.length ? ` พลอยก้อนที่ขุดได้รอบนี้ ${bag.gems.length} เม็ด` : ''}</p><p>กลับลงไปที่จุดนั้นแล้วเก็บกระเป๋า จะได้ของคืนทั้งหมด (ดูไอคอน 🎒 บนแผนที่มุมจอ) • พลอยเจียระไน พลอยที่มีมาก่อนลงเหมือง พลั่ว และอาวุธ ยังอยู่กับตัว</p>` : '<p class="muted">ไม่มีของตกหาย</p>'}<p class="muted">เคล็ดลับ: ซื้อเสื้อ หมวก โล่ ที่ร้านลุงเหล็ก และพกยาสมุนไพร (กด 1) ไว้ฟื้น HP</p><div class="row end"><button class="btn gold" data-a="close">ลุกขึ้น</button></div>`, () => {});
+      UI.show('faint', `<h3>หมดสติ…</h3><p>${who === 'cold' ? 'คุณหนาวจัดจนหมดสติ เพราะใส่ชุดไม่อุ่นพอ' : who === 'hot' ? 'คุณร้อนจนเป็นลมแดด เพราะใส่ชุดหนาเกินไป' : `คุณถูก${who || 'สัตว์ร้าย'}โจมตีจนหมดสติ`} — ฟื้นขึ้นมาที่กลางเมือง</p>${who === 'cold' || who === 'hot' ? `<p class="muted">${who === 'cold' ? 'ก่อนไปเมืองหนาว ซื้อเสื้อโค้ท/ชุดกันหนาว หมวกขนสัตว์ ถุงมือขนแกะ รองเท้าบุขน ที่ร้านอุปกรณ์ (แท็บ ชุดตามภูมิอากาศ)' : 'ก่อนไปเมืองร้อน ถอดเสื้อเกราะหนา ใส่ชุดระบายอากาศ หมวกสานกันแดด รองเท้าตาข่าย (แท็บ ชุดตามภูมิอากาศ)'}</p>` : ''}${bag ? `<p class="bad">🎒 กระเป๋าของคุณตกอยู่ตรงจุดที่หมดสติในเหมือง ข้างในมี${bag.items.length ? ` ชุดที่สวมอยู่ ${bag.items.length} ชิ้น` : ''}${bag.items.length && bag.gems.length ? ' และ' : ''}${bag.gems.length ? ` พลอยก้อนที่ขุดได้รอบนี้ ${bag.gems.length} เม็ด` : ''}</p><p>กลับลงไปที่จุดนั้นแล้วเก็บกระเป๋า จะได้ของคืนทั้งหมด (ดูไอคอน 🎒 บนแผนที่มุมจอ) • พลอยเจียระไน พลอยที่มีมาก่อนลงเหมือง พลั่ว และอาวุธ ยังอยู่กับตัว</p>` : '<p class="good" style="color:#9cf08a">ของทุกอย่างยังอยู่กับตัวครบ ไม่ต้องกลับไปเก็บ</p>'}<p class="muted">เคล็ดลับ: ซื้อเสื้อ หมวก โล่ ที่ร้านลุงเหล็ก และพกยาสมุนไพร (กด 1) ไว้ฟื้น HP</p><div class="row end"><button class="btn gold" data-a="close">ลุกขึ้น</button></div>`, () => {});
     }, 320);
   }, 1500);
 }
@@ -9620,7 +9621,7 @@ function syncDeathBags() {
 function takeDeathBag(b) {
   if (!b || !(STATE.deathBags || []).includes(b)) return;
   for (const g of b.gems) STATE.inv.push(g);
-  for (const it of b.items) { const o = { uid: it.uid, id: it.id }; if (it.dur != null) o.dur = it.dur; if (it.mods) { o.q = it.q || 0; o.mods = it.mods; } if (STATE.items.some(x => x.uid === o.uid)) o.uid = STATE.nextUid++; STATE.items.push(o); const sl = it.slot || ITEMS[it.id].slot, cur = STATE.items.find(x => x.uid === STATE.equip[sl]); if (!cur || cur.id === 'arm1') STATE.equip[sl] = o.uid; } // สวมกลับให้เองถ้าช่องนั้นยังว่าง
+  for (const it of b.items) { const o = { uid: it.uid, id: it.id }; if (it.dur != null) o.dur = it.dur; if (it.g) o.g = it.g; if (it.lv) o.lv = it.lv; if (it.lock) o.lock = 1; if (it.mods) { o.q = it.q || 0; o.mods = it.mods; } if (STATE.items.some(x => x.uid === o.uid)) o.uid = STATE.nextUid++; STATE.items.push(o); const sl = it.slot || ITEMS[it.id].slot, cur = STATE.items.find(x => x.uid === STATE.equip[sl]); if (!cur || cur.id === 'arm1') STATE.equip[sl] = o.uid; } // สวมกลับให้เองถ้าช่องนั้นยังว่าง
   STATE.deathBags = STATE.deathBags.filter(x => x !== b); syncDeathBags(); SFX.play('coin'); saveGame(); UI.hud();
   toast(`🎒 เก็บกระเป๋าคืนแล้ว!${b.items.length ? ` ได้ชุดคืน ${b.items.length} ชิ้น (สวมกลับให้แล้ว)` : ''}${b.gems.length ? ` ได้พลอยก้อนคืน ${b.gems.length} เม็ด` : ''}`, 'good');
 }
@@ -10492,6 +10493,7 @@ function boot() {
   const ps = pstats(); STATE.hp = clamp(STATE.hp, 1, ps.maxHp); STATE.sta = clamp(STATE.sta, 0, ps.maxSta);
   resize(); setupInput(); UI.init(); setTheme();
   saveGame();
+  if (!DEATH_BAG && STATE.deathBags && STATE.deathBags.length) { /* กระเป๋าที่ตกค้างจากระบบเดิม: คืนของทั้งหมดให้ทันที */ let ng = 0, ni = 0; for (const b of STATE.deathBags.slice()) { ng += (b.gems || []).length; ni += (b.items || []).length; try { takeDeathBag(b); } catch (e) { console.error(e); } } STATE.deathBags = []; try { syncDeathBags(); } catch (e) {} saveGame(); if (ng + ni) setTimeout(() => toast(`🎒 ระบบใหม่: ตายแล้วของไม่ตก — คืนของจากกระเป๋าที่ตกค้างให้แล้ว${ni ? ` ชุด ${ni} ชิ้น` : ''}${ng ? ` พลอยก้อน ${ng} เม็ด` : ''}`, 'good'), 1500); }
   if (!STATE.ammoGift) { STATE.ammoGift = true; const own = [...new Set(STATE.items.map(x => ITEMS[x.id] && ITEMS[x.id].ammo).filter(Boolean))]; const got = own.map(k => { const n = CONSUMABLES[k].pack * 4; STATE.cons[k] = (STATE.cons[k] || 0) + n; return `${CONSUMABLES[k].name} ${n} นัด`; }); if (got.length) setTimeout(() => toast(`🔫 ตอนนี้ปืนต้องใช้กระสุนแล้ว — แจกฟรี ${got.join(' • ')} (ซื้อเพิ่มที่ร้านอุปกรณ์ หมวดของใช้)`, 'quest'), 2500); saveGame(); } /* ผู้เล่นเดิมที่มีปืน (เคยยิงไม่จำกัด) ได้กระสุนเริ่มต้นครั้งเดียว */
   if (!STATE.seenIntro) UI.intro();
   else {
@@ -12474,7 +12476,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795261887";
+window.GAME_BUILD="1795262176";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
