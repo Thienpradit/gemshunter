@@ -8121,9 +8121,10 @@ function monMove(m, e, dx, dy) {
   if (m.cp && Math.hypot(e.x + dx - m.cp.x, e.y + dy - m.cp.y) < 50
     && Math.hypot(e.x + dx - m.cp.x, e.y + dy - m.cp.y) < Math.hypot(e.x - m.cp.x, e.y - m.cp.y)) return false;
   if (MONS[e.type].phase) { e.x = clamp(e.x + dx, 20, m.w * 16 - 20); e.y = clamp(e.y + dy, 20, m.h * 16 - 12); return true; } /* วิญญาณ: ลอยทะลุหิน ผนัง และน้ำได้ทุกที่ */
-  const r = MONS[e.type].r; let ok = false;
+  const r = MONS[e.type].r, oldX=e.x, oldY=e.y; let ok = false;
   if (dx && monBoxFree(m, e.x + dx, e.y, r)) { e.x += dx; ok = true; }
   if (dy && monBoxFree(m, e.x, e.y + dy, r)) { e.y += dy; ok = true; }
+  if (MONS[e.type].worldCreature && ok) e.walkPixels = (e.walkPixels || 0) + Math.hypot(e.x-oldX,e.y-oldY);
   return ok;
 }
 function losClear(m, ax, ay, bx, by) { const L = Math.hypot(bx - ax, by - ay), n = Math.ceil(L / 8); for (let i = 1; i < n; i++) { const x = lerp(ax, bx, i / n), y = lerp(ay, by, i / n); if (m.solidT[MI(m, Math.floor(x / 16), Math.floor(y / 16))]) return false; } return true; }
@@ -8216,6 +8217,8 @@ function initMineGroups(m) { const rnd = mulberry32(7777 + (m.seed || 0)), c = c
   if (WorldMines.roster(m)) WorldMines.distribute(m,G2);
   else assignThaiCaveMonsters(m, G2);
   { const SV = STATE.grp && STATE.grp[m.id]; if (SV) G2.forEach((g, i) => { const s = SV[i]; if (!s) return; g.left = clamp(s.l | 0, 0, g.n); g.deadAt = g.left <= 0 ? (+s.d || Date.now()) : 0; g.champDead = !!s.c; }); } /* สถานะกลุ่มที่ฆ่าไปแล้วอ่านจากเซฟ: รีเฟรชหน้าเว็บแล้วศัตรูไม่เกิดใหม่ทันที ต้องรอครบเวลาจริง */
+  const local = WorldMines.roster(m);
+  if (local) for (const shape of new Set(local.map(d=>d.shape))) WorldMineArt.sheetFor(shape);
   m.groups = G2; }
 function grpSave(m, g) { if (!m || !m.groups) return; const i = m.groups.indexOf(g); if (i < 0) return; const A = STATE.grp || (STATE.grp = {}), L = A[m.id] || (A[m.id] = {}); if (g.left >= g.n && !g.champDead) delete L[i]; else L[i] = { l: g.left, d: g.deadAt || 0, c: g.champDead ? 1 : 0 }; }
 function groupTick(m) { if (!m.groups) initMineGroups(m); const now = Date.now(), present = new Set(); for (const o of G.mons) if (o.grp) present.add(o.grp);
@@ -8471,7 +8474,7 @@ function updateMonsters(dtAll) {
       const vx = tx - e.x, vy = ty - e.y, vl = Math.hypot(vx, vy) || 1;
       let wob = def.fly ? Math.sin(e.t * 7) * 0.6 : 0;
       const ok = monMove(m, e, (vx / vl + -vy / vl * wob) * sp, (vy / vl + vx / vl * wob) * sp);
-      e.moving = true; e.pathT -= dt;
+      e.moving = ok; e.pathT -= dt;
       if (!ok && e.pathT <= 0) { e.pathT = 0.8; const p = findPath(m, Math.floor(e.x / 16), Math.floor((e.y - 3) / 16), Math.floor(PL.x / 16), Math.floor((PL.y - 3) / 16)); e.path = p ? p.slice(0, 12).map(([x, y]) => [x * 16 + 8, y * 16 + 12]) : null; }
       if (Math.abs(vx) > Math.abs(vy)) e.dir = vx < 0 ? 'left' : 'right'; else e.dir = vy < 0 ? 'up' : 'down';
     } else {
@@ -9927,8 +9930,8 @@ function render() {
   for (const e of G.mons) if (inView(e.x, e.y)) list.push({ y: e.y, d: () => drawMonster(g, e, S, T) });
   if (G.animals && G.animalsMap === m.id) for (const an of G.animals) if (inView(an.x, an.y, 80)) list.push({ y: an.y, d: () => animalDraw(g, S, T, an) }); // สัตว์ประจำเมือง
   if (G.dogs) for (const dg of G.dogs) if (dg.map === m.id && inView(dg.x, dg.y)) list.push({ y: dg.y, d: () => dogDraw(g, S, T, dg) }); // สุนัขในหมู่บ้าน (ฮันนี่ + หมาเทา)
-  list.push({ y: PL.y, d: () => drawPlayer(g, S, T) });
   list.sort((a, b) => a.y - b.y); for (const it of list) it.d();
+  drawPlayer(g, S, T); // Keep the controlled character visible among enemies and foreground scenery.
   for (const s of G.slashes) { const a = 1 - s.t / 0.18, [fx, fy] = DIRV[s.dir]; g.strokeStyle = rgba(shade(s.col, 0.5), a); g.lineWidth = 1; g.beginPath(); const base = Math.atan2(fy, fx); g.arc(S(s.x - fx * 8), T(s.y - fy * 6), 13, base - 1.1 + s.t * 4, base + 0.9 + s.t * 4); g.stroke(); }
   if (G.target && !UI.isOpen()) {
     const it = G.target; let mx = it.x, my = it.y - 22;
@@ -9985,13 +9988,13 @@ function drawPlayer(g, S, T) {
   }
   shadowAt(g, S(PL.x), T(PL.y), 6);
   const hurtNow = G.redT > 0; // เพิ่งโดนตี: สะดุ้ง/เด้งถอย + กระพริบแดง แทนการหายวับ
-  if (!hurtNow && PL.inv > 0 && PL.inv < 0.6 && Math.floor(G.time * 20) % 2) return;
+  const invFlash = !hurtNow && PL.inv > 0 && Math.floor(G.time * 10) % 2 === 1;
   const eqs = G.down && PL.fallEq ? PL.fallEq : eqIds(), hc = true; // ตอนล้ม ยังเห็นชุดที่ใส่อยู่ก่อนของตก
   {
     let jx = hurtNow ? Math.sin(G.time * 70) * 1.5 : 0, jy = hurtNow ? -Math.sin(G.redT / 0.35 * Math.PI) * 3 : 0;
     { const rk = STATE.hand === 'weapon' && G.lastShot != null && PL.aim != null ? Math.max(0, 1 - (G.time - G.lastShot) / 0.11) : 0; if (rk > 0) { jx -= Math.cos(PL.aim) * 1.8 * rk; jy -= Math.sin(PL.aim) * 1.2 * rk; } } /* แรงถีบปืน: ตัวสะบัดถอยเล็กน้อยทุกนัด */
-    if (PIXEL) PIX.drawChar(g, S(PL.x) + jx, T(PL.y) + jy, { L: PIX.lookOf(playerLook(), eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shield: eqs.shield, dir: faceDir8(), aim: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && (G.mouseIn && G.mouse) ? Math.atan2((G.mouse.y - PL.y) * G.TILT + 12, G.mouse.x - PL.x) : null, moving: PL.moving && PL.state !== 'swing', anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : null, tintA: Math.min(0.7, G.redT * 2.4), fire: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && G.lastShot != null && G.time - G.lastShot < 0.18 ? (G.time - G.lastShot) / 0.18 : null, fall: G.down && PL.fallT0 != null ? clamp((G.time - PL.fallT0) / 0.55, 0, 1) : null });
-    else RIG.draw(g, S(PL.x) + jx, T(PL.y) + jy, { L: RIG.lookOf(playerLook(), eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shieldId: eqs.shield, dir: PL.dir, moving: PL.moving && PL.state !== 'swing', mvb: PL.mvb, turn: PL.turnT, anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : null, tintA: Math.min(0.7, G.redT * 2.4) });
+    if (PIXEL) PIX.drawChar(g, S(PL.x) + jx, T(PL.y) + jy, { L: PIX.lookOf(playerLook(), eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shield: eqs.shield, dir: faceDir8(), aim: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && (G.mouseIn && G.mouse) ? Math.atan2((G.mouse.y - PL.y) * G.TILT + 12, G.mouse.x - PL.x) : null, moving: PL.moving && PL.state !== 'swing', anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : invFlash ? '#fff2ce' : null, tintA: hurtNow ? Math.min(0.7, G.redT * 2.4) : invFlash ? 0.32 : 0, fire: STATE.hand === 'weapon' && ITEMS[eqs.weapon] && ITEMS[eqs.weapon].gun && G.lastShot != null && G.time - G.lastShot < 0.18 ? (G.time - G.lastShot) / 0.18 : null, fall: G.down && PL.fallT0 != null ? clamp((G.time - PL.fallT0) / 0.55, 0, 1) : null });
+    else RIG.draw(g, S(PL.x) + jx, T(PL.y) + jy, { L: RIG.lookOf(playerLook(), eqs), tool: STATE.hand === 'weapon' ? eqs.weapon : eqs.pick, shieldId: eqs.shield, dir: PL.dir, moving: PL.moving && PL.state !== 'swing', mvb: PL.mvb, turn: PL.turnT, anim: PL.anim, swing: PL.state === 'swing' ? clamp(PL.swingT / PL.swingDur, 0, 1) : null, tint: hurtNow ? '#ff3a2a' : invFlash ? '#fff2ce' : null, tintA: hurtNow ? Math.min(0.7, G.redT * 2.4) : invFlash ? 0.32 : 0 });
   }
   if (PL.state === 'swing' && PL.kind === 'dig') { const k = PL.swingT / PL.swingDur; if (k > 0.36 && k < 0.62) { /* เส้นแรงเหวี่ยงตอนฟาดลง: โค้งจาง ๆ ตามทิศที่ขุด */
     const al = (1 - Math.abs(k - 0.47) / 0.15) * 0.55, [dx, dy] = DIRV[PL.dir], cx = S(PL.x), cy = T(PL.y - 13), z = 1; g.save(); g.globalAlpha = Math.max(0, al); g.strokeStyle = '#fff6d8'; g.lineCap = 'round';

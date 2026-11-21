@@ -1,3 +1,30 @@
+// Fantasy mine palettes. The last three colors distinguish the body, face and reflected light.
+const MineGems = (() => {
+  const stones = {
+    sapphire:['ไพลิน','corundum','#15255c','#427dff','#a9dbff'],
+    spinel:['สปิเนลชมพู','octahedron','#68124b','#f65baf','#ffd8f1'],
+    ruby:['ทับทิม','corundum','#61122d','#ef3458','#ffbfca'],
+    star:['ไพลินสตาร์','star','#20265d','#7989ed','#f2f5ff'],
+    opal:['โอปอลเวลโล','opal','#794931','#ffcd89','#5ffbd6'],
+    violet:['แซปไฟร์ม่วง','corundum','#3a205b','#9a63e5','#ebbfff'],
+    pigeon:['ทับทิมแดงสด','corundum','#541329','#cf2146','#ffaf98'],
+    tanzanite:['แทนซาไนต์','prism','#2e2363','#685aed','#93c8ff'],
+    kagem:['มรกตคาเกม','prism','#114b41','#19a687','#a2ffd7'],
+    blackopal:['โอปอลดำ','opal','#172538','#35748b','#ff954f'],
+    alex:['อะเล็กซานไดรต์','prism','#313353','#23ac89','#ec629e'],
+    tourmaline:['ทัวร์มาลีนสองสี','prism','#283f45','#40ba96','#ff8ba7'],
+    muzo:['มรกตมูโซ','prism','#0a482b','#18b969','#b5ffd6']
+  };
+  const local = {cambodia:'sapphire',vietnam:'spinel',myanmar:'ruby',srilanka:'star',ethiopia:'opal',madagascar:'violet',mozambique:'pigeon',tanzania:'tanzanite',zambia:'kagem',australia:'blackopal',russia:'alex',brazil:'tourmaline',colombia:'muzo'};
+  // Attachment positions are fractions of the visible anatomy, mirrored for right-facing frames.
+  const anatomy = {
+    shell:['ผลึกเรียงตามแนวกระดอง',[.48,.33],[.62,.32]], hide:['สันผลึกเหนือไหล่',[.50,.40],[.45,.24]],
+    horn:['ผลึกคู่ที่โคนเขา',[.33,.20],[.32,.18]], wing:['ผลึกบนขนปีก',[.34,.50],[.58,.43]],
+    scale:['เกล็ดผลึกบนสันหลัง',[.48,.37],[.61,.22]], stinger:['ผลึกฝังบนเกราะปล้อง',[.50,.57],[.49,.49]]
+  };
+  const shapes = {arm:'shell',bug:'shell',turtle:'shell',crab:'shell',cat:'hide',wolf:'hide',bear:'hide',boar:'hide',golem:'hide',elephant:'hide',ram:'horn',bird:'wing',bat:'wing',moth:'wing',dragon:'scale',lizard:'scale',snake:'scale',toad:'hide',scorp:'stinger'};
+  return {stone:country=>stones[local[country]], anatomy:shape=>anatomy[shapes[shape]]};
+})();
 // Regional mine bestiary. Names and creatures are fantasy designs inspired by each mining district.
 const WorldMines = (() => {
   // Five local strata, followed by local wildlife, the mid-guardian and the final guardian.
@@ -49,13 +76,12 @@ const WorldMines = (() => {
           const move=moves[(slot+2*floor+regionNo)%moves.length];
           const type='mine_'+country+'_f'+floor+'_'+String(slot+1).padStart(2,'0');
           const name=(rank==='boss'?'บอส ':rank==='mini'?'มินิบอส ':'')+baseName+(rank==='boss'?'':' '+strata[floor-1]);
-          const angle=(hue+floor*9+slot*3)*Math.PI/180;
-          const color='#'+[0,-2*Math.PI/3,2*Math.PI/3].map(offset=>Math.round(159+83*Math.cos(angle+offset)).toString(16).padStart(2,'0')).join('');
-          const attack={...move.caveAttack,color};
+          const gem=MineGems.stone(country);
+          const attack={...move.caveAttack,color:gem[3]};
           if(rank && role==='ranged'){attack.shots=rank==='boss'?5:3;attack.spread=rank==='boss'?0.75:0.46;}
           if(rank && role==='poison'){attack.duration+=1;attack.areaLife+=0.55;}
           const source=definitions[move.type], rewards=definitions[rank==='boss'?'golem':rank==='mini'?'rscorp':move.type];
-          const entry={country,floor,type,name,shape,rank,place,slot,regionNo,hue,caveAttack:attack};
+          const entry={country,floor,type,name,shape,rank,place,slot,regionNo,hue,gem,caveAttack:attack};
           definitions[type]={...source,name,boss2:rank==='boss',mini:rank==='mini',big:!!rank,fly:['bird','bat','moth'].includes(shape),
             coins:rewards.coins,chance:rewards.chance,drops:rewards.drops,hp:Math.round((rank==='boss'?188:rank==='mini'?85:source.hp)*(1+floor*.075)),
             dmg:Math.round(source.dmg*(rank==='boss'?1.65:rank==='mini'?1.32:1)*(1+floor*.03)),spd:source.spd+(slot%4)-2,
@@ -91,114 +117,111 @@ const WorldMines = (() => {
   return {install,roster,byId,regions,nearSave,distribute};
 })();
 
-// Render mineral creatures from faceted body parts in four views. Cache finished frames, not whole maps.
+// Four aligned rows (front, back, left, right) × two footfalls, wind-up and strike.
 const WorldMineArt = (() => {
-  const frames=new Map(), TAU=Math.PI*2;
-  const forms={
-    cat:[7,11,6,8],wolf:[6,12,6,9],bear:[9,12,8,9],boar:[9,10,7,7],ram:[7,10,7,11],arm:[8,11,7,5],
-    lizard:[6,12,4,4],dragon:[8,13,7,9],turtle:[10,10,7,5],toad:[10,8,6,5],snake:[5,5,5,3],
-    bird:[6,8,6,11],bat:[5,6,5,12],moth:[4,7,4,12],bug:[7,9,5,5],crab:[11,7,4,5],scorp:[7,10,4,5],
-    elephant:[10,12,9,11],golem:[9,7,9,13]
+  const sheets = new Map();
+  const frames = new Map();
+  const rowFor = {down:0,up:1,left:2,right:3};
+  const frameSize = 192;
+  function sheetFor(shape) {
+    if (!sheets.has(shape)) {
+      const image = new Image();
+      image.src = 'creature-sprites/' + shape + '.webp';
+      sheets.set(shape, image);
+    }
+    return sheets.get(shape);
+  }
+  // Hand-pixelled stone silhouettes, one pixel grid per anatomical attachment.
+  const cuts = {
+    prism:['....1331....','...243331...','..24453331..','.2455533321.','124555333221','124533333221','124533333221','123533333221','123533333221','123533332221','.1233332221.','..12332221..','...112211...'],
+    corundum:['....1331....','..13444331..','.1244553321.','124553333221','124553332221','125533322221','.1233322221.','..12222221..','...112211...'],
+    octahedron:['.....4.....','....345....','...23453...','..2345532..','.223355322.','23333333321','.223333221.','..2233221..','...22221...','....121....','.....1.....'],
+    star:['...13331...','..2455531..','.233435321.','12334333221','12334443321','12544444521','12334443321','.223435321.','..1233321..','...12221...'],
+    opal:['...133331...','..24553321..','.2455333221.','125533233321','123343322521','123353225321','123222343221','.1223322221.','..12222221..','...111111...']
   };
-  function sprite(d,dir,pose){
-    const key=d.type+'/'+dir+'/'+pose;
-    if(frames.has(key))return frames.get(key);
-    const c=document.createElement('canvas');c.width=c.height=112;
-    const g=c.getContext('2d'), surfaces=[];
-    const angle={down:0,left:Math.PI/2,up:Math.PI,right:-Math.PI/2}[dir]||0;
-    const cos=Math.cos(angle),sin=Math.sin(angle);
-    const tone=(d.hue+d.floor*9+d.slot*3)%360;
-    const coat=(tone+([22,300,40,130,260][d.floor-1])+d.slot*9)%360;
-    const skin=[coat,37,36], shell=[tone,68,42],night=[coat,25,22],bone=[42,48,76],light=[tone,86,77];
-    function project([x,y,z]){
-      const dx=x*cos-y*sin,dy=x*sin+y*cos;
-      return [56+dx*1.84,83+(dy*.52-z)*1.84,dy+z*.52];
-    }
-    function face(points,paint,shade){
-      const p=points.map(project);
-      surfaces.push({p,depth:p.reduce((n,q)=>n+q[2],0)/p.length,
-        fill:'hsl('+paint[0]+' '+paint[1]+'% '+Math.max(8,Math.min(96,paint[2]+shade))+'%)'});
-    }
-    function stone(x,y,z,rx,ry,rz,paint,n=8){
-      const rows=[];
-      for(let j=0;j<=4;j++){
-        const phi=-Math.PI/2+j*Math.PI/4,r=Math.cos(phi);
-        rows.push(Array.from({length:n},(_,i)=>{const a=i*TAU/n;return [x+rx*r*Math.cos(a),y+ry*r*Math.sin(a),z+rz*Math.sin(phi)];}));
+  const profiles = new Map();
+  function attachStones(ctx,d,row,col) {
+    const profileKey=d.shape+'/'+row+'/'+col;
+    let profile=profiles.get(profileKey);
+    if(!profile){
+      const pixels=ctx.getImageData(0,0,frameSize,frameSize).data;
+      let x0=frameSize,y0=frameSize,x1=0,y1=0;
+      for(let y=0;y<frameSize;y+=2)for(let x=0;x<frameSize;x+=2){
+        if(pixels[(y*frameSize+x)*4+3]<180)continue;
+        x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);
       }
-      for(let j=0;j<4;j++)for(let i=0;i<n;i++){
-        const k=(i+1)%n,a=(i+.5)*TAU/n+angle;
-        face([rows[j][i],rows[j][k],rows[j+1][k],rows[j+1][i]],paint,5*j-8-8*Math.cos(a)-5*Math.sin(a));
-      }
+      const anatomy=MineGems.anatomy(d.shape), [u,v]=anatomy[row<2?1:2];
+      const targets=[[u,v,1],[row<2?1-u+.14:u+.19,v+.09,.75],[u-.17,v+.07,.65]];
+      profile=targets.map(([fx,fy,s])=>{
+        const tx=x0+(x1-x0)*(row===3?1-fx:fx),ty=y0+(y1-y0)*fy;
+        // Choose opaque body pixels even when wings or a neck shift during an attack.
+        let best=Infinity,anchor=[tx,ty,s];
+        for(let y=y0;y<=y1;y+=3)for(let x=x0;x<=x1;x+=3){
+          if(pixels[(y*frameSize+x)*4+3]<200)continue;
+          const distance=(x-tx)**2+(y-ty)**2;
+          if(distance<best){best=distance;anchor=[x,y,s];}
+        }
+        return anchor;
+      });
+      profiles.set(profileKey,profile);
     }
-    function spike(x,y,z,r,tip,paint,n=5){
-      const ring=Array.from({length:n},(_,i)=>[x+r*Math.cos(i*TAU/n),y+r*Math.sin(i*TAU/n),z]);
-      for(let i=0;i<n;i++)face([ring[i],ring[(i+1)%n],tip],paint,13*Math.sin(i*TAU/n+angle));
-    }
-    const s=d.shape,[w,l,h,base]=forms[s];
-    const step=pose<4?[0,1,0,-1][pose]:0,wind=pose===4,hit=pose===5;
-    const bob=pose===1||pose===3?0.9:0, z=base+bob+(wind?-1:0), headY=l*.78+(hit?3:wind?-2:0);
-    const isWing=['bird','bat','moth','dragon'].includes(s), arth=['bug','scorp','crab'].includes(s);
-    if(s==='snake'){
-      for(let j=0;j<9;j++)stone(Math.sin(j*.72+step*.24)*6,8-j*2.4,3+(8-j)*.38,4.7-j*.30,4.2-j*.20,3.4-j*.15,j%2?shell:skin);
-    }else{
-      stone(0,0,z,w,l,h,['turtle','arm','bug','crab'].includes(s)?shell:skin,10);
-      const pairs=arth?4:isWing && s!=='dragon'?1:2;
-      for(let k=0;k<pairs;k++)for(const side of [-1,1]){
-        const dy=(k-(pairs-1)/2)*(pairs===4?3.8:11)+step*side*(k%2?-1.7:1.7);
-        const xx=side*w*(arth?1.02:.65),len=arth?4:s==='toad'?5:3;
-        stone(xx,dy,z*.49,len,3.1,z*.46,night,6);
-        stone(xx+side*(arth?2.8:1),dy+1.7,1.6,len+1,3.9,1.7,skin,6);
-        if(!arth)spike(xx,dy+3,2,1.3,[xx,dy+5,1],bone);
+    const [,cut,dark,body,light]=d.gem;
+    const colors=[null,'#20232d',dark,body,light,body];
+    // Intermediate facet value keeps the highlight from flattening the crystal face.
+    colors[5]='#'+[1,3,5].map(i=>Math.round(.62*parseInt(body.slice(i,i+2),16)+.38*parseInt(light.slice(i,i+2),16)).toString(16).padStart(2,'0')).join('');
+    const pattern=cuts[cut],count=d.rank==='boss'?3:d.rank==='mini'||['ram','moth','bat'].includes(d.shape)?2:1;
+    for(const [x,y,scale] of profile.slice(0,count).reverse()){
+      const px=Math.max(2,Math.round((d.rank?3.2:2.7)*scale));
+      const left=Math.round(x-pattern[0].length*px/2),top=Math.round(y-pattern.length*px*.65);
+      const lean=(row===2?1:row===3?-1:Math.sign(x-96))*(cut==='opal'?.13:.31);
+      for(let j=0;j<pattern.length;j++)for(let i=0;i<pattern[j].length;i++){
+        const color=colors[pattern[j][i]];if(!color)continue;
+        ctx.fillStyle=color;ctx.fillRect(left+i*px+Math.round((pattern.length/2-j)*lean)*px,top+j*px,px,px);
       }
     }
-    if(['wolf','cat','lizard','dragon','arm','scorp'].includes(s)){
-      for(let j=1;j<=5;j++)stone(Math.sin(j*.6+step*.35)*j*.9,-l*.68-j*1.8,z*.65+(s==='scorp'?j*1.9:0),Math.max(1.2,4-j*.48),3.2,Math.max(1.3,3.5-j*.38),s==='scorp'?shell:skin,6);
-    }
-    if(isWing){
-      for(const side of [-1,1])for(let j=0;j<4;j++){
-        const span=side*(w+6+j*1.7), lift=z+4+(Math.abs(step)*3)+(wind?5:0);
-        face([[side*2,4,z+3],[span+side*4,3-j*2,lift+3],[span+side*(6-j),-7-j*2,lift-j],[side*3,-5,z]],j%2?shell:night,4*j);
-      }
-    }
-    const hz=z+(s==='golem'?11:s==='bird'?5:s==='snake'?6:2), hy=s==='golem'?2:headY;
-    stone(0,hy,hz,w*.66,Math.max(4,w*.64),s==='golem'?5:h*.68,skin);
-    if(['wolf','boar','bear','lizard','dragon','cat'].includes(s))stone(0,hy+4,hz-1,w*.45,4.3,2.8,night);
-    if(s==='bird')spike(0,hy+3,hz,3,[0,hy+11,hz-1],bone);
-    if(s==='elephant')for(let j=0;j<4;j++)stone(0,hy+5+j*.7,hz-2-j*2.2,2.7-j*.3,2.8,2.4,skin,6);
-    for(const side of [-1,1]){
-      stone(side*w*.39,hy+3.8,hz+1.5,1.7,1.3,1.65,night,6);
-      stone(side*w*.43,hy+4.3,hz+1.9,.95,.9,.9,light,5);
-      if(['cat','wolf','bat','bear','elephant'].includes(s))spike(side*w*.50,hy-1,hz+2,s==='elephant'?5:2.8,[side*w*.77,hy-2,hz+(s==='bat'?9:6)],skin);
-      if(['ram','boar','elephant','dragon'].includes(s))spike(side*w*.42,hy+2,hz+(s==='ram'?4:-1),2.1,[side*(w*.68),hy+(s==='ram'?-3:6),hz+6],bone);
-      if(['crab','scorp','golem'].includes(s)){
-        const reach=hit?6:wind?-2:0;
-        stone(side*(w+3),hy+reach,hz-2,4.5,5,4,shell);
-        for(const prong of [-1,1])spike(side*(w+3)+prong*1.7,hy+reach+2,hz-1,1.7,[side*(w+3)+prong*2.3,hy+reach+7,hz],bone);
-      }
-    }
-    // Tier affects the actual contours: crystals grow on back, flanks and crown.
-    for(let i=0;i<d.floor+2;i++){
-      const a=i*2.4+d.regionNo*.42, x=Math.cos(a)*w*.58, y=Math.sin(a)*l*.61;
-      spike(x,y,z+h*.70,1.7+(i%2),[x*1.28,y*1.17,z+h+2+(i%3)*1.7+d.floor*.35],shell);
-    }
-    if(d.rank){
-      const count=d.rank==='boss'?7:3;
-      for(let i=0;i<count;i++){const a=i*TAU/count,x=Math.cos(a)*w*.43,y=hy+Math.sin(a)*3;
-        spike(x,y,hz+3,1.8,[x*1.35,y,hz+8+2*(i%2)],bone);}
-    }
-    surfaces.sort((a,b)=>a.depth-b.depth);
-    for(const f of surfaces){g.fillStyle=f.fill;g.beginPath();f.p.forEach(([x,y],i)=>i?g.lineTo(Math.round(x),Math.round(y)):g.moveTo(Math.round(x),Math.round(y)));g.closePath();g.fill();}
-    if(frames.size>=384)frames.delete(frames.keys().next().value);
-    frames.set(key,c);return c;
   }
-  function draw(g,e,d,S,T){
-    const pose=e.atkT>0?5:e.wind>0?4:e.moving||d.fly?Math.floor(e.t*1000/d.caveAttack.walk)%4:0;
-    const frame=sprite(d.worldCreature,e.dir,pose),size=d.boss2?84:d.mini?66:e.champ?55:43;
-    const x=S(e.x),y=T(e.y),lift=d.fly?4+Math.sin(e.t*5)*1.4:0;
-    g.save();g.fillStyle='rgba(12,9,18,.38)';g.beginPath();g.ellipse(x,y-1,d.r+2,d.r*.43,0,0,TAU);g.fill();
-    g.imageSmoothingEnabled=false;
-    if(e.flash>0)g.filter='brightness(1.7)';
-    g.drawImage(frame,x-size/2,y-size*.79-lift,size,size);g.restore();
+  function sprite(d, dir, col) {
+    const sheet = sheetFor(d.shape);
+    if (!sheet.complete || !sheet.naturalWidth) return null;
+    const row = rowFor[dir] ?? 0, key = d.type + '/' + row + '/' + col;
+    if (frames.has(key)) return frames.get(key);
+    const tile = document.createElement('canvas');
+    tile.width = tile.height = frameSize;
+    tile.noHD = true;
+    const ctx = tile.getContext('2d');
+    const source = [sheet,col*frameSize,row*frameSize,frameSize,frameSize,0,0,frameSize,frameSize];
+    ctx.drawImage(...source);
+    // Tint only visible artwork. Preserve the original outline, luminance and alpha.
+    ctx.globalCompositeOperation = 'color';
+    ctx.globalAlpha = 0.23 + d.floor * 0.04;
+    ctx.fillStyle = 'hsl(' + ((d.hue + d.floor * 11 + d.slot * 3) % 360) + ' 76% 52%)';
+    ctx.fillRect(0,0,frameSize,frameSize);
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation='destination-in';
+    ctx.drawImage(...source);
+    ctx.globalCompositeOperation='source-over';
+    attachStones(ctx,d,row,col);
+    if (frames.size >= 192) frames.delete(frames.keys().next().value);
+    frames.set(key,tile);
+    return tile;
   }
-  return {draw,sprite};
+  function draw(g,e,def,S,T) {
+    const x=S(e.x), y=T(e.y), size=def.boss2?86:def.mini?68:e.champ?60:48;
+    const d=def.worldCreature;
+    const stride = def.fly ? e.t * 1000 / def.caveAttack.walk : (e.walkPixels || 0) / 4.8;
+    const col=e.atkT>0?3:e.wind>0?2:(e.moving||def.fly)?Math.floor(stride)%2:0;
+    const img=sprite(d,e.dir,col);
+    g.save();
+    g.fillStyle='rgba(12,9,18,.32)';
+    g.beginPath();g.ellipse(x,y-1,def.r+2,def.r*.43,0,0,Math.PI*2);g.fill();
+    if (img) {
+      g.imageSmoothingEnabled=false;
+      const lift=def.fly?4+Math.sin(e.t*5)*1.1:0;
+      if(e.flash>0)g.filter='brightness(1.5)';
+      const bottom=y-lift+size*(15/frameSize)/(G.TILT||1);
+      g.drawImage(img,x-size/2,bottom-size,size,size);
+    }
+    g.restore();
+  }
+  return {draw,sprite,sheetFor};
 })();
