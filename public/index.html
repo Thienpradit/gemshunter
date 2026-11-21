@@ -641,6 +641,15 @@ body.touch .toast img{width:18px;height:18px}
 .scbadge{position:absolute;top:5px;right:5px;background:#3f9a4c;color:#fff;font-size:10px;font-weight:bold;padding:1px 6px;border-radius:8px}
 .scdots{display:flex;gap:4px;margin:4px 0 1px}.scdots i{width:10px;height:10px;border-radius:50%;background:var(--dc);opacity:.2;border:1px solid rgba(0,0,0,.6)}.scdots i.on{opacity:1;box-shadow:0 0 5px var(--dc)}
 .scgrid .schd{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 4px 3px;border-bottom:1px solid #6b3a16}.scgrid .schd:first-child{padding-top:0}.scgrid .schd b{color:#ffd77a;font-size:14px}.scgrid .schd em{font-style:normal;font-weight:normal;font-size:11px;opacity:.6;color:#e9d3a8}.scgrid .schd span{font-size:12px;opacity:.85;white-space:nowrap}
+.mkbar{justify-content:flex-start}.mkcoin{font-size:13.5px}.mkcoin b{color:#ffe9a8}.mkdemo{font-size:12px;color:#ffd890;background:rgba(160,90,20,.35);border:1px dashed #d9a441;border-radius:6px;padding:2px 8px}
+.mkdot{display:inline-block;min-width:17px;padding:0 4px;border-radius:9px;background:#e0443a;color:#fff;font-size:11.5px;font-style:normal;line-height:17px;text-align:center}
+.mkdue{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;padding:7px 10px;border:1px solid #7fd16a;border-radius:8px;background:rgba(60,120,40,.28);color:#eaffd8;font-size:14px}
+.mkflt .sel{max-width:170px}.mkflt label{white-space:nowrap}.mklist .gp{line-height:1.45}.mkprice{font-size:15px;color:#ffe9a8}.mkmine{font-size:12.5px;color:#9fd0ff}
+.mkst{font-size:12.5px;color:#f0d8a0}.mkst.ok{color:#9cf08a;font-weight:bold}.mkst.bad{color:#ff9a8a}
+.mkh{margin:8px 0 2px;padding:4px 8px;font-size:13px;font-weight:bold;color:#e9d3a8;border-bottom:1px dashed rgba(255,230,160,.3)}
+.mkhint{font-style:normal}body.touch .mkhint{display:none}@media (max-width:640px){.mkhint{display:none}}
+.mknet{margin:4px 0;font-size:14px}.mknet .good{color:#9cf08a}.mkreg input{max-width:240px}
+@media (max-width:640px){.mkflt{gap:6px 8px}.mkflt label{flex:1 1 46%;font-size:12.5px}.mkflt .sel{max-width:none;flex:1;min-width:0}.mklist .gcard{flex-wrap:wrap}.mklist .gcard .gp{flex:1 1 100%;text-align:right;display:flex;flex-wrap:wrap;gap:2px 10px;justify-content:flex-end;align-items:center}.mklist .gcard .gp br{display:none}}
 .sccrumb{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px}
 .sccrumb + .scgrid{max-height:calc(100vh - 412px)} /* มีแถบข้อมูลชนิดพลอยอยู่เหนือกริด: ลดความสูงกริดลง ปุ่มปิดด้านล่างไม่ตกขอบ */.sccrumb .sw,.scbox .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.6)}.sch4{margin:10px 0 4px;font-size:13px;color:#e9d3a8}
 .scnote{margin-right:auto}.sctool .scauto{margin-left:auto}
@@ -3322,6 +3331,17 @@ function sprGemCase() { // กระเป๋าเดินทางใส่�
   [['#e8284f', '#ffb0c0'], ['#3a6ad8', '#b0c8ff'], ['#1ea464', '#a0f0c0'], ['#f0c030', '#fff0a0'], ['#9058c8', '#e0c0ff'], ['#30d8e0', '#c0ffff']].forEach((cl, i) => { R(g, 3 + i * 3.5 | 0, 12, 2, 2, cl[0]); P(g, 3 + i * 3.5 | 0, 12, cl[1]); });
   [['#f08068', '#ffd0c0'], ['#e8e8f0', '#ffffff'], ['#48b030', '#c0f0a0'], ['#d8203a', '#ffa0b0'], ['#6a5ad8', '#c0b8ff'], ['#f0a040', '#ffe0a0']].forEach((cl, i) => { R(g, 4 + i * 3.5 | 0, 14, 2, 2, cl[0]); P(g, 4 + i * 3.5 | 0, 14, cl[1]); });
   R(g, 1, 10, 2, 2, br); R(g, 23, 10, 2, 2, br); R(g, 11, 17, 4, 2, br); R(g, 0, 12, 1, 4, dk); R(g, 25, 12, 1, 4, dk); // มุมทองเหลือง ตัวล็อก หูหิ้ว
+  return addOutline(c, '#20120a');
+}
+function sprTradeBoard() { // ป้ายบอร์ดตลาดเทรด: เสาไม้สองต้น หลังคาจั่วกระเบื้องแดง กระดานติดใบประกาศขายพลอย (ตั้งกลางลานทุกเมือง)
+  const { c, g } = mk(40, 40); const w1 = '#b07a3c', w2 = '#8a5a26', w3 = '#5a3614', rf = '#b8402c', rl = '#e06a48', rd = '#7a2414', pp = '#f4e8c8', pd = '#d8c498', gd = '#f0c040';
+  R(g, 5, 9, 3, 30, w2); R(g, 5, 9, 1, 30, w1); R(g, 32, 9, 3, 30, w2); R(g, 32, 9, 1, 30, w1); R(g, 4, 38, 5, 2, w3); R(g, 31, 38, 5, 2, w3);   // เสา + ฐาน
+  for (let i = 0; i < 6; i++) R(g, Math.round(17 - i * 3.2), 1 + i, Math.round(6 + i * 6.4), 1, i % 2 ? rf : rl);                              // หลังคาจั่ว
+  R(g, 0, 7, 40, 2, rd); R(g, 1, 6, 38, 1, rf); R(g, 19, 0, 2, 2, gd);
+  R(g, 3, 10, 34, 21, w3); R(g, 4, 11, 32, 19, w1); R(g, 4, 11, 32, 1, '#c8935a'); for (let y = 16; y < 30; y += 5) R(g, 4, y, 32, 1, w2);    // กระดาน
+  R(g, 11, 12, 18, 4, '#6a1626'); R(g, 11, 12, 18, 1, gd); R(g, 11, 15, 18, 1, gd); R(g, 14, 13, 2, 2, '#ff5a78'); R(g, 19, 13, 2, 2, '#5aa8ff'); R(g, 24, 13, 2, 2, '#58d890'); // ป้ายหัว
+  const note = (x, y, w, h, col, hi) => { R(g, x, y, w, h, pp); R(g, x, y + h - 1, w, 1, pd); P(g, x + (w >> 1), y, '#c03030'); R(g, x + 1, y + 2, 3, 3, col); P(g, x + 1, y + 2, hi); R(g, x + 5, y + 2, w - 6, 1, '#8a7a5a'); if (h > 5) R(g, x + 5, y + 4, w - 7, 1, '#8a7a5a'); };
+  note(6, 18, 9, 7, '#e8284f', '#ffc0cc'); note(16, 17, 9, 7, '#3a6ad8', '#c0d4ff'); note(26, 18, 9, 7, '#1ea464', '#b0f0cc'); note(10, 25, 9, 5, '#f0c030', '#fff4b0'); note(21, 25, 9, 5, '#9058c8', '#e4c8ff');
   return addOutline(c, '#20120a');
 }
 function sprSafe() { // ตู้เซฟเหล็กในบ้าน: บานประตูหนา หน้าปัดหมุนรหัส มือจับ บานพับ
@@ -8073,6 +8093,10 @@ function applyTownArt(m, key) {
   /* ป้ายแขวน "ที่พักชั่วคราว" เหนือเต็นท์ของผู้เล่น (ทุกประเทศที่มีเต็นท์) */
   if (pt.tentHit && typeof addSign === 'function') { const [x0, y0, x1, y1] = pt.tentHit; addSign(m, 'tent', 'ที่พักชั่วคราว', '', WX((x0 + x1) / 2), WY(y0) + 8, { sortY: WY(y1), fs: 9, wood: true }); }
   for (const [x, y] of pt.lights) m.lights.push({ x: WX(x), y: WY(y), r: 26, col: '#ffcc66', flick: 1 });
+  { /* ป้ายบอร์ดตลาดเทรด: ตั้งในลานกลางเมือง หน้าบ่อน้ำ (ทุกประเทศ) • pt.market = กำหนดตำแหน่งเองในภาพเมืองได้ */
+    const cx = m.pond ? m.pond.x : WX(POND_CENTER[0]), cy = m.pond ? m.pond.y : WY(POND_CENTER[1]), [bx, by] = pt.market ? P(pt.market) : [cx, m.pond && m.pond.sortY ? Math.max(cy + 56, m.pond.sortY + 30) : cy + 64];
+    addObj(m, sprTradeBoard(), bx, by, { solid: [32, 6], kind: 'building' });
+    m.interact.push({ kind: 'market', x: bx, y: by + 9, r: 26, label: 'ป้ายตลาดเทรดพลอย (ซื้อ–ขายกับผู้เล่นอื่น)', verb: 'เปิดตลาด', hit: { x: bx - 20, y: by - 40, w: 40, h: 42 } }); }
   if (m.outpost) m.outTrees = ['palm']; buildWalkGrid(m);
 }
 /* =====================================================================
@@ -9305,6 +9329,7 @@ function doInteract(it) {
     case 'safe': return UI.safe();
     case 'showcase': return UI.showcase(G.map && G.map.outpost ? G.map.country : '');
     case 'mint': return UI.mint();
+    case 'market': return UI.market();
     case 'jeweler': return UI.jeweler();
     case 'enterHouse': return goMap('house');
     case 'travel': return UI.travel();
@@ -10648,7 +10673,7 @@ const NET = (() => {
   N.curCty = () => { try { const m = (typeof G !== 'undefined') && G.map; if (m && m.country) return m.country; if (m && (m.indoor || /village|house/.test(m.id || ''))) return 'thai'; } catch (e) {} return 'thai'; };
   N.ping = async function () {
     if (!N.online || !token || document.hidden) return; const r = await api('/api/ping', { cty: NET.curCty() }, { timeout: 8000 });
-    if (r.status === 200) { try { if (r.data.top) UI.topCheck(r.data.top); } catch (e) {} N.onlineN = r.data.online | 0; const el = document.getElementById('onchip'); if (el) { el.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; el.style.display = ''; } }
+    if (r.status === 200) { try { if (r.data.top) UI.topCheck(r.data.top); } catch (e) {} { const d = r.data.mkt | 0; if (d > (N.mktDue | 0)) { try { toast('💰 พลอยของคุณในตลาดขายได้แล้ว — ไปรับเงินได้ที่ป้ายตลาดเทรดกลางเมือง', 'good'); SFX.play('done'); } catch (e) {} } N.mktDue = d; } N.onlineN = r.data.online | 0; const el = document.getElementById('onchip'); if (el) { el.innerHTML = `<i></i>ออนไลน์ ${N.onlineN.toLocaleString('th-TH')} คน`; el.style.display = ''; } }
   };
   // ---------- รายชื่อผู้เล่นออนไลน์ (กดป้าย "ออนไลน์ N คน" → เมนูชื่อ + ประเทศที่กำลังเล่นอยู่) ----------
   N.onlineList = async function () { if (!N.online || !token) return null; const r = await api('/api/online', null, { timeout: 8000 }); return r.status === 200 ? r.data : null; };
@@ -10687,6 +10712,29 @@ const NET = (() => {
     return { ok: true, name: r.data.name };
   };
   N.newRecovery = async function () { const r = await api('/api/recovery', {}); return r.status === 200 ? { code: r.data.code } : { err: r.data.err || 'ขอรหัสไม่สำเร็จ' }; };
+  // ---------- ตลาดเทรดพลอย: ทุกรายการทำที่เซิร์ฟเวอร์ ----------
+  // ขั้นตอน: ส่งเซฟล่าสุดขึ้นก่อน → ส่งรายการพร้อมเลขรุ่นเซฟ (rev) → เซิร์ฟเวอร์แก้เซฟเอง แล้วเครื่องนี้ปรับตาม (apply) → เลขรุ่นใหม่
+  N.mktDue = 0;
+  N.mkGet = async function (path) { if (!N.online || !token) return { err: 'ตลาดใช้ได้เมื่อเล่นออนไลน์' }; const r = await api(path, null, { timeout: 12000 }); return r.status === 200 ? { ok: true, d: r.data } : { err: r.data.err || 'โหลดตลาดไม่สำเร็จ ลองใหม่อีกครั้ง' }; };
+  let mkBusy = false;
+  N.mkOp = async function (op, body, apply) {
+    if (!N.online || !token) return { err: 'ตลาดใช้ได้เมื่อเล่นออนไลน์' }; if (mkBusy) return { err: 'กำลังทำรายการก่อนหน้าอยู่ รอสักครู่' }; mkBusy = true;
+    const wait = ms => new Promise(ok => setTimeout(ok, ms));
+    try {
+      try { saveGame(); } catch (e) {}
+      for (let i = 0; N.busy && i < 150; i++) await wait(100);
+      if (N.dirty) await N.sync();
+      if (N.blocked || saveLocked) return { err: 'ทำรายการไม่ได้ตอนนี้' };
+      if (N.dirty || N.busy) return { err: 'ส่งเซฟขึ้นเซิร์ฟเวอร์ไม่สำเร็จ ลองใหม่อีกครั้ง' };
+      N.busy = true; let r;   /* ระหว่างทำรายการ: ไม่ให้เซฟอัตโนมัติแทรก */
+      try { r = await api('/api/market/' + op, { ...body, rev: N.rev, build: +window.GAME_BUILD || 0 }, { timeout: 20000 }); } finally { N.busy = false; }
+      if (r.status === 200) { N.rev = r.data.rev | 0; const p = curPlayer(); if (p) ls.set(revKey(p.id), String(N.rev)); try { apply && apply(r.data); } catch (e) { console.error('market apply', e); } try { saveGame(); } catch (e) {} N.sync(); return { ok: true, d: r.data }; }
+      if (r.status === 426) { saveLocked = true; blockScreen('มีเกมเวอร์ชันใหม่', 'เครื่องนี้ใช้เกมเวอร์ชันเก่า กรุณารีเฟรชหน้าเกมก่อนเล่นต่อ', 'รีเฟรช', () => location.reload()); return { err: r.data.err }; }
+      if (r.status === 409 && r.data.code === 'rev') { conflict(); return { err: r.data.err }; }
+      if (r.status === 0) { const m = await api('/api/me'); if (m.status === 200 && (m.data.rev | 0) !== N.rev) conflict(); return { err: 'ต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่' }; }   /* ไม่รู้ว่ารายการสำเร็จหรือไม่ → ถามเลขรุ่นจากเซิร์ฟเวอร์ ถ้าเปลี่ยนแล้วให้โหลดข้อมูลล่าสุด */
+      return { err: r.data.err || 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง', code: r.data.code };
+    } finally { mkBusy = false; }
+  };
   N.statusText = () => !N.online ? '' : N.err ? `☁ ยังส่งเซฟขึ้นเซิร์ฟเวอร์ไม่ได้ (${N.err}) — จะลองใหม่เอง` : N.lastOk ? `☁ บันทึกขึ้นเซิร์ฟเวอร์ล่าสุด ${fmtClock(N.lastOk)} (บันทึกเองทุก ~45 วินาที และตอนปิดหน้า)` : N.dirty || N.busy ? '☁ กำลังบันทึกขึ้นเซิร์ฟเวอร์…' : '☁ เซฟตรงกับเซิร์ฟเวอร์แล้ว';
   return N;
 })();
@@ -10702,7 +10750,7 @@ const UI = (() => {
   const api = { grinding: false, onE: null };
 
   const scrollMem = {};
-  const WTITLE = { bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
+  const WTITLE = { market: 'ตลาดเทรดพลอย', mkpick: 'เลือกพลอยที่จะลงขาย', mkprice: 'ตั้งราคาขาย', bag: 'กระเป๋า', equip: 'กระเป๋า', menu: 'เมนู', shop: 'ร้านค้า', travel: 'สนามบิน', sellRaw: 'ขายพลอยก้อน', sellCut: 'ขายพลอยเจียระไน', gem: 'ข้อมูลอัญมณีชิ้นนี้', confirm: 'ยืนยัน', odds: 'พลอยในเหมืองนี้' };
   function show(name, html, onAct, opts = {}) {
     if (openName) scrollMem[openName] = { p: panel.scrollTop, l: [...panel.querySelectorAll('.list')].map(x => x.scrollTop) };
     const restore = (openName === name || ['gem', 'confirm'].includes(openName)) && scrollMem[name];
@@ -12205,12 +12253,139 @@ const UI = (() => {
     $('#bagicon').src = PIXEL ? itemIconURL('bag') : canvasURL(gemIconCanvas({ type: 'ruby', state: 'cut', color: 3, seed: 1 }), 2);
     hud();
   }
-  Object.assign(api, { topCheck, topAnnounce, cps, mineSelect, character, editHero, safe, showcase: (cty) => { scCase = !!(cty && COUNTRIES[cty]); scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutFitMax: () => cutFitMax(), cutState: () => CUT });
+  // ====================== ตลาดเทรดพลอย (ป้ายบอร์ดกลางเมือง): ซื้อ–ขายพลอยกับผู้เล่นอื่น ======================
+  // ออนไลน์: ทุกรายการทำที่เซิร์ฟเวอร์ (NET.mkOp) • ลิงก์ตัวอย่าง/ออฟไลน์: ตลาดจำลอง (ผู้ขายเป็นผู้เล่นจำลอง) ไว้ลองหน้าจอ
+  const MK_RULE = { fee: 0.05, max: 10, days: 3, lo: 0.5, hi: 10 }, MK_PER = 30;
+  const MKDEMO = (() => { let rows = null, seq = 500; const mine = [], hist = [];
+    const gen = () => { rows = []; const rnd = mulberry32(20261121);
+      for (let i = 0; i < 64; i++) { const bot = WORLD_BOTS[i % WORLD_BOTS.length], g = { ...botGemAt(bot, 4000 + i * 13) }; delete g.open; delete g.reserveF;
+        if (i % 3 === 1) { g.state = 'raw'; g.carat = g.rawCarat; delete g.shape; delete g.polish; delete g.mode; delete g.by; delete g.rawCarat; g.flaw = Math.min(5, g.flaw + 1 + (rnd() < 0.5 ? 1 : 0)); g.clean = cleanPct(g.flaw, g.seed); }
+        else if (rnd() < 0.4) g.shape = SHAPE_KEYS[Math.floor(rnd() * SHAPE_KEYS.length)];
+        rows.push({ id: ++seq, seller: bot.name, gem: g, price: Math.max(1, Math.round(estValue(g) * (0.8 + rnd() * 0.9))), t: Date.now() - Math.floor(rnd() * 2.5 * 864e5), exp: Date.now() + 864e5 * 3 }); } };
+    const dueN = () => mine.filter(x => x.status === 'sold' && !x.paid).length, ok = d => Promise.resolve({ ok: true, d }), no = err => Promise.resolve({ err });
+    return {
+      browse(f) { if (!rows) gen(); let L = [...rows, ...mine.filter(x => x.status === 'active').map(x => ({ ...x, seller: (curPlayer() || {}).name || 'คุณ', mine: true }))];
+        const types = {}; for (const r of L) types[r.gem.type] = (types[r.gem.type] || 0) + 1;
+        if (f.type) L = L.filter(r => r.gem.type === f.type); if (f.state) L = L.filter(r => r.gem.state === f.state); if (f.origin) L = L.filter(r => r.gem.origin === f.origin); if (f.color !== '') L = L.filter(r => r.gem.color === +f.color); if (f.shape) L = L.filter(r => r.gem.shape === f.shape);
+        L.sort({ new: (a, b) => b.t - a.t, cheap: (a, b) => a.price - b.price, dear: (a, b) => b.price - a.price, big: (a, b) => b.gem.carat - a.gem.carat, clean: (a, b) => a.gem.flaw - b.gem.flaw || a.price - b.price }[f.sort]);
+        return ok({ rows: L.slice(f.page * MK_PER, f.page * MK_PER + MK_PER), total: L.length, page: f.page, per: MK_PER, types, due: dueN(), rule: MK_RULE }); },
+      mine() { return ok({ open: mine.filter(x => x.status === 'active' || (x.status === 'sold' && !x.paid)), hist: hist.slice(0, 20), now: Date.now(), rule: MK_RULE }); },
+      recent(type, state) { if (!rows) gen(); return ok({ rows: rows.filter(r => r.gem.type === type && r.gem.state === state).slice(0, 5).map(r => ({ gem: r.gem, price: Math.round(r.price * 0.93), t: Date.now() - 3600e3 * 5 })) }); },
+      op(op, b, apply) {
+        if (op === 'list') { if (mine.filter(x => x.status === 'active').length >= MK_RULE.max) return no(`ลงขายได้พร้อมกันไม่เกิน ${MK_RULE.max} เม็ด`); const g = [...STATE.inv, ...safeState().gems].find(x => x.id === b.gid); if (!g) return no('ไม่พบพลอยเม็ดนี้');
+          const L = { id: ++seq, gem: { ...g }, price: b.price, status: 'active', t: Date.now(), exp: Date.now() + 864e5 * 3, paid: false }; mine.unshift(L); apply({ id: L.id, exp: L.exp });
+          setTimeout(() => { if (L.status !== 'active') return; const bot = WORLD_BOTS[L.id % WORLD_BOTS.length]; L.status = 'sold'; L.buyer = bot.name; L.sold = Date.now(); L.net = L.price - Math.floor(L.price * MK_RULE.fee); NET.mktDue = dueN(); toast(`💰 <b>${esc(bot.name)}</b> ซื้อ${esc(gemName(L.gem))}ของคุณแล้ว — ไปรับเงินที่ป้ายตลาดเทรด`, 'good'); SFX.play('coin'); if (openName === 'market') mkRefresh(); }, 15000 + Math.random() * 25000);
+          return ok({}); }
+        if (op === 'buy') { const i = rows.findIndex(r => r.id === b.id); if (i < 0) return no('พลอยเม็ดนี้ถูกซื้อไปแล้ว'); const L = rows[i]; if (STATE.coins < L.price && !CONFIG.infiniteCoins) return no('เงินไม่พอ'); rows.splice(i, 1);
+          const d = { gem: { ...L.gem, id: STATE.nextId }, nextId: STATE.nextId + 1, price: CONFIG.infiniteCoins ? 0 : L.price }; apply(d); hist.unshift({ ...L, status: 'sold', bought: true, sold: Date.now() }); return ok(d); }
+        if (op === 'cancel') { const L = mine.find(x => x.id === b.id && x.status === 'active'); if (!L) return no('ประกาศนี้ปิดไปแล้ว'); L.status = 'returned'; const d = { gem: { ...L.gem }, nextId: STATE.nextId }; apply(d); return ok(d); }
+        if (op === 'claim') { const L = mine.filter(x => x.status === 'sold' && !x.paid); if (!L.length) return no('ยังไม่มีเงินรอรับ'); let net = 0; for (const x of L) { x.paid = true; net += x.net; hist.unshift(x); } const d = { net, n: L.length, cut: L.filter(x => x.gem.state === 'cut').length }; apply(d); NET.mktDue = 0; return ok(d); }
+        return no('ไม่รู้จักรายการ'); } };
+  })();
+  const MK = {
+    browse: f => NET.online ? NET.mkGet('/api/market?' + Object.entries(f).filter(([, v]) => v !== '' && v != null).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&')) : MKDEMO.browse(f),
+    mine: () => NET.online ? NET.mkGet('/api/market/mine') : MKDEMO.mine(),
+    recent: (type, state) => NET.online ? NET.mkGet(`/api/market/recent?type=${type}&state=${state}`) : MKDEMO.recent(type, state),
+    op: (op, b, apply) => NET.online ? NET.mkOp(op, b, apply) : MKDEMO.op(op, b, apply),
+  };
+  let mkTab = 'buy', mkB = null, mkM = null, mkErr = '', mkLoad = false, mkSeq = 0, mkBusy = false, mkPickTab = 'cut';
+  const mkF = { type: '', state: '', origin: '', color: '', shape: '', sort: 'new', page: 0 };
+  const mkGem = (L) => { const g = normGem(L.gem, { nextId: 2e9 }); if (!g) return null; g.id = -L.id; if (L.gem.jumbo) g.jumbo = true; return g; };   // พลอยในประกาศ: ใช้เลขประกาศ (ติดลบ) เป็นเลขอ้างอิงบนหน้าจอ
+  const mkLeft = (exp, now) => { const ms = exp - now; if (ms <= 0) return 'หมดอายุแล้ว'; const h = Math.floor(ms / 3600e3); return h >= 24 ? `เหลือ ${Math.floor(h / 24)} วัน ${h % 24} ชม.` : h >= 1 ? `เหลือ ${h} ชม.` : `เหลือ ${Math.max(1, Math.round(ms / 60000))} นาที`; };
+  const mkAgo = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? 'เมื่อสักครู่' : m < 60 ? `${m} นาทีก่อน` : m < 1440 ? `${Math.floor(m / 60)} ชม.ก่อน` : `${Math.floor(m / 1440)} วันก่อน`; };
+  const mkName = t => { const x = GEMS[t].name, i = x.indexOf(' ('); return i > 0 ? [x.slice(0, i), x.slice(i + 2).replace(/\)$/, '')] : [x, '']; };
+  const mkPay = () => { if (mkBusy) return; mkBusy = true; mkDraw();
+    MK.op('claim', {}, d => { if (!CONFIG.infiniteCoins) STATE.coins += d.net; STATE.stats.sold = (STATE.stats.sold || 0) + d.n; STATE.stats.soldCut = (STATE.stats.soldCut || 0) + (d.cut || 0); STATE.stats.earned = (STATE.stats.earned || 0) + d.net; NET.mktDue = 0; })
+      .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('coin'); toast(`💰 รับเงินจากตลาด <b>${baht(r.d.net)} บาท</b> (ขายได้ ${r.d.n} เม็ด หักค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% แล้ว)`, 'good'); try { questEvent('coins'); } catch (e) {} hud(); } if (openName === 'market') mkRefresh(); }); };
+  async function mkRefresh() { const seq = ++mkSeq; mkLoad = true; mkDraw(); const r = mkTab === 'buy' ? await MK.browse(mkF) : await MK.mine(); if (seq !== mkSeq || openName !== 'market') return; mkLoad = false;
+    if (r.err) mkErr = r.err; else { mkErr = ''; if (r.d.rule) Object.assign(MK_RULE, r.d.rule); if (mkTab === 'buy') { mkB = r.d; NET.mktDue = r.d.due | 0; } else { mkM = r.d; NET.mktDue = r.d.open.filter(x => x.status === 'sold' && !x.paid).length; } } mkDraw(); }
+  function market(tab) { if (tab === 'buy' || tab === 'sell') mkTab = tab; mkErr = ''; mkRefresh(); }
+  function mkDraw() {
+    const due = NET.mktDue | 0, demo = !NET.online;
+    const head = `<h3>🏪 ตลาดเทรดพลอย</h3><div class="sctool mkbar"><div class="scseg">${[['buy', '🛒 ซื้อพลอย'], ['sell', `📦 ขายของฉัน${due ? ` <i class="mkdot">${due}</i>` : ''}`]].map(([k, t]) => `<button class="${mkTab === k ? 'on' : ''}" data-a="mktab" data-t="${k}">${t}</button>`).join('')}</div><span class="mkcoin">เงินของคุณ <b>${CONFIG.infiniteCoins ? '∞' : money(STATE.coins)}</b></span>${demo ? '<span class="mkdemo">โหมดตัวอย่าง • ผู้ขายเป็นผู้เล่นจำลอง</span>' : ''}</div>`;
+    const dueBar = due ? `<div class="mkdue"><span>💰 พลอยของคุณขายได้แล้ว <b>${due}</b> เม็ด — มีเงินรอรับ</span><button class="btn small gold" data-a="mkclaim" ${mkBusy ? 'disabled' : ''}>รับเงิน</button></div>` : '';
+    const wait = mkLoad ? '<div class="empty">กำลังโหลด…</div>' : mkErr ? `<div class="empty">${esc(mkErr)}<br><button class="btn small" data-a="mkreload">ลองใหม่</button></div>` : '';
+    const common = (a, b) => { if (a === 'mktab') { mkTab = b.dataset.t; mkErr = ''; mkRefresh(); return true; } if (a === 'mkreload') { mkRefresh(); return true; } if (a === 'mkclaim') { mkPay(); return true; } return false; };
+    if (mkTab === 'buy') {
+      const D = mkB, T = (D && D.types) || {}, tot = Object.values(T).reduce((a, b) => a + b, 0), tk = Object.keys(T).filter(t => GEMS[t]); if (mkF.type && GEMS[mkF.type] && !tk.includes(mkF.type)) tk.push(mkF.type);
+      tk.sort((a, b) => (mkName(a)[1] || a).localeCompare(mkName(b)[1] || b, 'en'));
+      const orgs = mkF.type && GEMS[mkF.type] ? originKeys(mkF.type) : COUNTRY_KEYS, O = (v, t, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${t}</option>`;
+      const flt = `<div class="sctool mkflt">
+        <label>ชนิด <select class="sel" data-f="type">${O('', `ทุกชนิด (${tot})`, mkF.type)}${tk.map(t => O(t, `${mkName(t)[1] ? mkName(t)[1] + ' • ' : ''}${mkName(t)[0]} (${T[t] || 0})`, mkF.type)).join('')}</select></label>
+        <label>แบบ <select class="sel" data-f="state">${O('', 'ก้อน + เจียระไน', mkF.state)}${O('raw', 'พลอยก้อน', mkF.state)}${O('cut', 'เจียระไนแล้ว', mkF.state)}</select></label>
+        <label>ประเทศ <select class="sel" data-f="origin">${O('', 'ทุกประเทศ', mkF.origin)}${orgs.map(k => O(k, COUNTRIES[k].short, mkF.origin)).join('')}</select></label>
+        <label>สี <select class="sel" data-f="color">${O('', 'ทุกสี', mkF.color)}${[0, 1, 2, 3, 4].map(c => O(c, mkF.type && GEMS[mkF.type] ? GEMS[mkF.type].colors[c][0] : `ระดับ ${c + 1}${c === 0 ? ' (อ่อนสุด)' : c === 4 ? ' (สดสุด)' : ''}`, mkF.color)).join('')}</select></label>
+        <label>เชฟ <select class="sel" data-f="shape" ${mkF.state === 'raw' ? 'disabled' : ''}>${O('', 'ทุกเชฟ', mkF.shape)}${SHAPE_KEYS.map(k => O(k, SHAPES[k].name, mkF.shape)).join('')}</select></label>
+        <label>เรียง <select class="sel" data-f="sort">${[['new', 'ลงขายล่าสุด'], ['cheap', 'ราคาถูก → แพง'], ['dear', 'ราคาแพง → ถูก'], ['big', 'เม็ดใหญ่ที่สุด'], ['clean', 'สะอาดที่สุด']].map(([k, t]) => O(k, t, mkF.sort)).join('')}</select></label></div>`;
+      const rows = (D && D.rows || []).map(L => ({ L, g: mkGem(L) })).filter(x => x.g), pages = D ? Math.max(1, Math.ceil(D.total / (D.per || MK_PER))) : 1;
+      const body = wait || (rows.length ? rows.map(({ L, g }) => { const ev = estValue(g), poor = !CONFIG.infiniteCoins && STATE.coins < L.price; return gemRow(g, `<b class="mkprice">${money(L.price)}</b><br><small class="muted">ประเมิน ${baht(ev)}</small><br><small class="muted">ผู้ขาย ${esc(L.seller)}</small><br>${L.mine ? '<span class="mkmine">ของคุณ</span>' : `<button class="btn small ${poor ? '' : 'gold'}" data-a="mkbuy" data-l="${L.id}" ${poor ? 'disabled title="เงินไม่พอ"' : ''}>${poor ? 'เงินไม่พอ' : 'ซื้อ'}</button>`}`, false, 'mkview'); }).join('') : `<div class="empty">${D && D.total === 0 && !tot ? 'ยังไม่มีใครลงขายพลอยในตลาด — เป็นคนแรกได้ที่แท็บ “ขายของฉัน”' : 'ไม่มีพลอยที่ตรงกับตัวกรองนี้'}</div>`);
+      show('market', `${head}${dueBar}${flt}<div class="list mklist">${body}</div>
+        <div class="row end"><span class="muted small scnote">${D ? `พบ ${D.total} เม็ด • หน้า ${mkF.page + 1}/${pages}` : ''}<i class="mkhint"> • แตะที่พลอยเพื่อดูรายละเอียด</i></span><button class="btn small" data-a="mkprev" ${mkF.page > 0 ? '' : 'disabled'}>◀</button><button class="btn small" data-a="mknext" ${mkF.page + 1 < pages ? '' : 'disabled'}>▶</button><button class="btn" data-a="close">ปิด</button></div>`,
+        (a, b) => { if (common(a, b)) return;
+          if (a === 'mkprev' || a === 'mknext') { mkF.page = Math.max(0, mkF.page + (a === 'mknext' ? 1 : -1)); return mkRefresh(); }
+          if (a === 'mkview') { const f = rows.find(x => x.g.id === +b.dataset.id); if (f) return gemDetail(f.g, () => market(), `<div class="labown"><span>🏪 ลงขายในตลาด • ผู้ขาย ${esc(f.L.seller)}</span><b>${money(f.L.price)}</b></div>`); return; }
+          if (a === 'mkbuy') { const f = rows.find(x => x.L.id === +b.dataset.l); if (!f || mkBusy) return; if (bagFull()) { toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ซื้อพลอยเพิ่มไม่ได้`, 'bad'); SFX.play('deny'); return; }
+            return confirmBox(`ซื้อ <b>${esc(gemName(f.g))}</b> ${f.g.carat.toFixed(2)} กะรัต สี${esc(gemColorName(f.g))} เกรด ${GRADES[f.g.flaw]}<br>จาก <b>${esc(f.L.seller)}</b> ในราคา <b>${baht(f.L.price)} บาท</b> ?<br><small class="muted">ราคาประเมินของร้านในเกม ${baht(estValue(f.g))} บาท • ซื้อแล้วคืนไม่ได้</small>`, 'ซื้อเลย', () => { mkBusy = true; market();
+              MK.op('buy', { id: f.L.id, price: f.L.price }, d => { if (!CONFIG.infiniteCoins) STATE.coins -= d.price; const g = normGem(d.gem, { nextId: 2e9 }); if (g) { if (d.gem.jumbo) g.jumbo = true; STATE.inv.push(g); } STATE.nextId = Math.max(STATE.nextId | 0, d.nextId | 0); })
+                .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('done'); toast(`ซื้อ <b>${esc(gemName(f.g))}</b> แล้ว จ่าย ${baht(f.L.price)} บาท • พลอยอยู่ในกระเป๋า`, 'good'); hud(); } if (openName === 'market' || openName === 'wconfirm') market(); }); }, () => market()); } }, { wide: true });
+      panel.querySelectorAll('.mkflt select').forEach(el => el.addEventListener('change', e => { const k = el.dataset.f; mkF[k] = e.target.value; mkF.page = 0; if (k === 'state' && mkF.state === 'raw') mkF.shape = ''; if (k === 'type' && mkF.origin && GEMS[mkF.type] && !originKeys(mkF.type).includes(mkF.origin)) mkF.origin = ''; SFX.play('click'); mkRefresh(); }));
+      api.onE = null; return; }
+    // ---- แท็บ "ขายของฉัน": ประกาศที่ลงไว้ + เงินรอรับ + ประวัติ ----
+    const M = mkM, now = (M && M.now) || Date.now(), open = (M && M.open) || [], act = open.filter(x => x.status === 'active'), hist = (M && M.hist) || [];
+    const row = L => { const g = mkGem(L); if (!g) return ''; const exp = L.exp <= now;
+      const right = L.status === 'sold' ? (L.bought ? `<b>${money(L.price)}</b><br><small class="muted">คุณซื้อจาก ${esc(L.seller || '')}</small><br><small class="muted">${mkAgo(L.sold)}</small>` : `<b>${money(L.net != null ? L.net : L.price)}</b><br><small class="muted">ขายให้ ${esc(L.buyer || '')} ${baht(L.price)}</small><br>${L.paid ? `<small class="muted">รับเงินแล้ว • ${mkAgo(L.sold)}</small>` : '<span class="mkst ok">ขายได้แล้ว • รอรับเงิน</span>'}`)
+        : `<b>${money(L.price)}</b><br><span class="mkst ${exp ? 'bad' : ''}">${mkLeft(L.exp, now)}</span><br><button class="btn small" data-a="mkcancel" data-l="${L.id}" ${mkBusy ? 'disabled' : ''}>${exp ? 'รับพลอยคืน' : 'ยกเลิกขาย'}</button>`;
+      return gemRow(g, right, false, 'mkview'); };
+    const body = wait || `${open.length ? open.map(row).join('') : '<div class="empty">คุณยังไม่ได้ลงขายพลอย — กด “➕ ลงขายพลอย” เพื่อเลือกพลอยจากกระเป๋าหรือตู้เซฟ แล้วตั้งราคาเอง</div>'}${hist.length ? `<div class="mkh">ประวัติล่าสุด</div>${hist.map(row).join('')}` : ''}`;
+    show('market', `${head}${dueBar}<div class="sctool mkflt"><span>ลงขายอยู่ <b>${act.length}</b>/${MK_RULE.max} เม็ด</span><span class="muted small">ประกาศอยู่ได้ ${MK_RULE.days} วัน • ขายได้หักค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% • ยกเลิกแล้วพลอยกลับเข้ากระเป๋า</span></div><div class="list mklist">${body}</div>
+      <div class="row end"><button class="btn gold" data-a="mkadd" ${act.length >= MK_RULE.max || !M ? 'disabled' : ''}>➕ ลงขายพลอย</button><button class="btn" data-a="close">ปิด</button></div>`,
+      (a, b) => { if (common(a, b)) return;
+        if (a === 'mkadd') return mkPick();
+        if (a === 'mkview') { const L = [...open, ...hist].find(x => -x.id === +b.dataset.id), g = L && mkGem(L); if (g) return gemDetail(g, () => market()); return; }
+        if (a === 'mkcancel') { const L = open.find(x => x.id === +b.dataset.l); if (!L || mkBusy) return; if (bagFull()) { toast(`🎒 กระเป๋าเต็ม (${bagUsed()}/${bagCap()}) — ทำที่ว่างก่อนรับพลอยคืน`, 'bad'); SFX.play('deny'); return; } mkBusy = true; mkDraw();
+          MK.op('cancel', { id: L.id }, d => { const g = normGem(d.gem, { nextId: 2e9 }); if (g) { if (d.gem.jumbo) g.jumbo = true; STATE.inv.push(g); } STATE.nextId = Math.max(STATE.nextId | 0, d.nextId | 0); })
+            .then(r => { mkBusy = false; if (r.err) { toast(esc(r.err), 'bad'); SFX.play('deny'); } else { SFX.play('click'); toast('ยกเลิกประกาศแล้ว พลอยกลับเข้ากระเป๋า', 'good'); hud(); } if (openName === 'market') mkRefresh(); }); } }, { wide: true });
+    api.onE = null;
+  }
+  // เลือกพลอยที่จะลงขาย (จากกระเป๋า + ตู้เซฟ)
+  function mkPick() {
+    const S = safeState(), all = [...STATE.inv.map(g => ({ g, src: 'bag' })), ...S.gems.map(g => ({ g, src: 'safe' }))], cnt = k => all.filter(x => x.g.state === k).length; if (!cnt(mkPickTab) && cnt(mkPickTab === 'cut' ? 'raw' : 'cut')) mkPickTab = mkPickTab === 'cut' ? 'raw' : 'cut';
+    const L = all.filter(x => x.g.state === mkPickTab).sort((a, b) => gemSort(a.g, b.g));
+    show('mkpick', `<h3>📦 เลือกพลอยที่จะลงขาย</h3><div class="sctool"><div class="scseg">${[['cut', `เจียระไนแล้ว (${cnt('cut')})`], ['raw', `พลอยก้อน (${cnt('raw')})`]].map(([k, t]) => `<button class="${mkPickTab === k ? 'on' : ''}" data-a="pktab" data-t="${k}">${t}</button>`).join('')}</div><span class="muted small">พลอยจากกระเป๋าและตู้เซฟ • พลอยในตู้โชว์ต้องถอดออกก่อน</span></div>
+      <div class="list">${L.length ? L.map(({ g, src }) => gemRow(g, `<small class="muted">${src === 'bag' ? 'ในกระเป๋า' : 'ในตู้เซฟ'}</small><br>ประเมิน ${money(estValue(g))}<br><button class="btn small gold" data-a="pkgo" data-id="${g.id}">เลือก</button>`, false, 'pkgo')).join('') : '<div class="empty">ไม่มีพลอยแบบนี้ในกระเป๋าหรือตู้เซฟ</div>'}</div>
+      <div class="row end"><button class="btn" data-a="pkback">◀ กลับ</button></div>`,
+      (a, b) => { if (a === 'pktab') { mkPickTab = b.dataset.t; return mkPick(); } if (a === 'pkback') return market('sell'); if (a === 'pkgo') { const f = L.find(x => x.g.id === +b.dataset.id); if (f) return mkPrice(f.g); } }, { wide: true });
+    api.onE = null;
+  }
+  // ตั้งราคา: แสดงราคาประเมิน ช่วงราคาที่ตั้งได้ ค่าธรรมเนียม เงินที่จะได้รับ และราคาที่ขายกันล่าสุด
+  function mkPrice(g, msg) {
+    const ev = estValue(g), lo = Math.max(1, Math.floor(ev * MK_RULE.lo)), hi = Math.ceil(ev * MK_RULE.hi), start = Math.round(ev * 1.2);
+    show('mkprice', `<h3>🏷 ตั้งราคาขาย</h3><div class="list">${gemRow(g, `<small class="muted">ราคาประเมิน</small><br><b>${money(ev)}</b>`, true, 'none')}</div>
+      <div class="wreg mkreg"><input id="mkp" type="number" min="1" step="1" value="${start * BAHT}" inputmode="numeric"><span class="bunit">บาท</span><button class="btn small" data-a="pc" data-f="0.9">−10%</button><button class="btn small" data-a="pc" data-f="1.1">+10%</button><button class="btn small" data-a="pe">= ราคาประเมิน</button></div>
+      <p class="mknet" id="mknet"></p>${msg ? `<p class="bad">${esc(msg)}</p>` : ''}
+      <p class="muted small">ตั้งราคาได้ตั้งแต่ ${baht(lo)} ถึง ${baht(hi)} บาท (ครึ่งหนึ่งถึง ${MK_RULE.hi} เท่าของราคาประเมิน) • ประกาศอยู่ได้ ${MK_RULE.days} วัน • ระหว่างลงขาย พลอยจะถูกเก็บไว้ที่ตลาด</p>
+      <p class="muted small" id="mkrecent">กำลังดูราคาที่ขายกันล่าสุด…</p>
+      <div class="row end"><button class="btn" data-a="back">◀ กลับ</button><button class="btn gold" data-a="go" id="mkgo">ลงขาย</button></div>`,
+      (a, b) => { const inp = $('#mkp');
+        if (a === 'input') return upd();
+        if (a === 'pc') { inp.value = Math.max(BAHT, Math.round((+inp.value || start * BAHT) * +b.dataset.f)); return upd(); }
+        if (a === 'pe') { inp.value = ev * BAHT; return upd(); }
+        if (a === 'back') return mkPick();
+        if (a === 'go') { const price = Math.round(+inp.value / BAHT); if (!(price >= lo && price <= hi)) return mkPrice(g, `ราคาต้องอยู่ระหว่าง ${baht(lo)} ถึง ${baht(hi)} บาท`); if (mkBusy) return; mkBusy = true; $('#mkgo').disabled = true; $('#mkgo').textContent = 'กำลังลงขาย…';
+          MK.op('list', { gid: g.id, price, est: ev }, () => { let i = STATE.inv.indexOf(g); if (i >= 0) STATE.inv.splice(i, 1); else { const S = safeState(); i = S.gems.indexOf(g); if (i >= 0) S.gems.splice(i, 1); } })
+            .then(r => { mkBusy = false; if (r.err) { SFX.play('deny'); if (openName === 'mkprice') mkPrice(g, r.err); else toast(esc(r.err), 'bad'); return; } SFX.play('done'); toast(`ลงขาย <b>${esc(gemName(g))}</b> ราคา ${baht(price)} บาท แล้ว`, 'good'); hud(); market('sell'); }); } }, { wide: true });
+    const upd = () => { const el = $('#mknet'), inp = $('#mkp'); if (!el || !inp) return; const price = Math.round(+inp.value / BAHT), fee = Math.floor(price * MK_RULE.fee), bad = !(price >= lo && price <= hi);
+      el.innerHTML = price > 0 ? `ราคาที่ลงขาย <b>${baht(price)} บาท</b> • ค่าธรรมเนียม ${Math.round(MK_RULE.fee * 100)}% = ${baht(fee)} บาท • <span class="${bad ? 'bad' : 'good'}">ขายได้คุณรับ <b>${baht(price - fee)} บาท</b></span>${bad ? ' — ราคาอยู่นอกช่วงที่ตั้งได้' : price < ev ? ' <span class="muted">(ต่ำกว่าราคาที่ร้านในเกมรับซื้อ)</span>' : ''}` : 'ใส่ราคาที่ต้องการ'; };
+    upd(); api.onE = null;
+    MK.recent(g.type, g.state).then(r => { const el = $('#mkrecent'); if (!el || openName !== 'mkprice') return; const R = (r.d && r.d.rows) || [];
+      el.innerHTML = R.length ? `ขายกันล่าสุด (${esc(mkName(g.type)[0])} ${g.state === 'cut' ? 'เจียระไน' : 'ก้อน'}): ` + R.slice(0, 5).map(x => `${(+x.gem.carat).toFixed(2)} กะรัต เกรด ${GRADES[x.gem.flaw] || '-'} <b>${baht(x.price)}</b>`).join(' • ') : 'ยังไม่มีประวัติการขายพลอยชนิดนี้ในตลาด'; });
+  }
+  Object.assign(api, { market, topCheck, topAnnounce, cps, mineSelect, character, editHero, safe, showcase: (cty) => { scCase = !!(cty && COUNTRIES[cty]); scView = null; scSlot = null; scCty = cty && COUNTRIES[cty] ? cty : ''; if (scCty) { scPage = 1; scSel = ''; } showcase(); }, viewShowcase, dismiss, offers, bellSync, hintSync, mint, jeweler, board, player, worldEvents, toggleOdds, init, hud, show, close, isOpen: () => !!openName, invSec: () => invSec, current: () => openName, intro, elder, craftsman, rawDealer, cutDealer, bag, sellRaw, sellCut, hire, queue, refreshQueue, selfCut, menu, traceRays, maxFrac, lightReturn, aunt, home, shop, equipment, gemDetail, travel, agentBack, repair, climateHelp, mineOdds, cutStats: () => cutStats(), cutFitMax: () => cutFitMax(), cutState: () => CUT });
   Object.defineProperty(api, 'open', { get: () => openName });
   return api;
 })();
 
-window.GAME_BUILD="1795251084";
+window.GAME_BUILD="1795253663";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {

@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const market = require('./market');
 
 const DB_URL = process.env.DATABASE_URL || '';
 const SECRET = process.env.TOKEN_SECRET || crypto.createHash('sha256').update('nlpc:' + (DB_URL || 'dev-secret')).digest('hex');
@@ -15,14 +16,15 @@ let store;
 function fileStore(note) {
   const FILE = path.join(__dirname, 'data', 'players.json');
   let db = {}; try { db = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
-  let t = null; const flush = () => { clearTimeout(t); t = setTimeout(() => { try { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db)); } catch (e) { console.error('accounts: file write', e.message); } }, 200); };
+  const MFILE = path.join(__dirname, 'data', 'market.json'), raw = { market: null, users: () => db, restore: o => { db = o; }, flush: () => flush() }; try { raw.market = JSON.parse(fs.readFileSync(MFILE, 'utf8')); } catch (e) {}
+  let t = null; const flush = () => { clearTimeout(t); t = setTimeout(() => { try { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db)); if (raw.market) fs.writeFileSync(MFILE, JSON.stringify(raw.market)); } catch (e) { console.error('accounts: file write', e.message); } }, 200); };
   console.log('accounts: ' + note);
   const live = () => Object.values(db).filter(u => !u.ban);
-  return {
+  const S = {
     kind: 'file', ready: Promise.resolve(),
     async get(l) { return db[l] || null; },
     async create(u) { if (db[u.lname]) return false; db[u.lname] = { ...u, rev: 0, lv: 1, gval: 0, pub: u.pub || {}, save: null, created: Date.now(), updated: Date.now() }; flush(); return true; },
-    async save(l, save, pub, lv, gval) { const u = db[l]; if (!u) return 0; u.save = save; u.pub = pub; u.lv = lv; u.gval = gval; u.rev = (u.rev || 0) + 1; u.updated = Date.now(); flush(); return u.rev; },
+    async save(l, save, pub, lv, gval, rev) { const u = db[l]; if (!u || (rev != null && (u.rev | 0) !== (rev | 0))) return 0; u.save = save; u.pub = pub; u.lv = lv; u.gval = gval; u.rev = (u.rev || 0) + 1; u.updated = Date.now(); flush(); return u.rev; },
     async setAuth(l, salt, hash) { const u = db[l]; if (u) { u.salt = salt; u.hash = hash; flush(); } },
     async setRecovery(l, rhash) { const u = db[l]; if (u) { u.rhash = rhash; flush(); } },
     async rename(ol, nl, name) { const u = db[ol]; if (!u) return false; if (nl !== ol && db[nl]) return false; delete db[ol]; u.lname = nl; u.name = name; u.updated = Date.now(); db[nl] = u; flush(); return true; },
@@ -32,6 +34,7 @@ function fileStore(note) {
         levels: all.slice().sort((a, b) => b.lv - a.lv || (b.pub.xp || 0) - (a.pub.xp || 0) || a.updated - b.updated).slice(0, n).map(u => ({ name: u.name, lv: u.lv })), n: all.length };
     },
   };
+  market.attachFile(S, raw); return S;
 }
 if (DB_URL) {
   const { Pool } = require('pg');
@@ -47,7 +50,8 @@ if (DB_URL) {
       save JSONB, pub JSONB NOT NULL DEFAULT '{}', lv INTEGER NOT NULL DEFAULT 1, gval DOUBLE PRECISION NOT NULL DEFAULT 0, rev INTEGER NOT NULL DEFAULT 0,
       created TIMESTAMPTZ NOT NULL DEFAULT now(), updated TIMESTAMPTZ NOT NULL DEFAULT now())`)
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_gval ON gem_players (gval DESC)'))
-    .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_lv ON gem_players (lv DESC)'));
+    .then(() => pool.query('CREATE INDEX IF NOT EXISTS gem_players_lv ON gem_players (lv DESC)'))
+    .then(async () => { for (const q of market.DDL) await pool.query(q); });   /* ตลาดเทรด: ตารางประกาศขาย + คอลัมน์จดพลอยที่ออกจากบัญชี */
   // ต่อไม่ติดตอนเริ่ม → ปิดระบบบัญชีชั่วคราว (ไม่ให้เซิร์ฟเวอร์ล่ม) แล้ว "ลองต่อใหม่เองทุก 10 วินาที" จนติด — เดิมพลาดครั้งเดียวแล้วปิดยาวจนกว่าจะรีสตาร์ต
   const retryLater = () => setTimeout(() => initDb().then(() => { store = dbStore; console.log('accounts: database reconnected → using Postgres'); }).catch(e => { if (fallback) fallback.dbError = e.message; console.error('accounts: still no database: ' + e.message); retryLater(); }), 10000);
   const ready = initDb()
@@ -58,9 +62,10 @@ if (DB_URL) {
     });
   dbStore = {
     kind: 'db', ready,
-    async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT lname,name,salt,hash,rhash,ban,save,pub,lv,gval,rev FROM gem_players WHERE lname=$1', [l]); return r.rows[0] || null; },
+    async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT lname,name,salt,hash,rhash,ban,save,pub,lv,gval,rev,mkt FROM gem_players WHERE lname=$1', [l]); return r.rows[0] || null; },
     async create(u) { await ready; if (store !== dbStore) return store.create(u); const r = await pool.query('INSERT INTO gem_players (lname,name,salt,hash,rhash,pub) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING lname', [u.lname, u.name, u.salt, u.hash, u.rhash, JSON.stringify(u.pub || {})]); return r.rowCount === 1; },
-    async save(l, save, pub, lv, gval) { await ready; if (store !== dbStore) return store.save(l, save, pub, lv, gval); const r = await pool.query('UPDATE gem_players SET save=$2, pub=$3, lv=$4, gval=$5, rev=rev+1, updated=now() WHERE lname=$1 RETURNING rev', [l, JSON.stringify(save), JSON.stringify(pub), lv, gval]); return r.rows[0] ? r.rows[0].rev : 0; },
+    /* rev = เลขรุ่นที่เครื่องถืออยู่: เขียนได้เฉพาะเมื่อยังตรงกับฐานข้อมูล "ในคำสั่งเดียวกัน" (กันเซฟเก่าเขียนทับหลังตลาดเพิ่งหยิบพลอย/หักเงิน) */
+    async save(l, save, pub, lv, gval, rev) { await ready; if (store !== dbStore) return store.save(l, save, pub, lv, gval, rev); const r = await pool.query('UPDATE gem_players SET save=$2, pub=$3, lv=$4, gval=$5, rev=rev+1, updated=now() WHERE lname=$1 AND ($6::int IS NULL OR rev=$6::int) RETURNING rev', [l, JSON.stringify(save), JSON.stringify(pub), lv, gval, rev == null ? null : rev | 0]); return r.rows[0] ? r.rows[0].rev : 0; },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE gem_players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE gem_players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
     async rename(ol, nl, name) { await ready; if (store !== dbStore) return store.rename(ol, nl, name);
@@ -72,6 +77,7 @@ if (DB_URL) {
       const c = await pool.query('SELECT count(*)::int AS n FROM gem_players WHERE ban IS NULL');
       return { gems: g.rows.map(u => ({ name: u.name, value: +u.gval, gem: u.gem, lv: u.lv })), levels: l.rows.map(u => ({ name: u.name, lv: u.lv })), n: c.rows[0].n }; },
   };
+  market.attachDb(dbStore, pool, rawPool);
   store = dbStore;
 } else {
   store = fileStore('no DATABASE_URL → using local file (test only, data is lost when the server restarts on Render)');
@@ -193,7 +199,7 @@ async function handleApi(req, res, p) {
     const u = await authUser(req);
     if (!u) return out(401, { err: 'ต้องเข้าสู่ระบบใหม่' });
     { const o = seen.get(u.lname); touch(u.lname, u.name, o && o.cty ? '' : ctyOfMap(u.save && u.save.pos && u.save.pos.map), o && o.lv ? 0 : +(u.save && u.save.lv) || 0); }
-    if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } let top = null; try { const B = await board(), t = B.gems && B.gems[0]; if (t && t.gem) top = { name: t.name, value: t.value, gem: t.gem }; } catch (e) {} return out(200, { online: onlineCount(), top }); } /* top = อันดับ 1 ของบอร์ด (แคช 15 วิ) → ทุกเครื่องรู้ทันทีเมื่ออันดับ 1 เปลี่ยน แล้วโชว์ป้ายประกาศ */
+    if (p === '/api/ping') { if (req.method === 'POST') { const b = await readBody(req, 1024); const c = String(b.cty || ''); if (/^[a-z]{2,12}$/.test(c)) touch(u.lname, u.name, c); } let top = null; try { const B = await board(), t = B.gems && B.gems[0]; if (t && t.gem) top = { name: t.name, value: t.value, gem: t.gem }; } catch (e) {} let mk = 0; try { mk = await market.dueOf(store, u.lname); } catch (e) {} return out(200, { online: onlineCount(), top, mkt: mk }); } /* top = อันดับ 1 ของบอร์ด (แคช 15 วิ) → ทุกเครื่องรู้ทันทีเมื่ออันดับ 1 เปลี่ยน แล้วโชว์ป้ายประกาศ */
     if (p === '/api/online') return out(200, { online: onlineCount(), list: onlineList() });
     if (p === '/api/me' && req.method === 'GET') return out(200, { name: u.name, hero: heroId(u.save?.hero || u.pub?.hero), save: u.save || null, rev: u.rev || 0 });
     if (p === '/api/save' && req.method === 'POST') {
@@ -211,7 +217,9 @@ async function handleApi(req, res, p) {
         const oc = o.showcase && typeof o.showcase === 'object' ? Object.keys(o.showcase).length : 0, nc = save.showcase && typeof save.showcase === 'object' ? Object.keys(save.showcase).length : 0;
         /* ผู้เล่นกดปุ่ม "ถอดออก" เองในตู้โชว์: เครื่องส่งจำนวนที่ตั้งใจถอด (scOut) มาด้วย → ไม่นับเป็นข้อมูลหาย */
         if (oc - nc > 3 + Math.min(1000, Math.max(0, b.scOut | 0))) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
-      const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval); { const c = ctyOfMap(save.pos && save.pos.map); touch(u.lname, u.name, c, P.lv); } /* ประเทศล่าสุดจากเซฟ */
+      market.stripGone(save, market.mktOf(u).gone);   /* พลอยที่ฝากขาย/ขายไปแล้วในตลาด ต้องไม่กลับมาอยู่ในเซฟ (กันพลอยงอก) */
+      const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval, u.rev | 0);
+      if (!rev) { const cur = await store.get(u.lname); return out(409, { err: 'มีการเล่นบัญชีนี้จากอีกเครื่อง', rev: cur ? cur.rev | 0 : 0 }); } { const c = ctyOfMap(save.pos && save.pos.map); touch(u.lname, u.name, c, P.lv); } /* ประเทศล่าสุดจากเซฟ */
       return out(200, { ok: true, rev });
     }
     if (p === '/api/password' && req.method === 'POST') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
@@ -227,11 +235,14 @@ async function handleApi(req, res, p) {
       const b = await readBody(req, 8192), name = cleanName(b.name), nl = lower(name);
       if ([...name].length < 2) return out(400, { err: 'ชื่อต้องยาว 2–16 ตัวอักษร' });
       if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันอยู่แล้ว' });
-      if (!await store.rename(u.lname, nl, name)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
-      boardCache = null; seen.delete(u.lname); touch(nl);
+      const ol = u.lname;   /* จดชื่อเดิมไว้ก่อน (ที่เก็บแบบไฟล์แก้ object เดียวกัน) */
+      if (!await store.rename(ol, nl, name)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
+      try { if (store.mRename) await store.mRename(ol, nl, name); if (market.due.has(ol)) { market.due.set(nl, market.due.get(ol)); market.due.delete(ol); } } catch (e) { console.error('market rename', e.message); }
+      boardCache = null; seen.delete(ol); touch(nl);
       return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name });
     }
     if (p === '/api/recovery' && req.method === 'POST') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
+    if (await market.handle(req, res, p, { u, out, readBody, limited, store, minBuild: MIN_BUILD })) return;
     return out(404, { err: 'not found' });
   } catch (e) { console.error('api error', p, e); return out(500, { err: 'เซิร์ฟเวอร์ขัดข้อง ลองใหม่อีกครั้ง' }); }
 }
