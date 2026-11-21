@@ -1119,8 +1119,8 @@ const ITEMS = {
   wpn4: { slot: 'weapon', dur: 1500, name: 'ดาบผลึกน้ำเงิน', tier: 3, dmg: 24, range: 27, col: '#6ab8ff', price: 3500 },
   wpn5: { slot: 'weapon', dur: 3000, name: 'ดาบทับทิมเลือดนก', tier: 4, dmg: 34, range: 28, col: '#ff3a50', price: 6000 },
   // ปืน: ยิงเป็นนัด ต้องมีกระสุน — ปืนสั้นยิงทีละนัด (กดหนึ่งครั้ง = หนึ่งนัด) / ปืนยาวอาก้ายิงออโต้ (กดค้าง)
-  gun1: { slot: 'weapon', dur: 600, name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 70, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 37500 /* ×5 (21 พ.ย. 2569) */ },
-  gun2: { slot: 'weapon', dur: 2500, name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 50, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 157500 /* ×7 (21 พ.ย. 2569) */ },
+  gun1: { slot: 'weapon', dur: 600, name: 'ปืนพกสั้น', tier: 2, gun: 'pistol', ammo: 'a9', dmg: 70, rate: 0.3, auto: false, spread: 0.03, range: 220, col: '#3a3a42', price: 18750 /* ×5 แล้วลดครึ่ง (21 พ.ย. 2569) */ },
+  gun2: { slot: 'weapon', dur: 2500, name: 'ปืนยาวอาก้า (ออโต้)', tier: 2, req: 25, gun: 'rifle', ammo: 'a762', dmg: 50, rate: 0.1, auto: true, spread: 0.08, range: 260, col: '#8a5a2a', price: 78750 /* ×7 แล้วลดครึ่ง (21 พ.ย. 2569) */ },
   /* หน้าไม้: ยิงไกลแบบปืนแต่ไม่ใช้ลูก (ยิงได้ไม่จำกัด) มีอายุการใช้งาน ซ่อมได้ • แรงน้อยกว่าปืน (ปืนต้องซื้อกระสุน) — ปืนแรงขึ้น 5 เท่า (20 พ.ย. 2569) */
   xbow1: { slot: 'weapon', dur: 1500, name: 'หน้าไม้นักล่า', tier: 2, gun: 'xbow', dmg: 30, rate: 0.75, auto: false, spread: 0.012, range: 240, col: '#8a5a2a', price: 5000 },
   arm1: { slot: 'armor', warm: -1, name: 'เสื้อม่อฮ่อม', tier: 0, def: 0, hp: 0, sta: 0, col: '#3f6fa8' },
@@ -11777,7 +11777,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795220837";
+window.GAME_BUILD="1795221024";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
