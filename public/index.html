@@ -1979,7 +1979,7 @@ function migrateSave(s) {
   st.questProg = Number(s.questProg ?? s.quest?.progress ?? s.soldCount ?? 0) || 0;
   if (s.stats) Object.assign(st.stats, s.stats);
   if (s.warp && typeof s.warp === 'object' && typeof s.warp.map === 'string') st.warp = { map: s.warp.map, town: String(s.warp.town || 'village'), x: +s.warp.x || 0, y: +s.warp.y || 0, dx: s.warp.dx == null ? +s.warp.x || 0 : +s.warp.dx, dy: s.warp.dy == null ? +s.warp.y || 0 : +s.warp.dy, tx: +s.warp.tx || 0, ty: +s.warp.ty || 0, used: !!s.warp.used, usedAt: +s.warp.usedAt || 0 };
-  st.clickMove = s.clickMove !== false; // ตั้งค่า: คลิกเมาส์เพื่อเดิน (ค่าเริ่มต้น เปิด)
+  st.clickMove = s.clickMove !== false; st.saver = s.saver === true || s.saver === false ? s.saver : null; /* โหมดประหยัดแบต: null = อัตโนมัติ (มือถือเปิด คอมปิด) */ // ตั้งค่า: คลิกเมาส์เพื่อเดิน (ค่าเริ่มต้น เปิด)
   st.mineRun = Math.max(1, Number(s.mineRun) || 1);
   if (Array.isArray(s.deathBags)) st.deathBags = s.deathBags.filter(b => b && typeof b.map === 'string').map(b => ({ map: b.map, x: +b.x || 0, y: +b.y || 0, t: +b.t || 0, eq: b.eq && typeof b.eq === 'object' ? Object.fromEntries(Object.entries(b.eq).filter(([k, v]) => typeof v === 'string' && ITEMS[v])) : {}, gems: (Array.isArray(b.gems) ? b.gems : []).map(g => normGem(g, st)).filter(Boolean), items: (Array.isArray(b.items) ? b.items : []).filter(x => x && ITEMS[x.id]).map(x => { const o = { uid: Number(x.uid) || st.nextUid++, id: x.id, slot: ITEMS[x.id].slot }; if (ITEMS[x.id].dur) o.dur = clamp(Number(x.dur ?? ITEMS[x.id].dur) * (s.durV === 2 ? 1 : 2), 0, maxDur({ id: x.id, q: Number(x.q) | 0, mods: x.mods && typeof x.mods === 'object' ? x.mods : null })); /* durV 2 = ความทนทานพลั่ว ×2: เซฟเก่าคูณค่าที่เหลือให้ตามสัดส่วนเดิม */ return o; }) }));
   if (s.board && typeof s.board === 'object') { const B = s.board; st.board = { open: !!B.open, openAt: +B.openAt || 0, gemId: B.gemId ?? null, top: typeof B.top === 'string' ? B.top : null, offers: Array.isArray(B.offers) ? B.offers.filter(o => o && typeof o.bot === 'string').slice(0, 20) : [], my: Array.isArray(B.my) ? B.my.filter(o => o && typeof o.bot === 'string').slice(-12) : [], taken: B.taken && typeof B.taken === 'object' ? { ...B.taken } : {}, given: {} }; if (B.given && typeof B.given === 'object') for (const k in B.given) { const gv = B.given[k], gg = gv && normGem(gv.gem, st); if (gg) st.board.given[k] = { idx: +gv.idx || 0, gem: gg }; } }
@@ -9020,7 +9020,7 @@ let buf, bctx, lightC, lctx, vignette;
 const PB = { w: 10, h: 6 };
 
 function resize() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(typeof saverOn === 'function' && saverOn() ? 1.5 : 2, window.devicePixelRatio || 1);
   const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
   screenC.width = W; screenC.height = H; G.dpr = dpr;
   G.S = Math.max(2, Math.floor(Math.sqrt(W * H / (PIXEL ? 59000 : 400 * 235)))); // ธีมพิกเซล: ซูมใกล้ขึ้น ตัวละครใหญ่ เห็นชัด
@@ -10269,8 +10269,13 @@ function drawOverlayText(camX, camY, shx, shy) {
   if (G.banner) { const t = G.banner.t, a = t < 0.3 ? t / 0.3 : t > 2 ? Math.max(0, 1 - (t - 2) / 0.6) : 1; c.globalAlpha = a; const y = screenC.height * 0.24; c.font = font(Math.round(fs * 1.7), 600); c.lineWidth = fs * 0.4; c.strokeStyle = '#140a04'; const txt = `— ${G.banner.text} —`; c.strokeText(txt, screenC.width / 2, y); c.fillStyle = isMine(m) && G.zone ? shade(ZONES[G.zone].tint, 0.3) : '#ffe7b0'; c.fillText(txt, screenC.width / 2, y); c.globalAlpha = 1; }
 }
 
-let lastT = 0;
+/* โหมดประหยัดแบต (มือถือเปิดเองอัตโนมัติ ปิดได้ในเมนู): วาด 30 ภาพ/วินาที + ลดความละเอียดจอเหลือ 1.5 เท่า → เครื่องร้อนน้อยลง แบตอยู่นานขึ้น
+   โหมดปกติ: ไม่เกิน 60 ภาพ/วินาที (จอ 90/120Hz เดิมวาดเต็ม 120 ภาพ/วินาที เปลืองแบตโดยไม่จำเป็น) */
+const saverOn = () => (typeof STATE !== 'undefined' && STATE && STATE.saver != null) ? !!STATE.saver : !!G.touch;
+let lastT = 0, _svKey = null;
 function frame(ts) {
+  const sv = saverOn(); if (sv !== _svKey) { _svKey = sv; try { resize(); } catch (e) {} }
+  if (ts - lastT < (sv ? 1000 / 30 : 1000 / 60) - 2.5) { requestAnimationFrame(frame); return; }
   const dt = Math.min(0.05, (ts - lastT) / 1000 || 0.016); lastT = ts;
   try { update(dt); render(); } catch (e) { console.error(e); }
   requestAnimationFrame(frame);
@@ -12146,6 +12151,8 @@ const UI = (() => {
       <button class="btn" data-a="mus">🎵 เพลงบรรเลง: ${STATE.music === false ? 'ปิด' : 'เปิด'}</button>
       <button class="btn" data-a="cmove">🖱 คลิกเมาส์เพื่อเดิน: ${STATE.clickMove !== false ? 'เปิด' : 'ปิด'}</button>
       <p class="muted small" style="margin:-2px 0 4px">${STATE.clickMove !== false ? 'คลิกซ้ายที่พื้น = เดินไป • คลิกหิน = เดินไปขุด • คลิกขวา = ฟัน/ยิง' : 'เดินด้วย WASD อย่างเดียว • คลิกซ้าย (ค้างได้) = ขุด/ฟัน/ยิง ไปทางเมาส์ โดยไม่เดิน'}</p>
+      <button class="btn" data-a="saver">🔋 โหมดประหยัดแบต: ${saverOn() ? 'เปิด' : 'ปิด'}</button>
+      <p class="muted small" style="margin:-2px 0 4px">${saverOn() ? 'ภาพ 30 เฟรม/วินาที ความละเอียดลดลงเล็กน้อย — เครื่องร้อนน้อยลง แบตอยู่นานขึ้น' : 'ภาพลื่น 60 เฟรม/วินาที ความละเอียดเต็ม — ใช้แบตมากกว่า'}</p>
       <button class="btn" data-a="board">🏆 บอร์ดโชว์พลอยทั้งเกม</button>
       <button class="btn" data-a="player">👤 ${NET.online ? 'บัญชี' : 'ผู้เล่น'}: ${curPlayer() ? curPlayer().name.replace(/[<>&]/g, '') : 'ยังไม่ได้ลงทะเบียน'}</button>
       <button class="btn" data-a="help">วิธีเล่น</button>
@@ -12155,6 +12162,7 @@ const UI = (() => {
       a => {
         if (a === 'snd') { STATE.muted = !STATE.muted; saveGame(); menu(); }
         else if (a === 'mus') { STATE.music = STATE.music === false; saveGame(); menu(); }
+        else if (a === 'saver') { STATE.saver = !saverOn(); SFX.play('click'); saveGame(); menu(); }
         else if (a === 'cmove') { STATE.clickMove = STATE.clickMove === false; G.mouseTap = false; PL.path = null; PL.act = null; SFX.play('click'); saveGame(); hintSync(); menu(); }
         else if (a === 'board') board();
         else if (a === 'player') player();
@@ -12202,7 +12210,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795249077";
+window.GAME_BUILD="1795251084";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
