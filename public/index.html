@@ -8101,9 +8101,10 @@ const SPAWN_SLOW = 10 / MON_MORE; // ศัตรูเกิดใหม่ช�
 function monDepthLevel(o, tier) { const lo = monLevel('snake', tier), hi = monLevel('brute', tier), f = clamp((o.y / 16 - 14) / (MINE_H - 22), 0, 1), def = MONS[o.type] || {};
   const bias = (def.big || o.type === 'brute' || o.type === 'boss' ? 2 : 0) + (o.var || 0) - (o.type === 'snake' || o.type === 'bat' ? 1 : 0); return clamp(Math.round(lo + (hi - lo) * f + bias), lo, hi); }
 // เลเวลศัตรูตามผู้เล่นเสมอ: ทั่วไป = เลเวลผู้เล่น +2 • หัวหน้า (แม่ทัพ/มินิบอส/บอส) = +4 ไม่ว่าอยู่ชั้นไหน • ผู้เล่นเลเวลขึ้น ศัตรูที่มีอยู่ก็ปรับตามทันที (เลือดคงสัดส่วนเดิม)
-const MON_HP_MUL = 1.3; /* เลือดมอนทุกตัว +30% ชดเชยระบบล็อกเป้าอาวุธประชิด (21 พ.ย. 2569) */
+/* เลือดมอนเพิ่มตามเลเวลผู้เล่น (21 พ.ย. 2569): Lv 1–10 = +0% (มือใหม่เล่นง่าย) → ไล่ขึ้นเป็น +30% ที่ Lv 30 ขึ้นไป • ชดเชยระบบล็อกเป้าอาวุธประชิดสำหรับคนเลเวลสูง/ของดี */
+const monHpMul = pl => 1 + 0.3 * clamp((pl - 10) / 20, 0, 1);
 function monScale(o, full) { const def = MONS[o.type], pl = (typeof STATE !== 'undefined' && STATE && STATE.lv) || 1, lead = o.champ || def.mini || def.boss2 || o.type === 'boss'; o._pl = pl; o.lv = pl + (lead ? 4 : 2);
-  const max = Math.max(1, Math.round((o.hp0 || def.hp) * monPower(o.lv) / 6 * (def.big || o.type === 'brute' || o.type === 'boss' ? 0.5 : 1) * (o.champ ? 3.2 : 1) * MON_HP_MUL)), k = full || !o.max ? 1 : o.hp / o.max; o.max = max; o.hp = Math.max(1, Math.round(max * k));
+  const max = Math.max(1, Math.round((o.hp0 || def.hp) * monPower(o.lv) / 6 * (def.big || o.type === 'brute' || o.type === 'boss' ? 0.5 : 1) * (o.champ ? 3.2 : 1) * monHpMul(pl))), k = full || !o.max ? 1 : o.hp / o.max; o.max = max; o.hp = Math.max(1, Math.round(max * k));
   o.dmgMul = (o.dm0 || 1) * (1 + MON_DMG_PER_LV * (o.lv - 1)) * (o.champ ? 1.5 : 1); }
 function monTier(o, tier) { const T = MINE_TIERS[tier - 1]; o.tier = tier; const LR = MONS[o.type].lvR; o.lv = LR ? LR[0] + Math.floor(Math.random() * (LR[1] - LR[0] + 1)) : typeof MINE_H === 'number' && o.y != null ? monDepthLevel(o, tier) : monLevel(o.type, tier, o.var); o.xp = monXp(o.type, tier, o.var); o.hp0 = o.hp; /* ตัวใหญ่/บอส HP พื้นฐานสูงอยู่แล้ว คูณครึ่งเดียวพอ */ o.dm0 = o.dmgMul || 1; monScale(o, true); if (tier > 1) o.coinMul = (o.coinMul || 1) * T.coin; return o; }
 /* พลังศัตรูผูกกับเลเวลของมัน (ไม่ใช่ตัวคูณตายตัวต่อระดับเหมืองแบบเดิม): monPower(lv) ≈ ดาเมจต่อครั้งของผู้เล่นเลเวลเดียวกันที่ใส่ของตามเลเวล
@@ -11780,7 +11781,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795222586";
+window.GAME_BUILD="1795223500";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
