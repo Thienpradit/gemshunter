@@ -117,6 +117,7 @@ const tries = new Map();   // กันเดารหัสผ่าน / ส�
 function limited(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.now(), t = (tries.get(k) || []).filter(x => now - x < 600000); t.push(now); tries.set(k, t); if (tries.size > 20000) tries.clear(); return t.length > n; }
 
 // เซฟที่ส่งมา: ต้องเป็น object ธรรมดา ขนาดไม่เกินกำหนด
+const MIN_BUILD = 1795240000; /* บิลด์ขั้นต่ำที่ยอมให้เซฟ (เวอร์ชันที่ส่งเลขบิลด์มากับเซฟ) */
 function cleanSave(s) { if (!s || typeof s !== 'object' || Array.isArray(s)) return null; let str; try { str = JSON.stringify(s); } catch (e) { return null; } if (str.length > MAX_SAVE) return null; return JSON.parse(str); }
 // ข้อมูลขึ้นบอร์ด: เลเวลอ่านจากเซฟเอง (ไม่เชื่อค่าที่ส่งแยกมา) • พลอยเม็ดเด่นต้องเป็นพลอยที่อยู่ในกระเป๋าหรือตู้เซฟของเซฟนั้นจริง
 function pubOf(save, pub) {
@@ -200,6 +201,15 @@ async function handleApi(req, res, p) {
       const save = cleanSave(b.save); if (!save) return out(400, { err: 'เซฟไม่ถูกต้อง' });
       // rev = เลขรุ่นของเซฟบนเซิร์ฟเวอร์ที่เครื่องนี้ถืออยู่ — ถ้าไม่ตรง แปลว่ามีอีกเครื่องเซฟทับไปแล้ว → ไม่เขียนทับ ให้เครื่องนี้โหลดของใหม่
       if ((b.rev | 0) !== (u.rev | 0)) return out(409, { err: 'มีการเล่นบัญชีนี้จากอีกเครื่อง', rev: u.rev | 0 });
+      /* กันเกมเวอร์ชันเก่าเซฟทับ (21 พ.ย. 2569): เวอร์ชันเก่าไม่รู้จักกระเป๋า/ตู้โชว์ แล้วเซฟทับจนของหาย
+         1) ต้องส่งเลขบิลด์มา และไม่เก่ากว่า MIN_BUILD → ไม่งั้นตอบ 426 ให้รีเฟรช
+         2) กระเป๋า/ตู้เซฟซื้อแล้วลดไม่ได้ → ใช้ค่าที่สูงกว่า
+         3) ตู้โชว์หายไปหลายเม็ดในครั้งเดียว (มากกว่า 3) → ไม่รับ ให้เครื่องนั้นโหลดของล่าสุดจากเซิร์ฟเวอร์ */
+      if (!(+b.build >= MIN_BUILD)) return out(426, { err: 'เกมเวอร์ชันเก่า กรุณารีเฟรชหน้าเกม' });
+      { const o = u.save || {}; if ((+o.bag | 0) > (+save.bag | 0)) save.bag = +o.bag | 0;
+        if (o.safe && save.safe && (+o.safe.lv | 0) > (+save.safe.lv | 0)) save.safe.lv = +o.safe.lv | 0;
+        const oc = o.showcase && typeof o.showcase === 'object' ? Object.keys(o.showcase).length : 0, nc = save.showcase && typeof save.showcase === 'object' ? Object.keys(save.showcase).length : 0;
+        if (oc - nc > 3) return out(409, { err: 'ข้อมูลตู้โชว์ไม่ตรงกับเซิร์ฟเวอร์ — โหลดข้อมูลล่าสุดใหม่', rev: u.rev | 0 }); }
       const P = pubOf(save, b.pub), rev = await store.save(u.lname, save, P.pub, P.lv, P.gval); { const c = ctyOfMap(save.pos && save.pos.map); if (c) touch(u.lname, u.name, c); } /* ประเทศล่าสุดจากเซฟ */
       return out(200, { ok: true, rev });
     }

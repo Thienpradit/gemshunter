@@ -10421,7 +10421,7 @@ const NET = (() => {
   };
 
   // ---------- ส่งเซฟขึ้นเซิร์ฟเวอร์ ----------
-  function payload() { let pub = {}; try { const g = myBestGem(); if (g) pub = { gem: g, value: estValue(g) }; } catch (e) {} return { rev: N.rev, save: STATE, pub }; }
+  function payload() { let pub = {}; try { const g = myBestGem(); if (g) pub = { gem: g, value: estValue(g) }; } catch (e) {} return { rev: N.rev, save: STATE, pub, build: +window.GAME_BUILD || 0 }; }
   let travelSyncQueued = false;
   N.syncTravel = () => {
     if (!N.online) return;
@@ -10437,6 +10437,7 @@ const NET = (() => {
     N.busy = false;
     if (r.status === 200) { N.rev = r.data.rev | 0; if (p) { ls.set(revKey(p.id), String(N.rev)); ls.del(pendingKey(p.id)); } N.lastOk = Date.now(); N.err = ''; }
     else if (r.status === 409) conflict();
+    else if (r.status === 426) { saveLocked = true; blockScreen('มีเกมเวอร์ชันใหม่', 'เครื่องนี้ใช้เกมเวอร์ชันเก่า กรุณารีเฟรชหน้าเกมก่อนเล่นต่อ (ป้องกันข้อมูลหาย)', 'รีเฟรช', () => location.reload()); }
     else if (r.status === 401 || r.status === 403) { ls.del(TK); blockScreen('ต้องเข้าสู่ระบบใหม่', r.data.err || 'การเข้าสู่ระบบหมดอายุ (อาจเปลี่ยนรหัสผ่านจากอีกเครื่อง)', 'เข้าสู่ระบบ', () => location.reload()); }
     else { N.dirty = true; N.err = r.data.err || 'ส่งเซฟไม่สำเร็จ'; }
     if (r.status === 200 && travelSyncQueued) N.sync(opt);
@@ -12023,7 +12024,7 @@ const UI = (() => {
   return api;
 })();
 
-window.GAME_BUILD="1795230600";
+window.GAME_BUILD="1795241374";
 // ================= แจ้งเตือนเมื่อมีเวอร์ชันใหม่ (หลัง Deploy บน Render) =================
 // ทุก 60 วินาที (และตอนกลับมาที่แท็บ) ถาม /version (ข้อมูลไม่กี่ไบต์) ถ้าเลขเวอร์ชันเปลี่ยน = มีอัปเดต → แสดงแถบด้านบน • ไม่โหลดหน้าเกมทั้งหน้าซ้ำ (หน้าเกมใหญ่หลาย MB)
 (function () {
